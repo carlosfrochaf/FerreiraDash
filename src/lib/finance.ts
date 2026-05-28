@@ -90,9 +90,42 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     take: 5,
   });
 
-  const serializarTransacao = (t: Omit<TransacaoComRelacoes, "valor"> & { valor: Prisma.Decimal }) => ({
-    ...t,
+  const serializarTransacao = (t: any): any => ({
+    id: t.id,
+    tipo: t.tipo,
     valor: Number(t.valor),
+    dataCompetencia: t.dataCompetencia.toISOString().slice(0, 10),
+    dataPagamento: t.dataPagamento ? t.dataPagamento.toISOString().slice(0, 10) : "",
+    status: t.status,
+    descricao: t.descricao ?? "",
+    processoNumero: t.processoNumero ?? "",
+    clienteNome: t.clienteNome ?? "",
+    reclamada: t.reclamada ?? "",
+    anexoUrl: t.anexoUrl ?? "",
+    anexoNome: t.anexoNome ?? "",
+    categoria: {
+      id: t.categoria.id,
+      nome: t.categoria.nome,
+      tipo: t.categoria.tipo,
+    },
+    processo: t.processo
+      ? {
+          id: t.processo.id,
+          numeroPje: t.processo.numeroPje,
+          nomeAcao: t.processo.nomeAcao,
+          cliente: {
+            id: t.processo.cliente.id,
+            nome: t.processo.cliente.nome,
+          },
+        }
+      : null,
+    contato: t.contato
+      ? {
+          id: t.contato.id,
+          nome: t.contato.nome,
+          tipo: t.contato.tipo,
+        }
+      : null,
   });
 
   return {

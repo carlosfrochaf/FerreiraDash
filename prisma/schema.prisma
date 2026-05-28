@@ -1,0 +1,140 @@
+// Ferreira & Rocha — Controle Financeiro Jurídico
+// Dev: SQLite (sem Docker) | Produção: PostgreSQL (ver README)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoTransacao {
+  ENTRADA
+  SAIDA
+}
+
+enum StatusTransacao {
+  PAGO
+  PENDENTE
+  NAO_PAGO
+}
+
+model Categoria {
+  id        String        @id @default(cuid())
+  nome      String
+  slug      String?       @unique // Slugs do sistema (ex: "AUDIENCIA", "REPASSE_CLIENTE")
+  tipo      TipoTransacao
+  ativo     Boolean       @default(true)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  transacoes Transacao[]
+
+  @@map("categorias")
+}
+
+enum TipoContato {
+  CLIENTE
+  ADVOGADO_PARCEIRO
+  FORNECEDOR
+  COLABORADOR
+}
+
+model Contato {
+  id        String   @id @default(cuid())
+  nome      String
+  tipo      TipoContato
+  email     String?
+  telefone  String?
+  cpfCnpj   String?  @map("cpf_cnpj")
+  pixChave  String?  @map("pix_chave")
+  banco     String?
+  agencia   String?
+  conta     String?
+  observacoes String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  processos    Processo[]
+  transacoes   Transacao[]
+
+  @@map("contatos")
+}
+
+model Processo {
+  id            String   @id @default(cuid())
+  numeroPje     String   @unique @map("numero_pje")
+  nomeAcao      String   @map("nome_acao")
+  clienteId     String   @map("cliente_id")
+  cliente       Contato  @relation(fields: [clienteId], references: [id])
+  observacoes   String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  transacoes    Transacao[]
+  repasses      Repasse[]
+
+  @@index([clienteId])
+  @@map("processos")
+}
+
+model Transacao {
+  id                String             @id @default(cuid())
+  tipo              TipoTransacao
+  valor             Decimal
+  dataCompetencia   DateTime           @map("data_competencia")
+  dataPagamento     DateTime?          @map("data_pagamento")
+  status            StatusTransacao    @default(PENDENTE)
+  descricao         String?
+  anexoUrl          String?            @map("anexo_url")
+  anexoNome         String?            @map("anexo_nome")
+
+  // Novos campos opcionais da Causa Jurídica
+  processoNumero    String?            @map("processo_numero")
+  clienteNome       String?            @map("cliente_nome")
+  reclamada         String?
+
+  categoriaId       String             @map("categoria_id")
+  categoria         Categoria          @relation(fields: [categoriaId], references: [id])
+
+  processoId        String?            @map("processo_id")
+  processo          Processo?          @relation(fields: [processoId], references: [id])
+  contatoId         String?            @map("contato_id")
+  contato           Contato?           @relation(fields: [contatoId], references: [id])
+
+  repasseId         String?            @map("repasse_id")
+  repasse           Repasse?           @relation(fields: [repasseId], references: [id])
+
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  @@index([tipo, status])
+  @@index([categoriaId])
+  @@index([dataCompetencia])
+  @@index([processoId])
+  @@index([contatoId])
+  @@map("transacoes")
+}
+
+/// Registro do fluxo de repasse jurídico (alvará → honorários escritório + repasse cliente)
+model Repasse {
+  id                    String    @id @default(cuid())
+  processoId            String    @map("processo_id")
+  processo              Processo  @relation(fields: [processoId], references: [id])
+  valorTotalRecebido    Decimal   @map("valor_total_recebido")
+  percentualEscritorio  Decimal   @map("percentual_escritorio")
+  valorEscritorio       Decimal   @map("valor_escritorio")
+  valorCliente          Decimal   @map("valor_cliente")
+  dataRecebimento       DateTime  @map("data_recebimento")
+  observacoes           String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  transacoes            Transacao[]
+
+  @@index([processoId])
+  @@map("repasses")
+}

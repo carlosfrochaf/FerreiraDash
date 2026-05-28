@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ferreira-rocha-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ferreira_rocha
+    ports:
+      - "5432:5432"
+    volumes:
+      - ferreira_rocha_pg:/var/lib/postgresql/data
+
+volumes:
+  ferreira_rocha_pg:

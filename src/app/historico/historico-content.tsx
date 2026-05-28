@@ -68,7 +68,7 @@ export function HistoricoContent({ initialTransacoes }: Props) {
   const [filtroTipo, setFiltroTipo] = useState<"TODOS" | "ENTRADA" | "SAIDA">("TODOS");
   const [filtroStatus, setFiltroStatus] = useState<"TODOS" | "PAGO" | "PENDENTE" | "NAO_PAGO">("TODOS");
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Filtragem dinâmica
   const transacoesFiltradas = useMemo(() => {

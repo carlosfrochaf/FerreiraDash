@@ -7,7 +7,8 @@ import type {
   Transacao,
 } from "@prisma/client";
 
-export type TransacaoComRelacoes = Transacao & {
+export type TransacaoComRelacoes = Omit<Transacao, "valor"> & {
+  valor: number;
   processo?: (Processo & { cliente: Contato }) | null;
   contato?: Contato | null;
 };

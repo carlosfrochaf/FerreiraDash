@@ -163,7 +163,7 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
 
               {selectedItem.descricao && (
                 <p className="text-xs text-muted-foreground italic bg-muted/10 p-2.5 rounded-lg border border-border/30">
-                  "{selectedItem.descricao}"
+                  &ldquo;{selectedItem.descricao}&rdquo;
                 </p>
               )}
 

@@ -6,7 +6,7 @@ import {
 import { startOfMonth, endOfMonth, format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { prisma } from "./prisma";
-import type { DashboardResumo } from "@/types";
+import type { DashboardResumo, TransacaoComRelacoes } from "@/types";
 import { calcularRepasse } from "./repasse-calculator";
 
 export { calcularRepasse };
@@ -90,7 +90,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     take: 5,
   });
 
-  const serializarTransacao = (t: any) => ({
+  const serializarTransacao = (t: Omit<TransacaoComRelacoes, "valor"> & { valor: Prisma.Decimal }) => ({
     ...t,
     valor: Number(t.valor),
   });

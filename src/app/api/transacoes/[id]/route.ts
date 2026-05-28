@@ -15,6 +15,7 @@ export async function PATCH(
     const { id } = await params;
     const contentType = request.headers.get("content-type") || "";
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatePayload: any = {};
     let anexoFile: File | null = null;
 
@@ -63,6 +64,7 @@ export async function PATCH(
       );
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
     if (data.tipo !== undefined) updateData.tipo = data.tipo;
     if (data.categoriaId !== undefined) updateData.categoriaId = data.categoriaId;

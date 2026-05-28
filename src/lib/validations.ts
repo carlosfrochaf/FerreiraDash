@@ -24,7 +24,9 @@ export const categoriaSchema = z.object({
 });
 
 export const repasseSchema = z.object({
-  processoId: z.string().min(1),
+  processoId: z.string().optional(),
+  processoNumero: z.string().optional(),
+  clienteNome: z.string().optional(),
   valorTotalRecebido: z.number().positive(),
   percentualEscritorio: z.number().min(1).max(99),
   dataRecebimento: z.string().min(1),

@@ -5,9 +5,9 @@ const prisma = new PrismaClient();
 async function main() {
   // Carga inicial de categorias padrão do sistema
   const categoriasPadrao = [
-    { nome: "Honorários Contratuais", slug: "HONORARIOS_CONTRATUAIS", tipo: "ENTRADA" },
+    { nome: "Outro", slug: "HONORARIOS_CONTRATUAIS", tipo: "ENTRADA" },
     { nome: "Honorários de Sucumbência", slug: "HONORARIOS_SUCUMBENCIA", tipo: "ENTRADA" },
-    { nome: "Alvará / Causa Ganha", slug: "ALVARA_CAUSA_GANHA", tipo: "ENTRADA" },
+    { nome: "Causa Ganha", slug: "ALVARA_CAUSA_GANHA", tipo: "ENTRADA" },
     { nome: "Honorários do Escritório", slug: "HONORARIOS_ESCRITORIO", tipo: "ENTRADA" },
     { nome: "Audiência", slug: "AUDIENCIA", tipo: "SAIDA" },
     { nome: "Repasse ao Cliente", slug: "REPASSE_CLIENTE", tipo: "SAIDA" },

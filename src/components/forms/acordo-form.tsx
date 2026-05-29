@@ -492,18 +492,6 @@ export function AcordoForm({ processos, contatos, categorias }: Props) {
               </div>
             </div>
 
-            <div className="rounded-xl bg-muted/40 border border-border/40 p-3 space-y-2 text-xs">
-              <p className="font-bold text-foreground flex items-center gap-1.5 text-[11px]">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Como funciona o recebível?
-              </p>
-              <p className="text-muted-foreground leading-relaxed text-[11px]">
-                O sistema criará {numeroParcelas} lançamentos individuais do tipo <b>Entrada</b> programados de mês em mês a partir de {dataPrimeiroVencimento ? format(new Date(dataPrimeiroVencimento + "T00:00:00"), "dd/MM/yyyy") : "hoje"}.
-              </p>
-              <p className="text-muted-foreground leading-relaxed text-[11px]">
-                Cada parcela aparecerá no seu <b>Histórico</b> e nos relatórios mensais como "Pendente", e você poderá marcá-las como "Pago" uma por uma conforme a reclamada realizar as transferências.
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>

@@ -55,12 +55,12 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="h-[400px] flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between shrink-0">
           <CardTitle className="text-base">{title}</CardTitle>
           <Badge variant={variant}>{items.length}</Badge>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="flex-1 space-y-3 overflow-y-auto pr-1.5 scroll-smooth">
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           ) : (

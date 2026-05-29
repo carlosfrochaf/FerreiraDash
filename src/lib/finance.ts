@@ -73,7 +73,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
       contato: true,
     },
     orderBy: { dataCompetencia: "asc" },
-    take: 5,
+    take: 30,
   });
 
   const audienciasPendentes = await prisma.transacao.findMany({
@@ -87,7 +87,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
       contato: true,
     },
     orderBy: { dataCompetencia: "asc" },
-    take: 5,
+    take: 30,
   });
 
   const recebiveisPendentes = await prisma.transacao.findMany({
@@ -101,7 +101,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
       contato: true,
     },
     orderBy: { dataCompetencia: "asc" },
-    take: 5,
+    take: 30,
   });
 
   const serializarTransacao = (t: any): any => ({

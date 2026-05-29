@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
-import { LancamentoForm } from "@/components/forms/lancamento-form";
+import { FormWrapper } from "@/components/forms/form-wrapper";
 import { prisma } from "@/lib/prisma";
 
 async function getFormData() {
@@ -74,7 +74,7 @@ async function LancamentoPageContent({ editId }: { editId?: string }) {
   ]);
 
   return (
-    <LancamentoForm
+    <FormWrapper
       processos={processos}
       contatos={contatos}
       categorias={categorias}

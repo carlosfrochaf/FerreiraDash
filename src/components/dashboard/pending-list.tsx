@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import type { TransacaoComRelacoes } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,13 +15,20 @@ type Props = {
   title: string;
   items: TransacaoComRelacoes[];
   emptyMessage: string;
-  variant?: "warning" | "danger";
+  variant?: "warning" | "danger" | "success";
 };
 
 export function PendingList({ title, items, emptyMessage, variant = "warning" }: Props) {
   const router = useRouter();
   const [selectedItem, setSelectedItem] = useState<TransacaoComRelacoes | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const valueColor =
+    variant === "success"
+      ? "text-emerald-400"
+      : variant === "danger"
+      ? "text-rose-400"
+      : "text-amber-400";
 
   async function handleMarkAsPaid(id: string) {
     startTransition(async () => {
@@ -75,7 +82,7 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
                       {format(new Date(item.dataCompetencia), "dd MMM yyyy", { locale: ptBR })}
                     </p>
                   </div>
-                  <p className="shrink-0 font-semibold text-rose-400 text-sm">{formatCurrency(Number(item.valor))}</p>
+                  <p className={cn("shrink-0 font-semibold text-sm", valueColor)}>{formatCurrency(Number(item.valor))}</p>
                 </div>
               </button>
             ))
@@ -103,8 +110,8 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
 
             <div className="flex flex-col space-y-4">
               <div>
-                <Badge variant={variant === "danger" ? "danger" : "warning"} className="mb-2">
-                  Pagamento Pendente
+                <Badge variant={variant} className="mb-2">
+                  {variant === "success" ? "Recebimento Pendente" : "Pagamento Pendente"}
                 </Badge>
                 <h3 className="text-lg font-bold text-foreground">Opções do Lançamento</h3>
                 <p className="text-xs text-muted-foreground">Escolha uma ação para esta transação pendente.</p>
@@ -155,7 +162,7 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
 
                 <div className="pt-2 border-t border-border/50 flex justify-between items-baseline">
                   <span className="text-xs font-bold text-muted-foreground uppercase">Valor do Lançamento</span>
-                  <span className="text-xl font-extrabold text-rose-400">
+                  <span className={cn("text-xl font-extrabold", valueColor)}>
                     {formatCurrency(Number(selectedItem.valor))}
                   </span>
                 </div>

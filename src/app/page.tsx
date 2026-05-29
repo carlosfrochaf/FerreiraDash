@@ -27,7 +27,13 @@ async function DashboardContent() {
 
       <CashFlowChart data={resumo.fluxoMensal} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <PendingList
+          title="Próximos Pagamentos a Receber"
+          items={resumo.recebiveisPendentes}
+          emptyMessage="Nenhum pagamento a receber pendente."
+          variant="success"
+        />
         <PendingList
           title="Próximos Repasses a Clientes"
           items={resumo.repassesPendentes}

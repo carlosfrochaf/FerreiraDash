@@ -20,6 +20,7 @@ export type DashboardResumo = {
   fluxoMensal: { mes: string; entradas: number; saidas: number }[];
   repassesPendentes: TransacaoComRelacoes[];
   audienciasPendentes: TransacaoComRelacoes[];
+  recebiveisPendentes: TransacaoComRelacoes[];
 };
 
 export type LancamentoFormData = {

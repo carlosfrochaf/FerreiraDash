@@ -90,6 +90,20 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     take: 5,
   });
 
+  const recebiveisPendentes = await prisma.transacao.findMany({
+    where: {
+      tipo: TipoTransacao.ENTRADA,
+      status: StatusTransacao.PENDENTE,
+    },
+    include: {
+      categoria: true,
+      processo: { include: { cliente: true } },
+      contato: true,
+    },
+    orderBy: { dataCompetencia: "asc" },
+    take: 5,
+  });
+
   const serializarTransacao = (t: any): any => ({
     id: t.id,
     tipo: t.tipo,
@@ -135,6 +149,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     fluxoMensal,
     repassesPendentes: repassesPendentes.map(serializarTransacao),
     audienciasPendentes: audienciasPendentes.map(serializarTransacao),
+    recebiveisPendentes: recebiveisPendentes.map(serializarTransacao),
   };
 }
 

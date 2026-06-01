@@ -4,10 +4,9 @@ services:
     container_name: ferreira-rocha-db
     restart: unless-stopped
     environment:
-      environment:
-  POSTGRES_USER: ${DB_USER}
-  POSTGRES_PASSWORD: ${DB_PASSWORD}
-  POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ferreira_rocha}
     ports:
       - "5432:5432"
     volumes:

@@ -64,28 +64,66 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           ) : (
-            items.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setSelectedItem(item)}
-                className="w-full text-left block rounded-xl border border-border/70 p-3 transition-colors hover:bg-accent/40 cursor-pointer"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground text-sm">
-                      {item.processo?.cliente.nome ?? item.contato?.nome ?? "Sem contato"}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {item.descricao ?? item.processo?.numeroPje}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {format(new Date(item.dataCompetencia), "dd MMM yyyy", { locale: ptBR })}
-                    </p>
+            items.map((item) => {
+              const dateObj = new Date(item.dataCompetencia);
+              const itemDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+              const today = new Date();
+              const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+              const diffTime = itemDate.getTime() - todayDate.getTime();
+              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // usa floor para compensar fusos no calculo de dias completos
+              
+              const isTodayOrOverdue = diffDays <= 0;
+              const isUpcomingCritical = diffDays > 0 && diffDays <= 3;
+
+              let borderClass = "border-border/70 hover:bg-accent/40 hover:border-border";
+              let badgeText = null;
+
+              if (isTodayOrOverdue) {
+                borderClass = "border-red-500/30 bg-red-500/5 shadow-md shadow-red-500/5 hover:bg-red-500/10 hover:border-red-500/50";
+                badgeText = diffDays < 0 ? "Atrasado" : "Vence Hoje";
+              } else if (isUpcomingCritical) {
+                borderClass = "border-amber-500/30 bg-amber-500/5 shadow-md shadow-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/50";
+                badgeText = `Vence em ${diffDays}d`;
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedItem(item)}
+                  className={cn(
+                    "w-full text-left block rounded-xl border p-3 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 cursor-pointer",
+                    borderClass
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground text-sm">
+                        {item.processo?.cliente.nome ?? item.contato?.nome ?? "Sem contato"}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {item.descricao ?? item.processo?.numeroPje}
+                      </p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {format(new Date(item.dataCompetencia), "dd MMM yyyy", { locale: ptBR })}
+                        </span>
+                        {badgeText && (
+                          <span className={cn(
+                            "inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-inset shrink-0 uppercase tracking-wider",
+                            isTodayOrOverdue 
+                              ? "bg-red-500/10 text-red-400 ring-red-500/20" 
+                              : "bg-amber-500/10 text-amber-400 ring-amber-500/20"
+                          )}>
+                            {badgeText}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className={cn("shrink-0 font-semibold text-sm", valueColor)}>{formatCurrency(Number(item.valor))}</p>
                   </div>
-                  <p className={cn("shrink-0 font-semibold text-sm", valueColor)}>{formatCurrency(Number(item.valor))}</p>
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </CardContent>
       </Card>

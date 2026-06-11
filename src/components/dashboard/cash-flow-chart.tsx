@@ -53,6 +53,16 @@ export function CashFlowChart({ data }: Props) {
       <CardContent className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+              </linearGradient>
+              <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="mes" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
             <YAxis
@@ -66,8 +76,22 @@ export function CashFlowChart({ data }: Props) {
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <Bar dataKey="entradas" name="Entradas" fill="#34d399" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="saidas" name="Saídas" fill="#fb7185" radius={[6, 6, 0, 0]} />
+            <Bar 
+              dataKey="entradas" 
+              name="Entradas" 
+              fill="url(#colorEntradas)" 
+              stroke="#10b981"
+              strokeWidth={1.5}
+              radius={[6, 6, 0, 0]} 
+            />
+            <Bar 
+              dataKey="saidas" 
+              name="Saídas" 
+              fill="url(#colorSaidas)" 
+              stroke="#f43f5e"
+              strokeWidth={1.5}
+              radius={[6, 6, 0, 0]} 
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

@@ -16,10 +16,57 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
   const inicioMes = startOfMonth(agora);
   const fimMes = endOfMonth(agora);
 
-  const transacoesPagas = await prisma.transacao.findMany({
-    where: { status: StatusTransacao.PAGO },
-    select: { tipo: true, valor: true, dataCompetencia: true },
-  });
+  // Executa todas as consultas de banco em paralelo para reduzir a latência de round-trip
+  const [
+    transacoesPagas,
+    repassesPendentes,
+    audienciasPendentes,
+    recebiveisPendentes,
+  ] = await Promise.all([
+    prisma.transacao.findMany({
+      where: { status: StatusTransacao.PAGO },
+      select: { tipo: true, valor: true, dataCompetencia: true },
+    }),
+    prisma.transacao.findMany({
+      where: {
+        categoria: { slug: "REPASSE_CLIENTE" },
+        status: StatusTransacao.PENDENTE,
+      },
+      include: {
+        categoria: true,
+        processo: { include: { cliente: true } },
+        contato: true,
+      },
+      orderBy: { dataCompetencia: "asc" },
+      take: 30,
+    }),
+    prisma.transacao.findMany({
+      where: {
+        categoria: { slug: "AUDIENCIA" },
+        status: StatusTransacao.PENDENTE,
+      },
+      include: {
+        categoria: true,
+        processo: { include: { cliente: true } },
+        contato: true,
+      },
+      orderBy: { dataCompetencia: "asc" },
+      take: 30,
+    }),
+    prisma.transacao.findMany({
+      where: {
+        tipo: TipoTransacao.ENTRADA,
+        status: StatusTransacao.PENDENTE,
+      },
+      include: {
+        categoria: true,
+        processo: { include: { cliente: true } },
+        contato: true,
+      },
+      orderBy: { dataCompetencia: "asc" },
+      take: 30,
+    }),
+  ]);
 
   let saldoAtual = 0;
   let entradasMes = 0;
@@ -61,48 +108,6 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
       saidas,
     });
   }
-
-  const repassesPendentes = await prisma.transacao.findMany({
-    where: {
-      categoria: { slug: "REPASSE_CLIENTE" },
-      status: StatusTransacao.PENDENTE,
-    },
-    include: {
-      categoria: true,
-      processo: { include: { cliente: true } },
-      contato: true,
-    },
-    orderBy: { dataCompetencia: "asc" },
-    take: 30,
-  });
-
-  const audienciasPendentes = await prisma.transacao.findMany({
-    where: {
-      categoria: { slug: "AUDIENCIA" },
-      status: StatusTransacao.PENDENTE,
-    },
-    include: {
-      categoria: true,
-      processo: { include: { cliente: true } },
-      contato: true,
-    },
-    orderBy: { dataCompetencia: "asc" },
-    take: 30,
-  });
-
-  const recebiveisPendentes = await prisma.transacao.findMany({
-    where: {
-      tipo: TipoTransacao.ENTRADA,
-      status: StatusTransacao.PENDENTE,
-    },
-    include: {
-      categoria: true,
-      processo: { include: { cliente: true } },
-      contato: true,
-    },
-    orderBy: { dataCompetencia: "asc" },
-    take: 30,
-  });
 
   const serializarTransacao = (t: any): any => ({
     id: t.id,

@@ -60,9 +60,12 @@ async function getTransacoes() {
   }));
 }
 
-export default async function HistoricoPage() {
+async function HistoricoList() {
   const transacoes = await getTransacoes();
+  return <HistoricoContent initialTransacoes={transacoes} />;
+}
 
+export default function HistoricoPage() {
   return (
     <div className="space-y-6">
       <section>
@@ -70,8 +73,8 @@ export default async function HistoricoPage() {
         <p className="text-sm text-muted-foreground">Extrato completo de lançamentos e fluxo de caixa</p>
       </section>
       
-      <Suspense fallback={<div className="text-muted-foreground">Carregando extrato...</div>}>
-        <HistoricoContent initialTransacoes={transacoes} />
+      <Suspense fallback={<div className="text-muted-foreground py-12 text-center animate-pulse text-sm">Carregando extrato de transações...</div>}>
+        <HistoricoList />
       </Suspense>
     </div>
   );

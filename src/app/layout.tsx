@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description: APP_SUBTITLE,
   applicationName: APP_NAME,
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {

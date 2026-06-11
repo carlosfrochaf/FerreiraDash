@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, PlusCircle, ArrowLeftRight, Scale, FolderEdit, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
+import { NotificationBell } from "./notification-bell";
 
 const navItems = [
   { href: "/", label: "Início", icon: Home },
@@ -30,13 +31,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <Link
-            href="/categorias"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-          >
-            <FolderEdit className="h-3.5 w-3.5" />
-            <span>Categorias</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Link
+              href="/categorias"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+            >
+              <FolderEdit className="h-3.5 w-3.5" />
+              <span>Categorias</span>
+            </Link>
+          </div>
         </div>
       </header>
 

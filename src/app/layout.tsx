@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   title: `${APP_NAME} | Financeiro`,
   description: APP_SUBTITLE,
   applicationName: APP_NAME,
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {

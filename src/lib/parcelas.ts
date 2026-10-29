@@ -206,3 +206,37 @@ export function validarParcelas(
   if (soma !== paraCentavos(valorTotal)) erros.push("A soma das parcelas é diferente do valor total.");
   return erros;
 }
+
+/**
+ * Valores das parcelas quando o usuário fixa algumas (ex.: entrada de R$ 4.000):
+ * o que sobra do total é dividido igualmente entre as parcelas não fixadas,
+ * com a diferença de centavos na última delas.
+ * `fixos[i]` = valor digitado para a parcela i, ou undefined se não foi mexida.
+ */
+export function distribuirRestante(
+  valorTotal: ValorEntrada,
+  fixos: (ValorEntrada | undefined)[]
+): { ok: true; valores: string[] } | { ok: false; erro: string } {
+  const total = paraCentavos(valorTotal);
+  const fixados = fixos.map((v) => (v === undefined ? null : paraCentavos(v)));
+  const somaFixos = fixados.reduce<bigint>((s, v) => s + (v ?? BigInt(0)), BigInt(0));
+  const livres = fixados.map((v, i) => (v === null ? i : -1)).filter((i) => i >= 0);
+  const restante = total - somaFixos;
+
+  if (livres.length === 0) {
+    if (restante === BigInt(0)) return { ok: true, valores: fixados.map((v) => centavosParaString(v!)) };
+    const abs = restante < BigInt(0) ? -restante : restante;
+    return {
+      ok: false,
+      erro: `As parcelas somam R$ ${centavosParaString(somaFixos).replace(".", ",")}: ${restante < BigInt(0) ? "passam" : "faltam"} R$ ${centavosParaString(abs).replace(".", ",")} ${restante < BigInt(0) ? "do" : "para o"} total.`,
+    };
+  }
+  if (restante < BigInt(livres.length)) {
+    return { ok: false, erro: "Os valores digitados já passam do total (ou não sobra o suficiente para as outras parcelas)." };
+  }
+
+  const partes = dividirIgual(restante, livres.length);
+  const valores = fixados.map((v) => (v === null ? "" : centavosParaString(v)));
+  livres.forEach((idx, k) => (valores[idx] = centavosParaString(partes[k])));
+  return { ok: true, valores };
+}

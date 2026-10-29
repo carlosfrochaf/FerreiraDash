@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatCurrency, maskCurrencyInput } from "@/lib/utils";
-import { calcularParcelas, centavosParaString, paraCentavos, MAX_PARCELAS, type ResultadoParcelas } from "@/lib/parcelas";
+import { calcularParcelas, centavosParaString, distribuirRestante, paraCentavos, MAX_PARCELAS, type ResultadoParcelas } from "@/lib/parcelas";
 import { dataLocal, hojeSaoPaulo } from "@/lib/datas";
 import type { RecebimentoSerializado } from "@/lib/recebimentos";
 
@@ -113,16 +113,13 @@ export function RecebimentoForm({ processos, inicial }: Props) {
       });
       if (!temAjustes) return { ok: true, r: base };
 
-      const valores = base.parcelas.map((p, i) => (ajustes[i]?.valor ? mascaraParaDecimal(ajustes[i].valor!) : p.valorParcela));
-      const soma = valores.reduce((acc, v) => acc + paraCentavos(v), BigInt(0));
-      const diferenca = soma - paraCentavos(totalDecimal);
-      if (diferenca !== BigInt(0)) {
-        const abs = diferenca < BigInt(0) ? -diferenca : diferenca;
-        return {
-          ok: false,
-          erro: `As parcelas somam ${formatCurrency(centavosParaString(soma))}: ${diferenca > BigInt(0) ? "sobram" : "faltam"} ${formatCurrency(centavosParaString(abs))} para fechar o total.`,
-        };
-      }
+      // Parcelas com valor digitado ficam fixas; o resto do total se divide entre as outras.
+      const dist = distribuirRestante(
+        totalDecimal,
+        base.parcelas.map((_, i) => (ajustes[i]?.valor ? mascaraParaDecimal(ajustes[i].valor!) : undefined))
+      );
+      if (!dist.ok) return { ok: false, erro: dist.erro };
+      const valores = dist.valores;
       const r = calcularParcelas({
         valorTotal: totalDecimal,
         percentualEscritorio: percentual || "0",
@@ -138,7 +135,15 @@ export function RecebimentoForm({ processos, inicial }: Props) {
   }, [totalDecimal, percentual, numeroParcelas, primeiroVencimento, ajustes, temAjustes]);
 
   function ajustar(i: number, campo: keyof Ajuste, valor: string) {
-    setAjustes((prev) => ({ ...prev, [i]: { ...prev[i], [campo]: valor } }));
+    setAjustes((prev) => {
+      const atual = { ...prev[i], [campo]: valor };
+      // Valor apagado (zero) volta a ser calculado automaticamente.
+      if (campo === "valor" && !/[1-9]/.test(valor)) delete atual.valor;
+      const novo = { ...prev };
+      if (atual.valor || atual.vencimento) novo[i] = atual;
+      else delete novo[i];
+      return novo;
+    });
   }
 
   function escolherProcesso(valor: string) {
@@ -476,6 +481,11 @@ export function RecebimentoForm({ processos, inicial }: Props) {
                       </button>
                     )}
                   </div>
+                  {numeroParcelas > 1 && !bloqueada && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Acordo com entrada maior? Digite o valor na parcela e as outras se ajustam sozinhas.
+                    </p>
+                  )}
                   <ul className={cn("max-h-[26rem] space-y-2 overflow-y-auto pr-1", bloqueada && "pointer-events-none opacity-70")} aria-disabled={bloqueada}>
                     {linhas.map((linha, i) => {
                       const ajustada = !!ajustes[i];

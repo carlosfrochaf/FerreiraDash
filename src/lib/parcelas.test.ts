@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  distribuirRestante,
   calcularParcelas,
   centavosParaString,
   gerarVencimentos,
@@ -182,5 +183,31 @@ describe("validarParcelas", () => {
       { numero: 1, valorParcela: "100.00", valorEscritorio: "30.00", valorCliente: "69.99" },
     ]);
     expect(erros).toHaveLength(1);
+  });
+});
+
+describe("distribuirRestante (entrada maior e o resto dividido)", () => {
+  it("R$ 8.000: entrada de 4.000 e 4 parcelas de 1.000", () => {
+    expect(distribuirRestante("8000", ["4000", undefined, undefined, undefined, undefined])).toEqual({
+      ok: true,
+      valores: ["4000.00", "1000.00", "1000.00", "1000.00", "1000.00"],
+    });
+  });
+
+  it("fixa duas parcelas no meio e divide o resto com centavos na última livre", () => {
+    const r = distribuirRestante("1000", [undefined, "500", undefined, "200"]);
+    expect(r).toEqual({ ok: true, valores: ["150.00", "500.00", "150.00", "200.00"] });
+    const r2 = distribuirRestante("100", ["10", undefined, undefined, undefined]);
+    expect(r2.ok && r2.valores).toEqual(["10.00", "30.00", "30.00", "30.00"]);
+    const r3 = distribuirRestante("100", ["0.01", undefined, undefined]);
+    expect(r3.ok && r3.valores).toEqual(["0.01", "49.99", "50.00"]);
+  });
+
+  it("erros: passou do total ou todas fixas sem fechar", () => {
+    expect(distribuirRestante("1000", ["1200", undefined]).ok).toBe(false);
+    const r = distribuirRestante("1000", ["600", "300"]);
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.erro).toContain("faltam R$ 100,00");
+    expect(distribuirRestante("1000", ["600", "400"]).ok).toBe(true);
   });
 });

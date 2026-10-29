@@ -1,5 +1,5 @@
 // Ferreira & Rocha — Controle Financeiro Jurídico
-// Dev: SQLite (sem Docker) | Produção: PostgreSQL (ver README)
+// Banco: PostgreSQL (dev e produção). Alterações via `prisma migrate`.
 
 generator client {
   provider = "prisma-client-js"
@@ -78,6 +78,7 @@ model Processo {
 
   transacoes    Transacao[]
   repasses      Repasse[]
+  recebimentos  Recebimento[]
 
   @@index([clienteId])
   @@map("processos")
@@ -138,6 +139,65 @@ model Repasse {
 
   @@index([processoId])
   @@map("repasses")
+}
+
+enum StatusRecebimento {
+  PENDENTE
+  RECEBIDO
+}
+
+enum StatusRepasse {
+  PENDENTE
+  REPASSADO
+}
+
+/// Causa/acordo: valor total dividido em parcelas, com a parte do escritório e a do cliente.
+model Recebimento {
+  id                     String    @id @default(cuid())
+  processoId             String?   @map("processo_id")
+  processo               Processo? @relation(fields: [processoId], references: [id])
+  processoNumero         String?   @map("processo_numero")
+  clienteNome            String    @map("cliente_nome")
+  reclamada              String?
+  valorTotal             Decimal   @map("valor_total") @db.Decimal(14, 2)
+  percentualEscritorio   Decimal   @map("percentual_escritorio") @db.Decimal(5, 2)
+  numeroParcelas         Int       @map("numero_parcelas")
+  dataPrimeiroVencimento DateTime  @map("data_primeiro_vencimento") @db.Date
+  diaVencimento          Int       @map("dia_vencimento")
+  observacoes            String?
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  parcelas               Parcela[]
+
+  @@index([processoId])
+  @@map("recebimentos")
+}
+
+/// Uma linha por parcela (à vista = 1 parcela). Valores calculados e gravados na criação.
+model Parcela {
+  id                     String            @id @default(cuid())
+  recebimentoId          String            @map("recebimento_id")
+  recebimento            Recebimento       @relation(fields: [recebimentoId], references: [id], onDelete: Cascade)
+  numero                 Int
+  vencimento             DateTime          @db.Date
+  valorParcela           Decimal           @map("valor_parcela") @db.Decimal(14, 2)
+  valorEscritorio        Decimal           @map("valor_escritorio") @db.Decimal(14, 2)
+  valorCliente           Decimal           @map("valor_cliente") @db.Decimal(14, 2)
+  statusRecebimento      StatusRecebimento @default(PENDENTE) @map("status_recebimento")
+  dataRecebimento        DateTime?         @map("data_recebimento") @db.Date
+  statusRepasse          StatusRepasse     @default(PENDENTE) @map("status_repasse")
+  dataRepasse            DateTime?         @map("data_repasse") @db.Date
+  comprovanteRepasseUrl  String?           @map("comprovante_repasse_url")
+  comprovanteRepasseNome String?           @map("comprovante_repasse_nome")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  @@unique([recebimentoId, numero])
+  @@index([vencimento])
+  @@index([statusRecebimento, vencimento])
+  @@index([statusRepasse, statusRecebimento])
+  @@map("parcelas")
 }
 
 model PushSubscription {

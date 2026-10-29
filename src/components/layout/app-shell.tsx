@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, ArrowLeftRight, Scale, FolderEdit, History, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Home, PlusCircle, ArrowLeftRight, Scale, FolderEdit, History, Trash2, AlertTriangle, Loader2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { NotificationBell } from "./notification-bell";
@@ -51,6 +51,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function handleLogout() {
+    await fetch("/api/login", { method: "DELETE" }).catch(() => {});
+    window.location.replace("/login");
+  }
+
+  // A tela de login aparece sem cabeçalho e sem menu.
+  if (pathname === "/login") {
+    return <div className="min-h-dvh bg-background text-foreground">{children}</div>;
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-md">
@@ -81,6 +91,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <FolderEdit className="h-3.5 w-3.5" />
               <span>Categorias</span>
             </Link>
+            <button
+              onClick={handleLogout}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+              title="Sair"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>

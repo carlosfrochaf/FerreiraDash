@@ -200,6 +200,33 @@ model Parcela {
   @@map("parcelas")
 }
 
+enum StatusPagamento {
+  PENDENTE
+  PAGO
+}
+
+/// Audiência feita por um advogado (geralmente parceiro), que o escritório paga depois.
+model Audiencia {
+  id              String          @id @default(cuid())
+  data            DateTime        @db.Date
+  hora            String?         // "14:30"
+  advogadoNome    String          @map("advogado_nome")
+  clienteNome     String          @map("cliente_nome")
+  reclamada       String?
+  processoNumero  String?         @map("processo_numero")
+  /// Quanto o escritório paga ao advogado. Pode ser definido depois.
+  valor           Decimal?        @db.Decimal(14, 2)
+  statusPagamento StatusPagamento @default(PENDENTE) @map("status_pagamento")
+  dataPagamento   DateTime?       @map("data_pagamento") @db.Date
+  observacoes     String?
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@index([data])
+  @@index([statusPagamento, data])
+  @@map("audiencias")
+}
+
 model PushSubscription {
   id        String   @id @default(cuid())
   endpoint  String   @unique

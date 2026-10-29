@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, HandCoins, Scale, Settings2, History, LogOut } from "lucide-react";
+import { Home, PlusCircle, HandCoins, Scale, Settings2, History, LogOut, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { NotificationBell } from "./notification-bell";
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/", label: "Início", icon: Home },
   { href: "/lancamentos/novo", label: "Lançar", icon: PlusCircle },
   { href: "/recebimentos", label: "Recebimentos", icon: HandCoins },
+  { href: "/audiencias", label: "Audiências", icon: CalendarClock },
   { href: "/historico", label: "Histórico", icon: History },
 ];
 
@@ -93,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Navegação no celular */}
       <nav className="safe-area-pb fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-card/95 backdrop-blur-md md:hidden" aria-label="Principal">
-        <div className="mx-auto grid max-w-5xl grid-cols-4 gap-1 px-2 pt-2">
+        <div className="mx-auto grid max-w-5xl grid-cols-5 gap-0.5 px-1.5 pt-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isAtivo = ativo(pathname, item.href);
@@ -103,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 aria-current={isAtivo ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium transition-colors",
+                  "flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[10px] font-medium transition-colors",
                   isAtivo ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Gavel, Receipt } from "lucide-react";
+import { CalendarClock, Gavel, Receipt } from "lucide-react";
 import { LancamentoForm } from "./lancamento-form";
 import { RecebimentoForm } from "./recebimento-form";
+import { AudienciaForm, type SugestoesAudiencia } from "./audiencia-form";
 import { cn } from "@/lib/utils";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
@@ -16,16 +17,20 @@ type Props = {
   categorias: CategoriaOption[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transacaoEdicao?: any;
-  modoInicial?: "causa" | "simples";
+  modoInicial?: Modo;
+  sugestoesAudiencia: SugestoesAudiencia;
 };
 
+type Modo = "causa" | "audiencia" | "simples";
+
 const MODOS = [
-  { id: "causa", label: "Causa / acordo", desc: "Divide em parcelas e calcula o repasse", icon: Gavel },
-  { id: "simples", label: "Despesa ou entrada", desc: "Lançamento avulso", icon: Receipt },
+  { id: "causa", label: "Causa", desc: "Valor pago pela empresa, em parcelas", icon: Gavel },
+  { id: "audiencia", label: "Audiência", desc: "Data, advogado e valor", icon: CalendarClock },
+  { id: "simples", label: "Outro", desc: "Despesa ou entrada avulsa", icon: Receipt },
 ] as const;
 
-export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, modoInicial = "causa" }: Props) {
-  const [modo, setModo] = useState<"causa" | "simples">(modoInicial);
+export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, modoInicial = "causa", sugestoesAudiencia }: Props) {
+  const [modo, setModo] = useState<Modo>(modoInicial);
 
   // Edição de um lançamento existente: só o formulário simples, sem abas.
   if (transacaoEdicao) {
@@ -34,7 +39,7 @@ export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, 
 
   return (
     <div className="space-y-4">
-      <div role="tablist" aria-label="Tipo de lançamento" className="grid grid-cols-2 gap-2 sm:max-w-lg">
+      <div role="tablist" aria-label="Tipo de lançamento" className="grid grid-cols-3 gap-2 sm:max-w-2xl">
         {MODOS.map((m) => {
           const Icon = m.icon;
           const ativo = modo === m.id;
@@ -45,7 +50,7 @@ export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, 
               aria-selected={ativo}
               onClick={() => setModo(m.id)}
               className={cn(
-                "flex items-center gap-2.5 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex flex-col items-start gap-1.5 rounded-xl border p-3 text-left transition-colors sm:flex-row sm:items-center sm:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 ativo ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-accent"
               )}
             >
@@ -61,6 +66,8 @@ export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, 
 
       {modo === "causa" ? (
         <RecebimentoForm processos={processos} />
+      ) : modo === "audiencia" ? (
+        <AudienciaForm sugestoes={sugestoesAudiencia} />
       ) : (
         <LancamentoForm processos={processos} contatos={contatos} categorias={categorias} />
       )}

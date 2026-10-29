@@ -3,6 +3,7 @@ import { Suspense } from "react";
 export const dynamic = "force-dynamic";
 import { FormWrapper } from "@/components/forms/form-wrapper";
 import { prisma } from "@/lib/prisma";
+import { sugestoesAudiencia } from "@/lib/audiencias";
 
 async function getFormData() {
   const [processos, contatos, categorias] = await Promise.all([
@@ -45,9 +46,10 @@ async function getFormData() {
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
-async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: "causa" | "simples" }) {
-  const [{ processos, contatos, categorias }, transacaoEdicao] = await Promise.all([
+async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: "causa" | "audiencia" | "simples" }) {
+  const [{ processos, contatos, categorias }, sugestoes, transacaoEdicao] = await Promise.all([
     getFormData(),
+    sugestoesAudiencia(),
     editId
       ? prisma.transacao.findUnique({
           where: { id: editId },
@@ -80,6 +82,7 @@ async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: 
       categorias={categorias}
       transacaoEdicao={transacaoEdicao ?? undefined}
       modoInicial={modo}
+      sugestoesAudiencia={sugestoes}
     />
   );
 }
@@ -98,7 +101,8 @@ export default async function NovoLancamentoPage(props: {
 }) {
   const searchParams = await props.searchParams;
   const editId = typeof searchParams.edit === "string" ? searchParams.edit : undefined;
-  const modo = searchParams.modo === "simples" || searchParams.tipo ? "simples" : "causa";
+  const modo =
+    searchParams.modo === "simples" || searchParams.tipo ? "simples" : searchParams.modo === "audiencia" ? "audiencia" : "causa";
 
   return (
     <div className="space-y-4">
@@ -107,7 +111,7 @@ export default async function NovoLancamentoPage(props: {
           {editId ? "Editar lançamento" : "Novo lançamento"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {editId ? "Atualize os dados deste lançamento" : "Uma causa vira parcelas com a parte do escritório e a do cliente"}
+          {editId ? "Atualize os dados deste lançamento" : "Causa, audiência ou outro lançamento"}
         </p>
       </section>
       <Suspense fallback={<FormFallback />}>

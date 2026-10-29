@@ -1,3 +1,4 @@
+import type { AudienciaSerializada } from "@/lib/audiencias";
 import type {
   Contato,
   Processo,
@@ -46,7 +47,8 @@ export type DashboardResumo = {
   fluxoMensal: { mes: string; entradas: number; saidas: number }[];
   proximasEntradas: ParcelaResumo[];
   repassesClientes: ParcelaResumo[];
-  audienciasPendentes: TransacaoComRelacoes[];
+  proximasAudiencias: AudienciaSerializada[];
+  audienciasAPagar: AudienciaSerializada[];
   recebiveisPendentes: TransacaoComRelacoes[];
 };
 

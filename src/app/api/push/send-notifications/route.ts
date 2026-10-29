@@ -95,7 +95,8 @@ async function buscarDadosDoDia(hoje: string) {
     recebimento: { select: { clienteNome: true, reclamada: true, processoNumero: true, numeroParcelas: true } },
   } as const;
 
-  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje] = await Promise.all([
+  const amanha = new Date(dia.getTime() + 86_400_000);
+  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje, audienciasHoje, audienciasAmanha] = await Promise.all([
     prisma.parcela.findMany({
       where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: dia },
       include: incluir,
@@ -116,7 +117,17 @@ async function buscarDadosDoDia(hoje: string) {
       where: { status: StatusTransacao.PENDENTE, dataCompetencia: { gte: dia, lt: new Date(dia.getTime() + 86_400_000) } },
       select: { descricao: true, valor: true, tipo: true, clienteNome: true, categoria: { select: { nome: true } } },
     }),
+    prisma.audiencia.findMany({ where: { data: dia }, orderBy: { hora: "asc" } }),
+    prisma.audiencia.findMany({ where: { data: amanha }, orderBy: { hora: "asc" } }),
   ]);
+
+  const audiencia = (a: (typeof audienciasHoje)[number]) => ({
+    hora: a.hora,
+    clienteNome: a.clienteNome,
+    reclamada: a.reclamada,
+    advogadoNome: a.advogadoNome,
+    processoNumero: a.processoNumero,
+  });
 
   const aviso = (p: (typeof vencemHoje)[number]): ParcelaAviso => ({
     numero: p.numero,
@@ -134,6 +145,8 @@ async function buscarDadosDoDia(hoje: string) {
     vencemHoje: vencemHoje.map(aviso),
     atrasadas: atrasadas.map(aviso),
     repassesProntos: repassesProntos.map(aviso),
+    audienciasHoje: audienciasHoje.map(audiencia),
+    audienciasAmanha: audienciasAmanha.map(audiencia),
     lancamentosHoje: lancamentosHoje.map((t) => ({
       descricao: t.descricao || [t.categoria.nome, t.clienteNome].filter(Boolean).join(" · "),
       valor: Number(t.valor),

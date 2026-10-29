@@ -105,7 +105,7 @@ export function ParcelaModal({ parcela, onFechar }: Props) {
 
         <ol className="space-y-2 text-sm">
           <li className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground">1. Recebimento</span>
+            <span className="text-muted-foreground">1. Pagamento da empresa</span>
             <span className={recebida ? "font-medium text-emerald-400" : "text-muted-foreground"}>
               {recebida ? `Recebida em ${formatarData(p.dataRecebimento!)}` : "Pendente"}
             </span>
@@ -128,13 +128,13 @@ export function ParcelaModal({ parcela, onFechar }: Props) {
         {(!recebida || !repassada) && (
           <div className="space-y-2 rounded-xl border border-border p-3">
             <label htmlFor="data-acao" className="text-xs font-semibold text-muted-foreground">
-              {!recebida ? "Data em que o pagamento caiu" : "Data do repasse ao cliente"}
+              {!recebida ? "Data em que a empresa pagou" : "Data do repasse ao cliente"}
             </label>
             <Input id="data-acao" type="date" value={data} max={hojeSaoPaulo()} onChange={(e) => setData(e.target.value)} className="h-11" />
             {!recebida ? (
               <Button variant="success" className="w-full" disabled={pending || !data} onClick={() => executar({ acao: "receber", data })}>
                 {pending ? <Loader2 className="animate-spin" /> : <Check />}
-                Marcar como recebida
+                Recebido da empresa
               </Button>
             ) : (
               <Button className="w-full" disabled={pending || !data} onClick={() => executar({ acao: "repassar", data })}>

@@ -21,6 +21,14 @@ export interface LancamentoAviso {
   tipo: "ENTRADA" | "SAIDA";
 }
 
+export interface AudienciaAviso {
+  hora: string | null;
+  clienteNome: string;
+  reclamada: string | null;
+  advogadoNome: string;
+  processoNumero: string | null;
+}
+
 export interface DadosDoDia {
   /** Parcelas que vencem hoje e ainda não foram recebidas. */
   vencemHoje: ParcelaAviso[];
@@ -30,6 +38,9 @@ export interface DadosDoDia {
   repassesProntos: ParcelaAviso[];
   /** Lançamentos avulsos pendentes com data de hoje. */
   lancamentosHoje: LancamentoAviso[];
+  /** Audiências de hoje (aviso das 8h) e de amanhã (lembrete das 19h). */
+  audienciasHoje?: AudienciaAviso[];
+  audienciasAmanha?: AudienciaAviso[];
 }
 
 export interface Notificacao {
@@ -65,19 +76,42 @@ function listar<T>(itens: T[], linha: (t: T) => string) {
   return linhas.join("\n");
 }
 
+function linhaAudiencia(a: AudienciaAviso) {
+  return `${a.hora ? `${a.hora} · ` : ""}${a.clienteNome}${a.reclamada ? ` × ${a.reclamada}` : ""} · Adv. ${a.advogadoNome}`;
+}
+
+function avisoAudiencias(lista: AudienciaAviso[], quando: "hoje" | "amanhã", tag: string): Notificacao | null {
+  if (lista.length === 0) return null;
+  if (lista.length === 1) {
+    const a = lista[0];
+    return {
+      title: `Audiência ${quando}${a.hora ? ` às ${a.hora}` : ""}: ${a.clienteNome}`,
+      body: [a.reclamada ? `Empresa: ${a.reclamada}` : "", `Advogado: ${a.advogadoNome}`, a.processoNumero ? `Proc. ${a.processoNumero}` : ""]
+        .filter(Boolean)
+        .join("\n"),
+      url: "/audiencias",
+      tag,
+    };
+  }
+  return { title: `${lista.length} audiências ${quando}`, body: listar(lista, linhaAudiencia), url: "/audiencias", tag };
+}
+
 function plural(n: number, um: string, varios: string) {
   return n === 1 ? um : varios;
 }
 
 /**
- * Manhã (8h): o que vence hoje + repasses prontos + lançamentos avulsos do dia.
- * Noite (19h): o que venceu hoje e ainda não foi marcado + resumo das atrasadas.
+ * Manhã (8h): audiências de hoje + o que vence hoje + repasses prontos + lançamentos do dia.
+ * Noite (19h): audiências de amanhã + o que venceu hoje e não foi marcado + atrasadas.
  * Várias parcelas viram uma notificação só, para não gerar spam.
  */
 export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
   const out: Notificacao[] = [];
 
   if (turno === "manha") {
+    const aud = avisoAudiencias(d.audienciasHoje ?? [], "hoje", "audiencias-hoje");
+    if (aud) out.push(aud);
+
     if (d.vencemHoje.length === 1) {
       const p = d.vencemHoje[0];
       out.push({
@@ -121,6 +155,9 @@ export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
       });
     }
   } else {
+    const aud = avisoAudiencias(d.audienciasAmanha ?? [], "amanhã", "audiencias-amanha");
+    if (aud) out.push(aud);
+
     if (d.vencemHoje.length > 0) {
       const n = d.vencemHoje.length;
       out.push({

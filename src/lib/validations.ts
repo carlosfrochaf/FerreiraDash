@@ -69,3 +69,34 @@ export const parcelaAcaoSchema = z.discriminatedUnion("acao", [
 ]);
 
 export type ParcelaAcao = z.infer<typeof parcelaAcaoSchema>;
+
+// ---------- Audiências ----------
+
+export const audienciaSchema = z.object({
+  data: dataSchema,
+  hora: z
+    .string()
+    .trim()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora inválida (use HH:MM)")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  advogadoNome: z.string().trim().min(1, "Informe o advogado"),
+  clienteNome: z.string().trim().min(1, "Informe o cliente"),
+  reclamada: textoOpcional,
+  processoNumero: textoOpcional,
+  observacoes: textoOpcional,
+  /** Valor a pagar ao advogado; pode ficar em branco e ser definido depois. */
+  valor: z
+    .union([z.number(), z.string().trim()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+});
+
+export type AudienciaInput = z.infer<typeof audienciaSchema>;
+
+export const audienciaAcaoSchema = z.discriminatedUnion("acao", [
+  z.object({ acao: z.literal("pagar"), data: dataSchema.optional() }),
+  z.object({ acao: z.literal("desfazer_pagamento") }),
+]);
+
+export type AudienciaAcao = z.infer<typeof audienciaAcaoSchema>;

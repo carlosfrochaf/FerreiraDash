@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { ErroRecebimento, excluirRecebimento, obterRecebimento } from "@/lib/recebimentos";
+import { atualizarRecebimento, ErroRecebimento, excluirRecebimento, obterRecebimento } from "@/lib/recebimentos";
+import { recebimentoSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,20 @@ export async function GET(_req: Request, { params }: Ctx) {
     return NextResponse.json(await obterRecebimento(id));
   } catch (error) {
     return erro(error, "[GET /api/recebimentos/:id]");
+  }
+}
+
+/** Edita a causa (mesmo corpo do POST /api/recebimentos). */
+export async function PUT(request: Request, { params }: Ctx) {
+  try {
+    const { id } = await params;
+    const parsed = recebimentoSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
+    }
+    return NextResponse.json(await atualizarRecebimento(id, parsed.data));
+  } catch (error) {
+    return erro(error, "[PUT /api/recebimentos/:id]");
   }
 }
 

@@ -1,6 +1,6 @@
 import { Prisma, StatusRecebimento, StatusRepasse } from "@prisma/client";
 import { prisma } from "./prisma";
-import { calcularParcelas, validarParcelas, type ParcelaCalculada, type ResultadoParcelas } from "./parcelas";
+import { calcularParcelas, paraCentavos, validarParcelas, type ParcelaCalculada, type ResultadoParcelas } from "./parcelas";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import type { ParcelaAcao, RecebimentoInput } from "./validations";
 
@@ -95,6 +95,69 @@ export async function obterRecebimento(id: string) {
   const r = await prisma.recebimento.findUnique({ where: { id }, include: incluirParcelas });
   if (!r) throw new ErroRecebimento("Recebimento não encontrado.", 404);
   return serializarRecebimento(r);
+}
+
+/**
+ * Edita uma causa.
+ * - Cliente, empresa, processo e observações: sempre.
+ * - Valor, %, parcelas e datas: só enquanto nenhuma parcela foi recebida
+ *   (as parcelas são recriadas do zero com o novo cálculo).
+ */
+export async function atualizarRecebimento(id: string, input: RecebimentoInput) {
+  const atual = await prisma.recebimento.findUnique({ where: { id }, include: { parcelas: true } });
+  if (!atual) throw new ErroRecebimento("Causa não encontrada.", 404);
+
+  const textos = {
+    clienteNome: input.clienteNome,
+    reclamada: input.reclamada ?? null,
+    processoNumero: input.processoNumero ?? null,
+    processoId: input.processoId ?? null,
+    observacoes: input.observacoes ?? null,
+  };
+
+  const bloqueada = atual.parcelas.some((p) => p.statusRecebimento === StatusRecebimento.RECEBIDO);
+  if (bloqueada) {
+    const mudouValores =
+      paraCentavos(input.valorTotal) !== paraCentavos(atual.valorTotal.toFixed(2)) ||
+      paraCentavos(input.percentualEscritorio) !== paraCentavos(atual.percentualEscritorio.toFixed(2)) ||
+      input.numeroParcelas !== atual.numeroParcelas ||
+      input.primeiroVencimento !== dataDoDb(atual.dataPrimeiroVencimento) ||
+      input.parcelas !== undefined;
+    if (mudouValores) {
+      throw new ErroRecebimento(
+        "Esta causa já tem parcela recebida: só dá para editar cliente, empresa, processo e observações. Para mudar uma data, use a parcela.",
+        409
+      );
+    }
+    await prisma.recebimento.update({ where: { id }, data: textos });
+    return obterRecebimento(id);
+  }
+
+  const calc = montarParcelas(input);
+  await prisma.$transaction([
+    prisma.parcela.deleteMany({ where: { recebimentoId: id } }),
+    prisma.recebimento.update({
+      where: { id },
+      data: {
+        ...textos,
+        valorTotal: new Prisma.Decimal(calc.valorTotal),
+        percentualEscritorio: new Prisma.Decimal(String(input.percentualEscritorio).replace(",", ".")),
+        numeroParcelas: input.numeroParcelas,
+        dataPrimeiroVencimento: dataParaDb(input.primeiroVencimento),
+        diaVencimento: calc.diaVencimento,
+        parcelas: {
+          create: calc.parcelas.map((p) => ({
+            numero: p.numero,
+            vencimento: dataParaDb(p.vencimento),
+            valorParcela: new Prisma.Decimal(p.valorParcela),
+            valorEscritorio: new Prisma.Decimal(p.valorEscritorio),
+            valorCliente: new Prisma.Decimal(p.valorCliente),
+          })),
+        },
+      },
+    }),
+  ]);
+  return obterRecebimento(id);
 }
 
 export async function excluirRecebimento(id: string) {

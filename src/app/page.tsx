@@ -4,6 +4,7 @@ import { CashFlowChartLazy } from "@/components/dashboard/cash-flow-chart-lazy";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { PendingList } from "@/components/dashboard/pending-list";
 import { ParcelaLista } from "@/components/parcelas/parcela-lista";
+import { AudienciaLista } from "@/components/audiencias/audiencia-lista";
 import { getDashboardResumo } from "@/lib/finance";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ async function DashboardContent() {
       <div className="grid gap-4 lg:grid-cols-2">
         <ParcelaLista
           titulo="Próximas entradas do escritório"
-          descricao="Sua parte em cada parcela ainda não recebida"
+          descricao="Parcelas que a empresa ainda vai pagar (sua parte)"
           modo="entradas"
           itens={resumo.proximasEntradas}
           vazio="Nenhuma parcela a receber. Cadastre uma causa para começar."
@@ -38,22 +39,33 @@ async function DashboardContent() {
         />
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <AudienciaLista
+          titulo="Próximas audiências"
+          descricao="Data, cliente, empresa e advogado"
+          modo="proximas"
+          itens={resumo.proximasAudiencias}
+          vazio="Nenhuma audiência marcada."
+        />
+        <AudienciaLista
+          titulo="Audiências a pagar"
+          descricao="Já aconteceram; quanto pagar a cada advogado"
+          modo="apagar"
+          itens={resumo.audienciasAPagar}
+          vazio="Nenhum advogado a pagar."
+        />
+      </div>
+
       <CashFlowChartLazy data={resumo.fluxoMensal} />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {resumo.recebiveisPendentes.length > 0 && (
         <PendingList
           title="Outras entradas pendentes"
           items={resumo.recebiveisPendentes}
           emptyMessage="Nenhuma entrada avulsa pendente."
           variant="success"
         />
-        <PendingList
-          title="Audiências a pagar"
-          items={resumo.audienciasPendentes}
-          emptyMessage="Nenhuma audiência pendente."
-          variant="danger"
-        />
-      </div>
+      )}
     </>
   );
 }

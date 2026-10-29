@@ -18,6 +18,7 @@ export async function POST(request: Request) {
 
     // Executa a limpeza em lote na ordem correta de integridade referencial
     await prisma.$transaction([
+      prisma.audiencia.deleteMany(),      // Remove audiências
       prisma.parcela.deleteMany(),        // Remove parcelas
       prisma.recebimento.deleteMany(),    // Remove recebimentos (causas/acordos)
       prisma.transacao.deleteMany(),      // Remove lançamentos

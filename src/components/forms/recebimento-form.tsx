@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatCurrency, maskCurrencyInput } from "@/lib/utils";
 import { calcularParcelas, centavosParaString, paraCentavos, MAX_PARCELAS, type ResultadoParcelas } from "@/lib/parcelas";
 import { dataLocal, hojeSaoPaulo } from "@/lib/datas";
+import type { RecebimentoSerializado } from "@/lib/recebimentos";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
 
@@ -28,21 +29,57 @@ function decimalParaMascara(decimal: string): string {
 
 type Ajuste = { valor?: string; vencimento?: string };
 
-export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) {
+/** Na edição: marca como "ajuste" as parcelas cujo valor ou data difere do cálculo automático. */
+function ajustesIniciais(r: RecebimentoSerializado): Record<number, Ajuste> {
+  try {
+    const base = calcularParcelas({
+      valorTotal: r.valorTotal,
+      percentualEscritorio: r.percentualEscritorio,
+      numeroParcelas: r.numeroParcelas,
+      primeiroVencimento: r.dataPrimeiroVencimento,
+    });
+    const out: Record<number, Ajuste> = {};
+    r.parcelas.forEach((p, i) => {
+      const b = base.parcelas[i];
+      const a: Ajuste = {};
+      if (!b || b.valorParcela !== p.valorParcela) a.valor = decimalParaMascara(p.valorParcela);
+      if (!b || b.vencimento !== p.vencimento) a.vencimento = p.vencimento;
+      if (a.valor || a.vencimento) out[i] = a;
+    });
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function percentualTexto(p: string) {
+  return String(Number(p));
+}
+
+type Props = {
+  processos: ProcessoOption[];
+  /** Causa existente: o formulário vira edição. */
+  inicial?: RecebimentoSerializado;
+};
+
+export function RecebimentoForm({ processos, inicial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const editando = !!inicial;
+  // Com parcela já recebida, valores e parcelas ficam travados.
+  const bloqueada = !!inicial?.parcelas.some((p) => p.statusRecebimento === "RECEBIDO");
 
-  const [processoNumero, setProcessoNumero] = useState("");
-  const [processoId, setProcessoId] = useState("");
-  const [clienteNome, setClienteNome] = useState("");
-  const [reclamada, setReclamada] = useState("");
-  const [observacoes, setObservacoes] = useState("");
+  const [processoNumero, setProcessoNumero] = useState(inicial?.processoNumero ?? "");
+  const [processoId, setProcessoId] = useState(inicial?.processoId ?? "");
+  const [clienteNome, setClienteNome] = useState(inicial?.clienteNome ?? "");
+  const [reclamada, setReclamada] = useState(inicial?.reclamada ?? "");
+  const [observacoes, setObservacoes] = useState(inicial?.observacoes ?? "");
 
-  const [valorTotal, setValorTotal] = useState("");
-  const [percentual, setPercentual] = useState("30");
-  const [numeroParcelas, setNumeroParcelas] = useState(1);
-  const [primeiroVencimento, setPrimeiroVencimento] = useState(hojeSaoPaulo());
-  const [ajustes, setAjustes] = useState<Record<number, Ajuste>>({});
+  const [valorTotal, setValorTotal] = useState(inicial ? decimalParaMascara(inicial.valorTotal) : "");
+  const [percentual, setPercentual] = useState(inicial ? percentualTexto(inicial.percentualEscritorio) : "30");
+  const [numeroParcelas, setNumeroParcelas] = useState(inicial?.numeroParcelas ?? 1);
+  const [primeiroVencimento, setPrimeiroVencimento] = useState(inicial?.dataPrimeiroVencimento ?? hojeSaoPaulo());
+  const [ajustes, setAjustes] = useState<Record<number, Ajuste>>(() => (inicial ? ajustesIniciais(inicial) : {}));
 
   const [buscando, setBuscando] = useState(false);
   const [avisoBusca, setAvisoBusca] = useState("");
@@ -154,13 +191,14 @@ export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) 
       percentualEscritorio: percentual || "0",
       numeroParcelas,
       primeiroVencimento,
-      parcelas: temAjustes ? r.parcelas.map((p) => ({ valorParcela: p.valorParcela, vencimento: p.vencimento })) : undefined,
+      parcelas:
+        temAjustes && !bloqueada ? r.parcelas.map((p) => ({ valorParcela: p.valorParcela, vencimento: p.vencimento })) : undefined,
     };
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/recebimentos", {
-          method: "POST",
+        const res = await fetch(editando ? `/api/recebimentos/${inicial!.id}` : "/api/recebimentos", {
+          method: editando ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
@@ -231,8 +269,12 @@ export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reclamada">Empresa / reclamada</Label>
-                <Input id="reclamada" placeholder="Quem paga" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11" />
+                <Input id="reclamada" placeholder="Quem paga o escritório" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações</Label>
+              <Input id="observacoes" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11" />
             </div>
           </CardContent>
         </Card>
@@ -241,7 +283,14 @@ export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) 
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Valores e parcelas</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
+            {bloqueada && (
+              <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+                Esta causa já tem parcela recebida, então valores e parcelas não podem mudar. Para trocar a data de uma parcela pendente,
+                toque nela em Recebimentos.
+              </p>
+            )}
+            <fieldset disabled={bloqueada} className="space-y-4 disabled:opacity-60">
             <div className="space-y-2">
               <Label htmlFor="valorTotal">
                 Valor total da causa <span className="text-rose-400">*</span>
@@ -322,10 +371,7 @@ export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) 
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="observacoes">Observações</Label>
-              <Input id="observacoes" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11" />
-            </div>
+            </fieldset>
           </CardContent>
         </Card>
       </div>
@@ -373,7 +419,7 @@ export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) 
                       </button>
                     )}
                   </div>
-                  <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+                  <ul className={cn("max-h-[26rem] space-y-2 overflow-y-auto pr-1", bloqueada && "pointer-events-none opacity-70")} aria-disabled={bloqueada}>
                     {calcularLinhas(r, totalDecimal, percentual, numeroParcelas, primeiroVencimento).map((linha, i) => {
                       const ajustada = !!ajustes[i];
                       return (
@@ -430,7 +476,7 @@ export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) 
 
             <Button type="submit" size="lg" className="w-full" disabled={pending}>
               {pending ? <Loader2 className="animate-spin" /> : <Check />}
-              {numeroParcelas === 1 ? "Salvar causa" : `Salvar causa em ${numeroParcelas} parcelas`}
+              {editando ? "Salvar alterações" : numeroParcelas === 1 ? "Salvar causa" : `Salvar causa em ${numeroParcelas} parcelas`}
             </Button>
           </CardContent>
         </Card>

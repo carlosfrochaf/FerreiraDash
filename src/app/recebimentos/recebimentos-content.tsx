@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Loader2, Search, Send, Trash2, Gavel } from "lucide-react";
+import { Check, Loader2, Search, Send, Trash2, Gavel, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -208,10 +208,18 @@ function CausaCard({
           })}
         </ul>
 
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] text-muted-foreground">
-            <Check className="inline h-3 w-3" /> recebida · <Send className="inline h-3 w-3" /> repassada · toque na parcela para atualizar
+        <div className="flex items-center justify-end gap-2 sm:justify-between">
+          <p className="hidden text-[11px] text-muted-foreground sm:block">
+            <Check className="inline h-3 w-3" /> recebida da empresa · <Send className="inline h-3 w-3" /> repassada ao cliente
           </p>
+          <div className="flex shrink-0 items-center gap-1">
+          {!confirmando && (
+            <Button asChild size="sm" variant="ghost" className="text-muted-foreground">
+              <Link href={`/recebimentos/${r.id}/editar`}>
+                <Pencil /> Editar
+              </Link>
+            </Button>
+          )}
           {confirmando ? (
             <div className="flex shrink-0 items-center gap-1">
               <Button size="sm" variant="ghost" onClick={() => setConfirmando(false)} disabled={pending}>
@@ -226,6 +234,7 @@ function CausaCard({
               <Trash2 /> Excluir
             </Button>
           )}
+          </div>
         </div>
         {erro && <p className="text-xs text-rose-300">{erro}</p>}
       </CardContent>

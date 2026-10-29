@@ -70,6 +70,23 @@ describe("montarNotificacoes", () => {
   });
 });
 
+describe("audiências", () => {
+  const aud = { hora: "14:00", clienteNome: "Maria Silva", reclamada: "Empresa X", advogadoNome: "Dr. João", processoNumero: null };
+
+  it("8h avisa audiência de hoje com cliente, empresa e advogado", () => {
+    const [n] = montar("manha", { ...vazio, audienciasHoje: [aud] });
+    expect(n.title).toBe("Audiência hoje às 14:00: Maria Silva");
+    expect(n.body).toContain("Empresa: Empresa X");
+    expect(n.body).toContain("Advogado: Dr. João");
+  });
+
+  it("19h lembra as de amanhã, agrupadas", () => {
+    const [n] = montar("noite", { ...vazio, audienciasAmanha: [aud, { ...aud, hora: "09:30", clienteNome: "José" }] });
+    expect(n.title).toBe("2 audiências amanhã");
+    expect(n.body).toContain("09:30 · José × Empresa X · Adv. Dr. João");
+  });
+});
+
 describe("turnoPorHorario", () => {
   it("usa o horário de Brasília", () => {
     expect(turnoPorHorario(new Date("2026-11-20T11:00:00Z"))).toBe("manha"); // 8h

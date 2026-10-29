@@ -50,6 +50,7 @@ export const recebimentoSchema = z
     /** Opcional: parcelas ajustadas na prévia (valor e/ou data). */
     parcelas: z
       .array(z.object({ valorParcela: valorSchema, vencimento: dataSchema }))
+      .max(120)
       .optional(),
   })
   .refine((d) => !d.parcelas || d.parcelas.length === d.numeroParcelas, {

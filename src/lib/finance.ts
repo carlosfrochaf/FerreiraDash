@@ -7,10 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { DashboardResumo, ParcelaResumo } from "@/types";
-import { calcularRepasse } from "./repasse-calculator";
 import { dataDoDb, hojeSaoPaulo } from "./datas";
-
-export { calcularRepasse };
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -209,101 +206,4 @@ function serializarTransacao(t: any): any {
       : null,
     contato: t.contato ? { id: t.contato.id, nome: t.contato.nome, tipo: t.contato.tipo } : null,
   };
-}
-
-export async function criarRepasseComTransacoes(input: {
-  processoId: string;
-  valorTotalRecebido: number;
-  percentualEscritorio: number;
-  dataRecebimento: Date;
-  observacoes?: string;
-}) {
-  const { valorEscritorio, valorCliente } = calcularRepasse(
-    input.valorTotalRecebido,
-    input.percentualEscritorio
-  );
-
-  const [processo, categorias] = await Promise.all([
-    prisma.processo.findUniqueOrThrow({
-      where: { id: input.processoId },
-      include: { cliente: true },
-    }),
-    prisma.categoria.findMany({
-      where: {
-        slug: { in: ["ALVARA_CAUSA_GANHA", "HONORARIOS_ESCRITORIO", "REPASSE_CLIENTE"] },
-      },
-    }),
-  ]);
-
-  const catAlvara = categorias.find((c) => c.slug === "ALVARA_CAUSA_GANHA");
-  const catHonorarios = categorias.find((c) => c.slug === "HONORARIOS_ESCRITORIO");
-  const catRepasse = categorias.find((c) => c.slug === "REPASSE_CLIENTE");
-
-  if (!catAlvara || !catHonorarios || !catRepasse) {
-    throw new Error("Categorias de sistema necessárias para repasse não foram encontradas no banco de dados.");
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const repasse = await tx.repasse.create({
-      data: {
-        processoId: input.processoId,
-        valorTotalRecebido: new Prisma.Decimal(input.valorTotalRecebido),
-        percentualEscritorio: new Prisma.Decimal(input.percentualEscritorio),
-        valorEscritorio: new Prisma.Decimal(valorEscritorio),
-        valorCliente: new Prisma.Decimal(valorCliente),
-        dataRecebimento: input.dataRecebimento,
-        observacoes: input.observacoes,
-      },
-    });
-
-    const entradaAlvara = await tx.transacao.create({
-      data: {
-        tipo: TipoTransacao.ENTRADA,
-        categoriaId: catAlvara.id,
-        valor: new Prisma.Decimal(input.valorTotalRecebido),
-        dataCompetencia: input.dataRecebimento,
-        dataPagamento: input.dataRecebimento,
-        status: StatusTransacao.PAGO,
-        descricao: `Alvará recebido — ${processo.numeroPje}`,
-        processoNumero: processo.numeroPje,
-        clienteNome: processo.cliente.nome,
-        processoId: input.processoId,
-        contatoId: processo.clienteId,
-        repasseId: repasse.id,
-      },
-    });
-
-    const entradaHonorarios = await tx.transacao.create({
-      data: {
-        tipo: TipoTransacao.ENTRADA,
-        categoriaId: catHonorarios.id,
-        valor: new Prisma.Decimal(valorEscritorio),
-        dataCompetencia: input.dataRecebimento,
-        status: StatusTransacao.PAGO,
-        descricao: `Honorários escritório (${input.percentualEscritorio}%) — ${processo.numeroPje}`,
-        processoNumero: processo.numeroPje,
-        clienteNome: processo.cliente.nome,
-        processoId: input.processoId,
-        repasseId: repasse.id,
-      },
-    });
-
-    const saidaRepasse = await tx.transacao.create({
-      data: {
-        tipo: TipoTransacao.SAIDA,
-        categoriaId: catRepasse.id,
-        valor: new Prisma.Decimal(valorCliente),
-        dataCompetencia: input.dataRecebimento,
-        status: StatusTransacao.PENDENTE,
-        descricao: `Repasse ao cliente ${processo.cliente.nome} — ${processo.numeroPje}`,
-        processoNumero: processo.numeroPje,
-        clienteNome: processo.cliente.nome,
-        processoId: input.processoId,
-        contatoId: processo.clienteId,
-        repasseId: repasse.id,
-      },
-    });
-
-    return { repasse, entradaAlvara, entradaHonorarios, saidaRepasse };
-  });
 }

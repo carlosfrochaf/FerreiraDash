@@ -487,19 +487,6 @@ export function HistoricoContent({ initialTransacoes }: Props) {
 
                       {/* Botões de Ação */}
                       <div className="flex items-center gap-1.5 pt-1">
-                        {item.anexoUrl && (
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary cursor-pointer"
-                            title="Ver Anexo / Comprovante"
-                          >
-                            <a href={item.anexoUrl} target="_blank" rel="noopener noreferrer">
-                              <FileDown className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
 
                         <Button
                           size="sm"

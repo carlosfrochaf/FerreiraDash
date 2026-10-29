@@ -11,8 +11,11 @@ self.addEventListener("push", (event) => {
       icon: "/icon.png",
       badge: "/icon.png",
       vibrate: [200, 100, 200],
+      // Mesma tag substitui o aviso anterior (ex.: o de 19h troca o das 8h).
+      tag: data.tag || undefined,
+      renotify: Boolean(data.tag),
       data: {
-        url: data.url || "/historico",
+        url: data.url || "/",
       },
     };
 
@@ -25,7 +28,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || "/historico";
+  const urlToOpen = event.notification.data?.url || "/";
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {

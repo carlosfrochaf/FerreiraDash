@@ -107,7 +107,7 @@ export default async function NovoLancamentoPage(props: {
           {editId ? "Editar lançamento" : "Novo lançamento"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {editId ? "Atualize os dados e o comprovante deste lançamento" : "Uma causa vira parcelas com a parte do escritório e a do cliente"}
+          {editId ? "Atualize os dados deste lançamento" : "Uma causa vira parcelas com a parte do escritório e a do cliente"}
         </p>
       </section>
       <Suspense fallback={<FormFallback />}>

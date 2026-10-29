@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Camera, Loader2, Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,7 +80,6 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
     return transacaoEdicao?.clienteNome || "";
   });
 
-  const [anexo, setAnexo] = useState<File | null>(null);
   const [erro, setErro] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -208,7 +207,6 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
     }
     if (finalClienteNome) formData.append("clienteNome", finalClienteNome);
     if (reclamada) formData.append("reclamada", reclamada);
-    if (anexo) formData.append("anexo", anexo);
 
     startTransition(async () => {
       const url = transacaoEdicao ? `/api/transacoes/${transacaoEdicao.id}` : "/api/transacoes";
@@ -407,25 +405,6 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
               placeholder="Ex: Audiência TJSP — custas e deslocamento"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="anexo">Comprovante / Alvará</Label>
-            <label
-              htmlFor="anexo"
-              className="flex h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 text-sm text-muted-foreground hover:bg-muted/50"
-            >
-              <Camera className="h-5 w-5" />
-              {anexo ? anexo.name : "Tirar foto ou anexar arquivo"}
-            </label>
-            <input
-              id="anexo"
-              type="file"
-              accept="image/*,application/pdf"
-              capture="environment"
-              className="sr-only"
-              onChange={(e) => setAnexo(e.target.files?.[0] ?? null)}
             />
           </div>
 

@@ -1,0 +1,36 @@
+name: Notificações diárias
+
+on:
+  schedule:
+    - cron: "0 11 * * *" # 8h em Brasília (UTC-3)
+    - cron: "0 22 * * *" # 19h em Brasília
+  workflow_dispatch:
+    inputs:
+      turno:
+        description: "manha, noite ou teste"
+        default: "teste"
+
+jobs:
+  disparar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dispara as notificações
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TURNO: ${{ github.event.inputs.turno }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "Falta o segredo CRON_SECRET no GitHub."; exit 1; fi
+          url="https://ferreiradash.onrender.com/api/push/send-notifications"
+          # O GitHub pode atrasar o agendamento; o turno vai explícito na URL.
+          if [ -n "$TURNO" ]; then t="$TURNO"; elif [ "$(date -u +%H)" -lt 17 ]; then t="manha"; else t="noite"; fi
+          # O plano gratuito do Render "dorme": a primeira chamada pode só acordar o servidor.
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o resp.json -w "%{http_code}" --max-time 90 -X POST \
+              -H "Authorization: Bearer $CRON_SECRET" "$url?turno=$t" || echo 000)
+            echo "tentativa $i: HTTP $code"; cat resp.json 2>/dev/null; echo
+            [ "$code" = "200" ] && exit 0
+            [ "$code" = "401" ] && { echo "CRON_SECRET do GitHub diferente do Render."; exit 1; }
+            sleep 20
+          done
+          exit 1

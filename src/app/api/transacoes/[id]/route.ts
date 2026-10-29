@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { saveUpload } from "@/lib/upload";
 import { transacaoSchema } from "@/lib/validations";
 
 const updateSchema = transacaoSchema.partial();
@@ -17,7 +16,6 @@ export async function PATCH(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatePayload: any = {};
-    let anexoFile: File | null = null;
 
     if (contentType.includes("application/json")) {
       const body = await request.json();
@@ -36,11 +34,6 @@ export async function PATCH(
       if (formData.has("processoNumero")) updatePayload.processoNumero = formData.get("processoNumero") || undefined;
       if (formData.has("clienteNome")) updatePayload.clienteNome = formData.get("clienteNome") || undefined;
       if (formData.has("reclamada")) updatePayload.reclamada = formData.get("reclamada") || undefined;
-
-      const anexo = formData.get("anexo");
-      if (anexo instanceof File && anexo.size > 0) {
-        anexoFile = anexo;
-      }
     }
 
     const parsed = updateSchema.safeParse(updatePayload);
@@ -84,12 +77,6 @@ export async function PATCH(
       updateData.dataPagamento = null;
     } else if (data.dataPagamento !== undefined) {
       updateData.dataPagamento = data.dataPagamento ? new Date(data.dataPagamento) : null;
-    }
-
-    if (anexoFile) {
-      const saved = await saveUpload(anexoFile);
-      updateData.anexoUrl = saved.url;
-      updateData.anexoNome = saved.nome;
     }
 
     const transacaoAtualizada = await prisma.transacao.update({

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { saveUpload } from "@/lib/upload";
 import { transacaoSchema } from "@/lib/validations";
 
 export async function POST(request: Request) {
@@ -31,15 +30,6 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
-    let anexoUrl: string | undefined;
-    let anexoNome: string | undefined;
-
-    const anexo = formData.get("anexo");
-    if (anexo instanceof File && anexo.size > 0) {
-      const saved = await saveUpload(anexo);
-      anexoUrl = saved.url;
-      anexoNome = saved.nome;
-    }
 
     const transacao = await prisma.transacao.create({
       data: {
@@ -55,8 +45,6 @@ export async function POST(request: Request) {
         processoNumero: data.processoNumero || null,
         clienteNome: data.clienteNome || null,
         reclamada: data.reclamada || null,
-        anexoUrl,
-        anexoNome,
       },
     });
 

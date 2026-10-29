@@ -1,130 +1,143 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import webpush from "web-push";
+import { StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
+import { montarNotificacoes, turnoPorHorario, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
 
-// Garante que o route handler use o runtime clássico do Node (para web-push crypto)
 export const dynamic = "force-dynamic";
 
+/**
+ * Disparado por um cron às 8h e às 19h (Brasília), com
+ * "Authorization: Bearer <CRON_SECRET>".
+ * O turno vem do horário; dá para forçar com ?turno=manha|noite.
+ * ?turno=teste manda uma notificação de teste para todos os aparelhos.
+ */
 export async function POST(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json({ error: "CRON_SECRET não configurado no servidor." }, { status: 500 });
+  }
+  if (request.headers.get("Authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Gatilho não autorizado." }, { status: 401 });
+  }
+
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!publicKey || !privateKey) {
+    return NextResponse.json({ error: "Chaves VAPID não configuradas no servidor." }, { status: 500 });
+  }
+  webpush.setVapidDetails("mailto:carlos@ferreirarocha.adv.br", publicKey, privateKey);
+
   try {
-    // 1. Validar autenticação do Cron Job (shared secret token)
-    const authHeader = request.headers.get("Authorization");
-    const expectedToken = `Bearer ${process.env.CRON_SECRET}`;
+    const param = new URL(request.url).searchParams.get("turno");
+    const hoje = hojeSaoPaulo();
 
-    if (!process.env.CRON_SECRET) {
-      return NextResponse.json({ error: "Segredo CRON_SECRET não configurado no servidor." }, { status: 500 });
+    let notificacoes: Notificacao[];
+    let turno: Turno | "teste";
+
+    if (param === "teste") {
+      turno = "teste";
+      notificacoes = [{ title: "Notificações funcionando ✅", body: "Você vai receber os avisos às 8h e às 19h.", url: "/", tag: "teste" }];
+    } else {
+      turno = param === "manha" || param === "noite" ? param : turnoPorHorario();
+      notificacoes = montarNotificacoes(turno, await buscarDadosDoDia(hoje));
     }
 
-    if (!authHeader || authHeader !== expectedToken) {
-      return NextResponse.json({ error: "Gatilho não autorizado." }, { status: 401 });
+    if (notificacoes.length === 0) {
+      return NextResponse.json({ success: true, turno, hoje, mensagem: "Nada para avisar." });
     }
 
-    // 2. Configurar chaves VAPID
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    const aparelhos = await prisma.pushSubscription.findMany();
+    let enviados = 0;
+    const expirados: string[] = [];
 
-    if (!publicKey || !privateKey) {
-      return NextResponse.json({ error: "Chaves VAPID não configuradas no servidor." }, { status: 500 });
-    }
-
-    webpush.setVapidDetails(
-      "mailto:carlos@ferreirarocha.adv.br",
-      publicKey,
-      privateKey
+    await Promise.all(
+      aparelhos.flatMap((a) =>
+        notificacoes.map(async (n) => {
+          try {
+            await webpush.sendNotification({ endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } }, JSON.stringify(n), {
+              TTL: 6 * 60 * 60, // se o aparelho estiver offline, ainda entrega por 6h
+            });
+            enviados++;
+          } catch (err) {
+            const status = (err as { statusCode?: number }).statusCode;
+            // 404/410: o aparelho cancelou ou a inscrição expirou.
+            if (status === 404 || status === 410) expirados.push(a.id);
+            else console.error("[push] falha ao enviar", status, err);
+          }
+        })
+      )
     );
 
-    // 3. Obter o dia de hoje no fuso horário de Brasília (America/Sao_Paulo)
-    const agora = new Date();
-    const dataStr = agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // Formato YYYY-MM-DD
-    const startOfDay = new Date(`${dataStr}T00:00:00.000Z`);
-    const endOfDay = new Date(`${dataStr}T23:59:59.999Z`);
-
-    // 4. Buscar recebíveis/acordos pendentes que vencem hoje
-    const transacoesHoje = await prisma.transacao.findMany({
-      where: {
-        tipo: "ENTRADA",
-        status: "PENDENTE",
-        dataCompetencia: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: {
-        processo: {
-          include: {
-            cliente: true,
-          },
-        },
-        contato: true,
-      },
-    });
-
-    if (transacoesHoje.length === 0) {
-      return NextResponse.json({ success: true, message: "Nenhum vencimento pendente para hoje." });
-    }
-
-    // 5. Buscar todos os dispositivos registrados
-    const subscriptions = await prisma.pushSubscription.findMany();
-
-    if (subscriptions.length === 0) {
-      return NextResponse.json({ success: true, message: `Encontrado ${transacoesHoje.length} vencimento(s), mas nenhuma assinatura de dispositivo ativa.` });
-    }
-
-    let enviados = 0;
-    let falhasRemovidas = 0;
-
-    // Função auxiliar para formatar moeda
-    const formatBRL = (val: number) =>
-      new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
-
-    // 6. Disparar notificações
-    for (const t of transacoesHoje) {
-      const cliente = t.clienteNome || t.processo?.cliente?.nome || t.contato?.nome || "Sem Nome";
-      const valorStr = formatBRL(Number(t.valor));
-      const processoNum = t.processoNumero || t.processo?.numeroPje || "Sem número";
-
-      const payload = {
-        title: "Vencimento de Acordo Hoje! ⚖️",
-        body: `Cliente: ${cliente}\nValor: ${valorStr}\nProc: ${processoNum}`,
-        url: "/historico",
-      };
-
-      for (const sub of subscriptions) {
-        const pushSubscriptionObject = {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
-        };
-
-        try {
-          await webpush.sendNotification(
-            pushSubscriptionObject,
-            JSON.stringify(payload)
-          );
-          enviados++;
-        } catch (err: any) {
-          console.error(`Falha ao enviar push para endpoint ${sub.endpoint}:`, err);
-          // Se o dispositivo cancelou permissão ou expirou (404 ou 410), deleta a assinatura do banco
-          if (err.statusCode === 404 || err.statusCode === 410) {
-            await prisma.pushSubscription.delete({
-              where: { id: sub.id },
-            });
-            falhasRemovidas++;
-          }
-        }
-      }
+    if (expirados.length > 0) {
+      await prisma.pushSubscription.deleteMany({ where: { id: { in: [...new Set(expirados)] } } });
     }
 
     return NextResponse.json({
       success: true,
-      vencimentos: transacoesHoje.length,
-      disparados: enviados,
-      assinaturasExpiradasRemovidas: falhasRemovidas,
+      turno,
+      hoje,
+      notificacoes: notificacoes.map((n) => n.title),
+      aparelhos: aparelhos.length,
+      enviados,
+      aparelhosRemovidos: new Set(expirados).size,
     });
   } catch (error) {
     console.error("[POST /api/push/send-notifications]", error);
     return NextResponse.json({ error: "Erro interno no disparador de notificações." }, { status: 500 });
   }
+}
+
+async function buscarDadosDoDia(hoje: string) {
+  const dia = dataParaDb(hoje);
+  const incluir = {
+    recebimento: { select: { clienteNome: true, reclamada: true, processoNumero: true, numeroParcelas: true } },
+  } as const;
+
+  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje] = await Promise.all([
+    prisma.parcela.findMany({
+      where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: dia },
+      include: incluir,
+      orderBy: { valorParcela: "desc" },
+    }),
+    prisma.parcela.findMany({
+      where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: { lt: dia } },
+      include: incluir,
+      orderBy: { vencimento: "asc" },
+    }),
+    prisma.parcela.findMany({
+      where: { statusRecebimento: StatusRecebimento.RECEBIDO, statusRepasse: StatusRepasse.PENDENTE },
+      include: incluir,
+      orderBy: { dataRecebimento: "asc" },
+    }),
+    // Lançamentos avulsos guardam a data como meia-noite UTC do dia.
+    prisma.transacao.findMany({
+      where: { status: StatusTransacao.PENDENTE, dataCompetencia: { gte: dia, lt: new Date(dia.getTime() + 86_400_000) } },
+      select: { descricao: true, valor: true, tipo: true, clienteNome: true, categoria: { select: { nome: true } } },
+    }),
+  ]);
+
+  const aviso = (p: (typeof vencemHoje)[number]): ParcelaAviso => ({
+    numero: p.numero,
+    totalParcelas: p.recebimento.numeroParcelas,
+    vencimento: dataDoDb(p.vencimento),
+    valorParcela: Number(p.valorParcela),
+    valorEscritorio: Number(p.valorEscritorio),
+    valorCliente: Number(p.valorCliente),
+    clienteNome: p.recebimento.clienteNome,
+    reclamada: p.recebimento.reclamada,
+    processoNumero: p.recebimento.processoNumero,
+  });
+
+  return {
+    vencemHoje: vencemHoje.map(aviso),
+    atrasadas: atrasadas.map(aviso),
+    repassesProntos: repassesProntos.map(aviso),
+    lancamentosHoje: lancamentosHoje.map((t) => ({
+      descricao: t.descricao || [t.categoria.nome, t.clienteNome].filter(Boolean).join(" · "),
+      valor: Number(t.valor),
+      tipo: t.tipo,
+    })),
+  };
 }

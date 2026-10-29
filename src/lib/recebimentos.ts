@@ -104,16 +104,11 @@ export async function excluirRecebimento(id: string) {
 
 // ---------- Ações na parcela ----------
 
-export interface Comprovante {
-  url: string;
-  nome: string;
-}
-
 /**
  * Aplica uma ação à parcela. Cada ação só acontece se a parcela estiver no estado certo
  * (checado na própria atualização, para dois cliques simultâneos não baterem).
  */
-export async function aplicarAcaoParcela(id: string, acao: ParcelaAcao, comprovante?: Comprovante) {
+export async function aplicarAcaoParcela(id: string, acao: ParcelaAcao) {
   const R = StatusRecebimento;
   const P = StatusRepasse;
 
@@ -134,11 +129,7 @@ export async function aplicarAcaoParcela(id: string, acao: ParcelaAcao, comprova
       break;
     case "repassar":
       where = { statusRecebimento: R.RECEBIDO, statusRepasse: P.PENDENTE };
-      data = {
-        statusRepasse: P.REPASSADO,
-        dataRepasse: dataParaDb(acao.data ?? hojeSaoPaulo()),
-        ...(comprovante ? { comprovanteRepasseUrl: comprovante.url, comprovanteRepasseNome: comprovante.nome } : {}),
-      };
+      data = { statusRepasse: P.REPASSADO, dataRepasse: dataParaDb(acao.data ?? hojeSaoPaulo()) };
       conflito = "O repasse só pode ser feito depois que a parcela for recebida, e uma única vez.";
       break;
     case "desfazer_repasse":

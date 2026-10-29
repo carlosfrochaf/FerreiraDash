@@ -69,8 +69,8 @@ Novas tabelas (as despesas e entradas simples continuam em `Transacao`):
 | 2 ✅ | API: criar recebimento, marcar parcela recebida, marcar repasse | Validação com zod em todas as rotas |
 | 3 ✅ | Formulário unificado com prévia ao vivo | Reaproveita busca Datajud |
 | 4 ✅ | Dashboard: novos cards e novo cálculo de saldo | Agregações no banco (sem carregar tudo em memória). Tela /recebimentos. **Pendente:** anexo do comprovante de repasse, depende de mover uploads para o Supabase Storage |
-| 5 | Notificações push integradas às parcelas (ver seção 5.1) | Aviso no dia do vencimento, com cliente, valor e processo |
-| 6 | Remoção do fluxo antigo de repasse | Não há dados antigos para migrar |
+| 5 ✅ | Notificações push integradas às parcelas (ver seção 5.1) | Aviso no dia do vencimento, com cliente, valor e processo |
+| 6 ✅ | Remoção do fluxo antigo de repasse | Não há dados antigos para migrar |
 
 ## 5.1 Notificações integradas às parcelas
 

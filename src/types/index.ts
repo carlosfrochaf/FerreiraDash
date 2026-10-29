@@ -65,17 +65,4 @@ export type LancamentoFormData = {
   reclamada?: string;
 };
 
-export type RepasseFormData = {
-  processoId: string;
-  valorTotalRecebido: number;
-  percentualEscritorio: number;
-  dataRecebimento: string;
-  observacoes?: string;
-};
-
-export type RepasseCalculado = {
-  valorEscritorio: number;
-  valorCliente: number;
-};
-
 export type { Repasse, Contato, Processo, Transacao };

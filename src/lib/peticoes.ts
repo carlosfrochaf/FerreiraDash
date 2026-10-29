@@ -56,7 +56,7 @@ function valorParaDb(v: PeticaoInput["valor"]): Prisma.Decimal | null {
   return c === BigInt(0) ? null : new Prisma.Decimal(centavosParaString(c));
 }
 
-/** Converte o formulário em dados do banco, mantendo as datas de validação/pagamento coerentes com a situação. */
+/** Converte o formulário em dados do banco, mantendo a data de pagamento coerente com a situação. */
 function dadosDoInput(input: PeticaoInput, atual?: PeticaoDb) {
   const valor = valorParaDb(input.valor);
   if (input.status === "PAGA" && !valor) throw new ErroNegocio("Informe o valor para marcar como paga.");
@@ -71,7 +71,6 @@ function dadosDoInput(input: PeticaoInput, atual?: PeticaoDb) {
     observacoes: input.observacoes ?? null,
     valor,
     status: input.status as StatusPeticao,
-    dataValidacao: input.status === "A_VALIDAR" ? null : (atual?.dataValidacao ?? hoje),
     dataPagamento:
       input.status === "PAGA" ? (input.dataPagamento ? dataParaDb(input.dataPagamento) : (atual?.dataPagamento ?? hoje)) : null,
   };
@@ -97,27 +96,15 @@ export async function excluirPeticao(id: string) {
 }
 
 /**
- * Falta validar → (validar) → A pagar → (pagar) → Paga.
- * Pagar direto de "falta validar" também valida. Cada passo pode ser desfeito.
+ * Não pago → (pagar) → Pago. O pagamento pode ser desfeito.
  */
 export async function aplicarAcaoPeticao(id: string, acao: PeticaoAcao) {
   const S = StatusPeticao;
-  const hoje = dataParaDb(hojeSaoPaulo());
   let where: Prisma.PeticaoWhereInput;
   let data: Prisma.PeticaoUpdateManyMutationInput;
   let conflito: string;
 
   switch (acao.acao) {
-    case "validar":
-      where = { status: S.A_VALIDAR };
-      data = { status: S.A_PAGAR, dataValidacao: hoje };
-      conflito = "Esta petição já foi validada.";
-      break;
-    case "desfazer_validacao":
-      where = { status: S.A_PAGAR };
-      data = { status: S.A_VALIDAR, dataValidacao: null };
-      conflito = "Só dá para desfazer a validação de uma petição ainda não paga.";
-      break;
     case "pagar":
       where = { status: { in: [S.A_VALIDAR, S.A_PAGAR] }, valor: { not: null } };
       data = { status: S.PAGA, dataPagamento: dataParaDb(acao.data ?? hojeSaoPaulo()) };
@@ -138,10 +125,6 @@ export async function aplicarAcaoPeticao(id: string, acao: PeticaoAcao) {
       throw new ErroNegocio(p.status === S.PAGA ? "Esta petição já está paga." : "Defina o valor antes de marcar como paga.", 409);
     }
     throw new ErroNegocio(conflito, 409);
-  }
-  // Pagou sem ter validado: registra a validação no mesmo dia.
-  if (acao.acao === "pagar") {
-    await prisma.peticao.updateMany({ where: { id, dataValidacao: null }, data: { dataValidacao: hoje } });
   }
   return serializarPeticao(await prisma.peticao.findUniqueOrThrow({ where: { id } }), await pixDosAdvogados());
 }

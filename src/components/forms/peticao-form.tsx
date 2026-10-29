@@ -17,9 +17,8 @@ import type { SugestoesAudiencia } from "./audiencia-form";
 const TIPOS_COMUNS = ["Inicial", "Contestação", "Réplica", "Recurso ordinário", "Embargos", "Manifestação", "Cálculos"];
 
 const SITUACOES = [
-  { id: "A_VALIDAR", label: "Falta validar" },
-  { id: "A_PAGAR", label: "Validada, a pagar" },
-  { id: "PAGA", label: "Já paga" },
+  { id: "A_PAGAR", label: "Não pago" },
+  { id: "PAGA", label: "Pago" },
 ] as const;
 
 type Status = (typeof SITUACOES)[number]["id"];
@@ -50,7 +49,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
   const [descricao, setDescricao] = useState(inicial?.descricao ?? "");
   const [dataEntrega, setDataEntrega] = useState(inicial?.dataEntrega ?? hojeSaoPaulo());
   const [valor, setValor] = useState(mascara(inicial?.valor ?? null));
-  const [status, setStatus] = useState<Status>(inicial?.status ?? "A_VALIDAR");
+  const [status, setStatus] = useState<Status>(inicial?.status === "PAGA" ? "PAGA" : "A_PAGAR");
   const [dataPagamento, setDataPagamento] = useState(inicial?.dataPagamento ?? hojeSaoPaulo());
   const [observacoes, setObservacoes] = useState(inicial?.observacoes ?? "");
   const [erro, setErro] = useState("");
@@ -240,7 +239,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
 
           <div className="space-y-2">
             <Label>Situação</Label>
-            <div className="grid grid-cols-3 gap-1.5" role="radiogroup">
+            <div className="grid grid-cols-2 gap-1.5" role="radiogroup">
               {SITUACOES.map((s) => (
                 <button
                   key={s.id}

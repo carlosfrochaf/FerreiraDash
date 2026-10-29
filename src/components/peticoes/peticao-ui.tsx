@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Check, ChevronRight, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,9 @@ import type { PeticaoSerializada } from "@/lib/peticoes";
 import { PixCopiar } from "@/components/ui/pix-copiar";
 
 export const STATUS_PETICAO: Record<PeticaoSerializada["status"], { label: string; cor: string }> = {
-  A_VALIDAR: { label: "Falta validar", cor: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
-  A_PAGAR: { label: "A pagar", cor: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
-  PAGA: { label: "Paga", cor: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
+  A_VALIDAR: { label: "Não pago", cor: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
+  A_PAGAR: { label: "Não pago", cor: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
+  PAGA: { label: "Pago", cor: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
 };
 
 export function PeticaoItem({ p, onClick }: { p: PeticaoSerializada; onClick: () => void }) {
@@ -140,7 +140,6 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
           <div className="col-span-2 flex flex-wrap items-center gap-2">
             <span className="font-semibold">{p.valor ? formatCurrency(p.valor) : "Valor não definido"}</span>
             <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset", st.cor)}>{st.label}</span>
-            {p.dataValidacao && p.status !== "A_VALIDAR" && <span className="text-xs text-muted-foreground">validada {formatarData(p.dataValidacao)}</span>}
             {p.dataPagamento && <span className="text-xs text-emerald-400">paga {formatarData(p.dataPagamento)}</span>}
           </div>
           {p.observacoes && <p className="col-span-2 text-xs text-muted-foreground">{p.observacoes}</p>}
@@ -152,16 +151,8 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
           </p>
         )}
 
-        {p.status === "A_VALIDAR" && (
-          <Button className="w-full" disabled={pending} onClick={() => executar(() => chamar(url, "PATCH", { acao: "validar" }))}>
-            {pending ? <Loader2 className="animate-spin" /> : <BadgeCheck />}
-            Validar petição
-          </Button>
-        )}
-
         {p.status !== "PAGA" && (
           <div className="space-y-2 rounded-xl border border-border p-3">
-            {p.status === "A_VALIDAR" && <p className="text-xs text-muted-foreground">Ou, se já conferiu, marque direto como paga:</p>}
             <PixCopiar rotulo={`Pix de ${p.advogadoNome}`} pix={p.advogadoPix} linkCadastro={`/peticoes/${p.id}/editar`} />
             {!p.valor && (
               <div className="space-y-1">
@@ -180,7 +171,7 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
             <Input id="pet-modal-data" type="date" value={data} max={hojeSaoPaulo()} onChange={(e) => setData(e.target.value)} className="h-11" />
             <Button variant="success" className="w-full" disabled={pending || !data} onClick={pagar}>
               {pending ? <Loader2 className="animate-spin" /> : <Check />}
-              Marcar como paga
+              Marcar como pago
             </Button>
           </div>
         )}
@@ -191,11 +182,6 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
               <Pencil /> Editar
             </Link>
           </Button>
-          {p.status === "A_PAGAR" && (
-            <Button variant="ghost" size="sm" disabled={pending} onClick={() => executar(() => chamar(url, "PATCH", { acao: "desfazer_validacao" }))}>
-              <RotateCcw /> Desfazer validação
-            </Button>
-          )}
           {p.status === "PAGA" && (
             <Button variant="ghost" size="sm" disabled={pending} onClick={() => executar(() => chamar(url, "PATCH", { acao: "desfazer_pagamento" }))}>
               <RotateCcw /> Desfazer pagamento
@@ -216,19 +202,18 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
   );
 }
 
-/** Card do início: petições que faltam validar ou pagar. */
+/** Card do início: petições ainda não pagas. */
 export function PeticaoLista({ itens }: { itens: PeticaoSerializada[] }) {
   const [sel, setSel] = useState<PeticaoSerializada | null>(null);
-  const aValidar = itens.filter((p) => p.status === "A_VALIDAR").length;
   const total = itens.reduce((s, p) => s + Number(p.valor ?? 0), 0);
   return (
     <>
       <Card className="flex flex-col">
         <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
           <div className="space-y-1">
-            <CardTitle className="text-base">Petições a validar e pagar</CardTitle>
+            <CardTitle className="text-base">Petições não pagas</CardTitle>
             <p className="text-xs text-muted-foreground">
-              {itens.length === 0 ? "Feitas pelos advogados" : `${aValidar} a validar · ${formatCurrency(total)} no total`}
+              {itens.length === 0 ? "Feitas pelos advogados" : `${itens.length} ${itens.length === 1 ? "petição" : "petições"} · ${formatCurrency(total)} a pagar`}
             </p>
           </div>
           <Link href="/peticoes" className="flex shrink-0 items-center text-xs font-medium text-primary hover:underline">
@@ -237,7 +222,7 @@ export function PeticaoLista({ itens }: { itens: PeticaoSerializada[] }) {
         </CardHeader>
         <CardContent className="max-h-[22rem] flex-1 space-y-2 overflow-y-auto">
           {itens.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nenhuma petição pendente.</p>
+            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nenhuma petição para pagar.</p>
           ) : (
             itens.map((p) => <PeticaoItem key={p.id} p={p} onClick={() => setSel(p)} />)
           )}

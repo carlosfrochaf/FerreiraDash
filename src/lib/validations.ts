@@ -130,7 +130,11 @@ export const peticaoSchema = z
       .union([z.number(), z.string().trim()])
       .optional()
       .transform((v) => (v === "" || v === undefined ? undefined : v)),
-    status: z.enum(["A_VALIDAR", "A_PAGAR", "PAGA"]).default("A_VALIDAR"),
+    /** "A_PAGAR" = não pago; "PAGA" = pago. (A_VALIDAR antigo é tratado como não pago.) */
+    status: z
+      .enum(["A_VALIDAR", "A_PAGAR", "PAGA"])
+      .default("A_PAGAR")
+      .transform((s) => (s === "A_VALIDAR" ? "A_PAGAR" : s)),
     /** Só quando status = PAGA; se faltar, usa hoje. */
     dataPagamento: dataSchema.optional().or(z.literal("").transform(() => undefined)),
   })
@@ -142,8 +146,6 @@ export const peticaoSchema = z
 export type PeticaoInput = z.infer<typeof peticaoSchema>;
 
 export const peticaoAcaoSchema = z.discriminatedUnion("acao", [
-  z.object({ acao: z.literal("validar") }),
-  z.object({ acao: z.literal("desfazer_validacao") }),
   z.object({ acao: z.literal("pagar"), data: dataSchema.optional() }),
   z.object({ acao: z.literal("desfazer_pagamento") }),
 ]);

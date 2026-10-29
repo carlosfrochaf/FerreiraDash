@@ -51,7 +51,7 @@ export type DashboardResumo = {
   repassesClientes: ParcelaResumo[];
   proximasAudiencias: AudienciaSerializada[];
   audienciasAPagar: AudienciaSerializada[];
-  /** Petições que faltam validar ou pagar. */
+  /** Petições ainda não pagas. */
   peticoesPendentes: PeticaoSerializada[];
   recebiveisPendentes: TransacaoComRelacoes[];
 };

@@ -235,7 +235,7 @@ enum StatusPeticao {
   PAGA
 }
 
-/// Petição feita por um advogado (geralmente parceiro): entregue → validada → paga.
+/// Petição feita por um advogado (geralmente parceiro): não paga → paga. (A_VALIDAR não é mais usado.)
 model Peticao {
   id             String        @id @default(cuid())
   advogadoNome   String        @map("advogado_nome")
@@ -247,7 +247,7 @@ model Peticao {
   dataEntrega    DateTime      @map("data_entrega") @db.Date
   /// Quanto o escritório paga ao advogado. Obrigatório para marcar como paga.
   valor          Decimal?      @db.Decimal(14, 2)
-  status         StatusPeticao @default(A_VALIDAR)
+  status         StatusPeticao @default(A_PAGAR)
   dataValidacao  DateTime?     @map("data_validacao") @db.Date
   dataPagamento  DateTime?     @map("data_pagamento") @db.Date
   observacoes    String?

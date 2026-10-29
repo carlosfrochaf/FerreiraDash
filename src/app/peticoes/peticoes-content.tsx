@@ -7,16 +7,16 @@ import { cn, formatCurrency } from "@/lib/utils";
 import type { PeticaoSerializada } from "@/lib/peticoes";
 import { PeticaoItem, PeticaoModal } from "@/components/peticoes/peticao-ui";
 
-type Aba = "A_VALIDAR" | "A_PAGAR" | "PAGA" | "TODAS";
+type Aba = "NAO_PAGO" | "PAGA" | "TODAS";
 
 export function PeticoesContent({ peticoes }: { peticoes: PeticaoSerializada[] }) {
-  const [aba, setAba] = useState<Aba>(() => (peticoes.some((p) => p.status === "A_VALIDAR") ? "A_VALIDAR" : "A_PAGAR"));
+  const [aba, setAba] = useState<Aba>("NAO_PAGO");
   const [busca, setBusca] = useState("");
   const [sel, setSel] = useState<PeticaoSerializada | null>(null);
 
   const contagem = useMemo(() => {
-    const c = { A_VALIDAR: 0, A_PAGAR: 0, PAGA: 0, TODAS: peticoes.length };
-    for (const p of peticoes) c[p.status]++;
+    const c = { NAO_PAGO: 0, PAGA: 0, TODAS: peticoes.length };
+    for (const p of peticoes) c[p.status === "PAGA" ? "PAGA" : "NAO_PAGO"]++;
     return c;
   }, [peticoes]);
 
@@ -25,15 +25,15 @@ export function PeticoesContent({ peticoes }: { peticoes: PeticaoSerializada[] }
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return peticoes.filter((p) => {
-      if (aba !== "TODAS" && p.status !== aba) return false;
+      if (aba === "PAGA" && p.status !== "PAGA") return false;
+      if (aba === "NAO_PAGO" && p.status === "PAGA") return false;
       if (!q) return true;
       return [p.clienteNome, p.reclamada, p.advogadoNome, p.descricao, p.processoNumero].some((t) => t?.toLowerCase().includes(q));
     });
   }, [peticoes, aba, busca]);
 
   const abas: { id: Aba; label: string }[] = [
-    { id: "A_VALIDAR", label: "Falta validar" },
-    { id: "A_PAGAR", label: "A pagar" },
+    { id: "NAO_PAGO", label: "Não pagas" },
     { id: "PAGA", label: "Pagas" },
     { id: "TODAS", label: "Todas" },
   ];

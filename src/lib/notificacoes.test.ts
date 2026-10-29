@@ -88,13 +88,13 @@ describe("audiências", () => {
 });
 
 describe("petições", () => {
-  it("8h resume petições a validar e a pagar", () => {
-    const [n] = montar("manha", { ...vazio, peticoesAValidar: 2, peticoesAPagar: { quantidade: 1, total: 300 } });
+  it("8h resume as petições não pagas", () => {
+    const [n] = montar("manha", { ...vazio, peticoesAPagar: { quantidade: 3, total: 900 } });
     expect(n.title).toBe("Petições dos advogados");
-    expect(n.body).toBe("2 petições a validar · 1 a pagar (R$ 300,00)");
+    expect(n.body).toBe("3 petições não pagas · R$ 900,00");
   });
   it("19h não repete o resumo", () => {
-    expect(montar("noite", { ...vazio, peticoesAValidar: 2 })).toEqual([]);
+    expect(montar("noite", { ...vazio, peticoesAPagar: { quantidade: 2, total: 1 } })).toEqual([]);
   });
 });
 

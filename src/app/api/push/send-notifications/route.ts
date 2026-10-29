@@ -97,7 +97,7 @@ async function buscarDadosDoDia(hoje: string) {
 
   const amanha = new Date(dia.getTime() + 86_400_000);
   const proximo = proximoDiaDePagamento(hoje);
-  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje, audienciasHoje, audienciasAmanha, peticoesAValidar, peticoesAPagar, vencemProximo] =
+  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje, audienciasHoje, audienciasAmanha, peticoesAPagar, vencemProximo] =
     await Promise.all([
     prisma.parcela.findMany({
       where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: dia },
@@ -121,8 +121,7 @@ async function buscarDadosDoDia(hoje: string) {
     }),
     prisma.audiencia.findMany({ where: { data: dia }, orderBy: { hora: "asc" } }),
     prisma.audiencia.findMany({ where: { data: amanha }, orderBy: { hora: "asc" } }),
-    prisma.peticao.count({ where: { status: StatusPeticao.A_VALIDAR } }),
-    prisma.peticao.aggregate({ where: { status: StatusPeticao.A_PAGAR }, _count: true, _sum: { valor: true } }),
+    prisma.peticao.aggregate({ where: { status: { not: StatusPeticao.PAGA } }, _count: true, _sum: { valor: true } }),
     prisma.parcela.findMany({
       where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: dataParaDb(proximo.data) },
       include: incluir,
@@ -155,7 +154,6 @@ async function buscarDadosDoDia(hoje: string) {
     atrasadas: atrasadas.map(aviso),
     repassesProntos: repassesProntos.map(aviso),
     proximoPagamento: { quando: proximo.quando, parcelas: vencemProximo.map(aviso) },
-    peticoesAValidar,
     peticoesAPagar: { quantidade: peticoesAPagar._count, total: Number(peticoesAPagar._sum.valor ?? 0) },
     audienciasHoje: audienciasHoje.map(audiencia),
     audienciasAmanha: audienciasAmanha.map(audiencia),

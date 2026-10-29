@@ -26,7 +26,7 @@ export async function PUT(request: Request, { params }: Ctx) {
   }
 }
 
-/** Ações: validar, desfazer_validacao, pagar (data?), desfazer_pagamento. */
+/** Ações: pagar (data?) e desfazer_pagamento. */
 export async function PATCH(request: Request, { params }: Ctx) {
   try {
     const { id } = await params;

@@ -147,7 +147,7 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       status: p.status === StatusPeticao.PAGA ? "PAGO" : "PENDENTE",
       nome: p.advogadoNome,
       categoria: "Petição",
-      descricao: `${p.descricao} · cliente ${p.clienteNome}${p.status === StatusPeticao.A_VALIDAR ? " · falta validar" : ""}`,
+      descricao: `${p.descricao} · cliente ${p.clienteNome}`,
       reclamada: p.reclamada ?? "",
       processoNumero: p.processoNumero ?? "",
       advogado: p.advogadoNome,

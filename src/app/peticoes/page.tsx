@@ -18,7 +18,7 @@ export default function PeticoesPage() {
       <section className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Petições</h1>
-          <p className="text-sm text-muted-foreground">Feitas pelos advogados: validar e pagar</p>
+          <p className="text-sm text-muted-foreground">Feitas pelos advogados: pagas e não pagas</p>
         </div>
         <Link
           href="/peticoes/nova"

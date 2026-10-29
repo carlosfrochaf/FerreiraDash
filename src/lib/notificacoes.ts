@@ -44,7 +44,6 @@ export interface DadosDoDia {
   /** Parcelas do próximo dia de pagamento (aviso das 19h). `quando`: "amanhã" ou "segunda". */
   proximoPagamento?: { quando: string; parcelas: ParcelaAviso[] };
   /** Petições pendentes (resumo das 8h). */
-  peticoesAValidar?: number;
   peticoesAPagar?: { quantidade: number; total: number };
 }
 
@@ -150,14 +149,14 @@ export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
       });
     }
 
-    const aValidar = d.peticoesAValidar ?? 0;
     const aPagar = d.peticoesAPagar ?? { quantidade: 0, total: 0 };
-    if (aValidar > 0 || aPagar.quantidade > 0) {
-      const partes = [
-        aValidar > 0 ? `${aValidar} ${plural(aValidar, "petição a validar", "petições a validar")}` : "",
-        aPagar.quantidade > 0 ? `${aPagar.quantidade} a pagar (${brl(aPagar.total)})` : "",
-      ].filter(Boolean);
-      out.push({ title: "Petições dos advogados", body: partes.join(" · "), url: "/peticoes", tag: "peticoes" });
+    if (aPagar.quantidade > 0) {
+      out.push({
+        title: "Petições dos advogados",
+        body: `${aPagar.quantidade} ${plural(aPagar.quantidade, "petição não paga", "petições não pagas")} · ${brl(aPagar.total)}`,
+        url: "/peticoes",
+        tag: "peticoes",
+      });
     }
 
     if (d.lancamentosHoje.length > 0) {

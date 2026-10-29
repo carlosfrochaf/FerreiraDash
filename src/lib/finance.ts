@@ -175,8 +175,8 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     }),
     prisma.peticao.findMany({
       where: { status: { in: [StatusPeticao.A_VALIDAR, StatusPeticao.A_PAGAR] } },
-      // Falta validar primeiro, depois as mais antigas.
-      orderBy: [{ status: "asc" }, { dataEntrega: "asc" }],
+      // Não pagas, das mais antigas para as mais novas.
+      orderBy: { dataEntrega: "asc" },
       take: 30,
     }),
     prisma.peticao.aggregate({ where: { status: StatusPeticao.PAGA }, _sum: { valor: true } }),

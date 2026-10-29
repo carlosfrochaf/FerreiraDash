@@ -86,6 +86,7 @@ export async function criarRecebimento(input: RecebimentoInput) {
       processoId: input.processoId ?? null,
       processoNumero: input.processoNumero ?? null,
       clienteNome: input.clienteNome,
+      clientePix: input.clientePix ?? null,
       reclamada: input.reclamada ?? null,
       observacoes: input.observacoes ?? null,
       valorTotal: new Prisma.Decimal(calc.valorTotal),
@@ -132,6 +133,7 @@ export async function atualizarRecebimento(id: string, input: RecebimentoInput) 
 
   const textos = {
     clienteNome: input.clienteNome,
+    clientePix: input.clientePix ?? null,
     reclamada: input.reclamada ?? null,
     processoNumero: input.processoNumero ?? null,
     processoId: input.processoId ?? null,
@@ -262,6 +264,7 @@ export function serializarRecebimento(r: RecebimentoDb) {
     processoId: r.processoId,
     processoNumero: r.processoNumero,
     clienteNome: r.clienteNome,
+    clientePix: r.clientePix,
     reclamada: r.reclamada,
     observacoes: r.observacoes,
     valorTotal: r.valorTotal.toFixed(2),
@@ -276,3 +279,19 @@ export function serializarRecebimento(r: RecebimentoDb) {
 
 export type RecebimentoSerializado = ReturnType<typeof serializarRecebimento>;
 export type ParcelaSerializada = ReturnType<typeof serializarParcela>;
+
+/** Pix já usados por cliente (nome em minúsculas → chave), para preencher sozinho em causas novas. */
+export async function pixConhecidos(): Promise<Record<string, string>> {
+  const lista = await prisma.recebimento.findMany({
+    where: { clientePix: { not: null } },
+    select: { clienteNome: true, clientePix: true },
+    orderBy: { updatedAt: "desc" },
+    take: 500,
+  });
+  const out: Record<string, string> = {};
+  for (const r of lista) {
+    const k = r.clienteNome.trim().toLowerCase();
+    if (!out[k] && r.clientePix) out[k] = r.clientePix;
+  }
+  return out;
+}

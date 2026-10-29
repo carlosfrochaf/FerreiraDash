@@ -158,6 +158,8 @@ model Recebimento {
   processo               Processo? @relation(fields: [processoId], references: [id])
   processoNumero         String?   @map("processo_numero")
   clienteNome            String    @map("cliente_nome")
+  /// Chave Pix do cliente, para fazer o repasse.
+  clientePix             String?   @map("cliente_pix")
   reclamada              String?
   valorTotal             Decimal   @map("valor_total") @db.Decimal(14, 2)
   percentualEscritorio   Decimal   @map("percentual_escritorio") @db.Decimal(5, 2)

@@ -39,6 +39,8 @@ const textoOpcional = z
 export const recebimentoSchema = z
   .object({
     clienteNome: z.string().trim().min(1, "Informe o cliente"),
+    /** Chave Pix do cliente para o repasse. */
+    clientePix: z.string().trim().max(140).optional().transform((s) => (s ? s : undefined)),
     reclamada: textoOpcional,
     processoNumero: textoOpcional,
     processoId: textoOpcional,

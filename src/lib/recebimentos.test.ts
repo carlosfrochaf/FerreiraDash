@@ -101,6 +101,14 @@ describe("parcelas já pagas antes do cadastro", () => {
   });
 });
 
+describe("Pix do cliente", () => {
+  it("é opcional, limpa espaços e vazio vira undefined", () => {
+    expect(recebimentoSchema.parse({ ...base, clientePix: "  maria@email.com " }).clientePix).toBe("maria@email.com");
+    expect(recebimentoSchema.parse({ ...base, clientePix: "   " }).clientePix).toBeUndefined();
+    expect(recebimentoSchema.parse(base).clientePix).toBeUndefined();
+  });
+});
+
 describe("parcelaAcaoSchema", () => {
   it("aceita as ações conhecidas e rejeita as demais", () => {
     expect(parcelaAcaoSchema.safeParse({ acao: "receber" }).success).toBe(true);

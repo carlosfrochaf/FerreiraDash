@@ -31,6 +31,7 @@ export type ParcelaResumo = {
   recebimento: {
     id: string;
     clienteNome: string;
+    clientePix: string | null;
     reclamada: string | null;
     processoNumero: string | null;
   };

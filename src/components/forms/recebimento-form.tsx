@@ -58,11 +58,13 @@ function percentualTexto(p: string) {
 
 type Props = {
   processos: ProcessoOption[];
+  /** Pix já usados por cliente (nome em minúsculas → chave). */
+  pixConhecidos?: Record<string, string>;
   /** Causa existente: o formulário vira edição. */
   inicial?: RecebimentoSerializado;
 };
 
-export function RecebimentoForm({ processos, inicial }: Props) {
+export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const editando = !!inicial;
@@ -72,6 +74,8 @@ export function RecebimentoForm({ processos, inicial }: Props) {
   const [processoNumero, setProcessoNumero] = useState(inicial?.processoNumero ?? "");
   const [processoId, setProcessoId] = useState(inicial?.processoId ?? "");
   const [clienteNome, setClienteNome] = useState(inicial?.clienteNome ?? "");
+  const [clientePix, setClientePix] = useState(inicial?.clientePix ?? "");
+  const [pixAuto, setPixAuto] = useState(false);
   const [reclamada, setReclamada] = useState(inicial?.reclamada ?? "");
   const [observacoes, setObservacoes] = useState(inicial?.observacoes ?? "");
 
@@ -191,6 +195,7 @@ export function RecebimentoForm({ processos, inicial }: Props) {
     const r = previa.r;
     const body = {
       clienteNome: clienteNome.trim(),
+      clientePix: clientePix.trim() || undefined,
       reclamada: reclamada.trim() || undefined,
       processoNumero: processoNumero.trim() || undefined,
       processoId: processoId || undefined,
@@ -285,7 +290,15 @@ export function RecebimentoForm({ processos, inicial }: Props) {
                   id="clienteNome"
                   placeholder="Quem recebe o repasse"
                   value={clienteNome}
-                  onChange={(e) => setClienteNome(e.target.value)}
+                  onChange={(e) => {
+                    setClienteNome(e.target.value);
+                    // Cliente que já tem Pix em outra causa: preenche sozinho (sem apagar o que foi digitado).
+                    const conhecido = pixConhecidos[e.target.value.trim().toLowerCase()];
+                    if (conhecido && (!clientePix || pixAuto)) {
+                      setClientePix(conhecido);
+                      setPixAuto(true);
+                    }
+                  }}
                   aria-invalid={tentouEnviar && !clienteNome.trim()}
                   className={cn("h-11", tentouEnviar && !clienteNome.trim() && "border-rose-500/60")}
                 />
@@ -295,6 +308,22 @@ export function RecebimentoForm({ processos, inicial }: Props) {
                 <Input id="reclamada" placeholder="Quem paga o escritório" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11" />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="clientePix">Pix do cliente (para o repasse)</Label>
+              <Input
+                id="clientePix"
+                placeholder="CPF, celular, e-mail ou chave aleatória"
+                value={clientePix}
+                onChange={(e) => {
+                  setClientePix(e.target.value);
+                  setPixAuto(false);
+                }}
+                autoComplete="off"
+                className="h-11 font-mono"
+              />
+              {pixAuto && <p className="text-xs text-muted-foreground">Preenchido com o Pix usado em outra causa deste cliente.</p>}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="observacoes">Observações</Label>
               <Input id="observacoes" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11" />

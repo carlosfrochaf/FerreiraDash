@@ -23,7 +23,7 @@ const incluirTransacao = {
 
 const incluirParcela = {
   recebimento: {
-    select: { id: true, clienteNome: true, reclamada: true, processoNumero: true, numeroParcelas: true },
+    select: { id: true, clienteNome: true, clientePix: true, reclamada: true, processoNumero: true, numeroParcelas: true },
   },
 } satisfies Prisma.ParcelaInclude;
 
@@ -45,6 +45,7 @@ export function serializarParcelaResumo(p: ParcelaComRecebimento): ParcelaResumo
     recebimento: {
       id: p.recebimento.id,
       clienteNome: p.recebimento.clienteNome,
+      clientePix: p.recebimento.clientePix,
       reclamada: p.recebimento.reclamada,
       processoNumero: p.recebimento.processoNumero,
     },

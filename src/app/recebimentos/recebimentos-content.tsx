@@ -24,7 +24,7 @@ function paraResumo(r: RecebimentoSerializado, p: RecebimentoSerializado["parcel
   return {
     ...p,
     totalParcelas: r.numeroParcelas,
-    recebimento: { id: r.id, clienteNome: r.clienteNome, reclamada: r.reclamada, processoNumero: r.processoNumero },
+    recebimento: { id: r.id, clienteNome: r.clienteNome, clientePix: r.clientePix, reclamada: r.reclamada, processoNumero: r.processoNumero },
   };
 }
 
@@ -39,7 +39,7 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
       if (filtro === "abertas" && concluida(r)) return false;
       if (filtro === "concluidas" && !concluida(r)) return false;
       if (!q) return true;
-      return [r.clienteNome, r.reclamada, r.processoNumero].some((t) => t?.toLowerCase().includes(q));
+      return [r.clienteNome, r.reclamada, r.processoNumero, r.clientePix].some((t) => t?.toLowerCase().includes(q));
     });
   }, [recebimentos, busca, filtro]);
 
@@ -139,6 +139,9 @@ function CausaCard({
             <p className="truncate font-semibold">{r.clienteNome}</p>
             <p className="truncate text-xs text-muted-foreground">
               {[r.reclamada, r.processoNumero].filter(Boolean).join(" · ") || "Sem processo vinculado"}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              Pix: {r.clientePix ? <span className="font-mono text-foreground/80">{r.clientePix}</span> : <span className="text-amber-300/80">não cadastrado</span>}
             </p>
           </div>
           <div className="shrink-0 text-right">

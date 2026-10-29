@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { FormWrapper } from "@/components/forms/form-wrapper";
 import { prisma } from "@/lib/prisma";
 import { sugestoesAudiencia } from "@/lib/audiencias";
+import { pixConhecidos } from "@/lib/recebimentos";
 
 async function getFormData() {
   const [processos, contatos, categorias] = await Promise.all([
@@ -47,9 +48,10 @@ async function getFormData() {
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: "causa" | "audiencia" | "peticao" | "simples" }) {
-  const [{ processos, contatos, categorias }, sugestoes, transacaoEdicao] = await Promise.all([
+  const [{ processos, contatos, categorias }, sugestoes, pix, transacaoEdicao] = await Promise.all([
     getFormData(),
     sugestoesAudiencia(),
+    pixConhecidos(),
     editId
       ? prisma.transacao.findUnique({
           where: { id: editId },
@@ -83,6 +85,7 @@ async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: 
       transacaoEdicao={transacaoEdicao ?? undefined}
       modoInicial={modo}
       sugestoesAudiencia={sugestoes}
+      pixConhecidos={pix}
     />
   );
 }

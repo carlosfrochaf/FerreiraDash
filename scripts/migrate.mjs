@@ -1,4 +1,4 @@
-// Aplica as migrations do Prisma durante o build (Render).
+// Aplica as migrations do Prisma (roda no build do Render via `npm run db:setup`).
 // Na primeira vez, o banco de produção (criado com `db push`) ainda não tem histórico
 // de migrations: o Prisma responde P3005, e então marcamos a 0_init como já aplicada
 // antes de rodar as seguintes.

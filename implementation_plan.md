@@ -66,9 +66,9 @@ Novas tabelas (as despesas e entradas simples continuam em `Transacao`):
 | Fase | Entrega | Observações |
 |------|---------|-------------|
 | 1 ✅ | Senha de acesso + migration do schema (`Recebimento`, `Parcela`) e função de cálculo com testes | Passar a usar `prisma migrate` em vez de `db push` (banco ainda sem dados reais, então a migração inicial é simples); instalar Vitest; tirar `--accept-data-loss` do `db:setup`; corrigir `.env.example` (PostgreSQL, `DIRECT_URL`, VAPID, `CRON_SECRET`) |
-| 2 | API: criar recebimento, marcar parcela recebida, marcar repasse | Validação com zod em todas as rotas |
-| 3 | Formulário unificado com prévia ao vivo | Reaproveita busca Datajud |
-| 4 | Dashboard: novos cards e novo cálculo de saldo | Agregações no banco (sem carregar tudo em memória) |
+| 2 ✅ | API: criar recebimento, marcar parcela recebida, marcar repasse | Validação com zod em todas as rotas |
+| 3 ✅ | Formulário unificado com prévia ao vivo | Reaproveita busca Datajud |
+| 4 ✅ | Dashboard: novos cards e novo cálculo de saldo | Agregações no banco (sem carregar tudo em memória). Tela /recebimentos. **Pendente:** anexo do comprovante de repasse, depende de mover uploads para o Supabase Storage |
 | 5 | Notificações push integradas às parcelas (ver seção 5.1) | Aviso no dia do vencimento, com cliente, valor e processo |
 | 6 | Remoção do fluxo antigo de repasse | Não há dados antigos para migrar |
 

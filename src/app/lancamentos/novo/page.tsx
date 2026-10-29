@@ -45,7 +45,7 @@ async function getFormData() {
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
-async function LancamentoPageContent({ editId }: { editId?: string }) {
+async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: "causa" | "simples" }) {
   const [{ processos, contatos, categorias }, transacaoEdicao] = await Promise.all([
     getFormData(),
     editId
@@ -79,12 +79,18 @@ async function LancamentoPageContent({ editId }: { editId?: string }) {
       contatos={contatos}
       categorias={categorias}
       transacaoEdicao={transacaoEdicao ?? undefined}
+      modoInicial={modo}
     />
   );
 }
 
 function FormFallback() {
-  return <p className="text-muted-foreground">Carregando formulário...</p>;
+  return (
+    <div className="space-y-4">
+      <div className="h-16 max-w-lg animate-pulse rounded-xl border border-border bg-card" />
+      <div className="h-96 animate-pulse rounded-2xl border border-border bg-card" />
+    </div>
+  );
 }
 
 export default async function NovoLancamentoPage(props: {
@@ -92,19 +98,20 @@ export default async function NovoLancamentoPage(props: {
 }) {
   const searchParams = await props.searchParams;
   const editId = typeof searchParams.edit === "string" ? searchParams.edit : undefined;
+  const modo = searchParams.modo === "simples" || searchParams.tipo ? "simples" : "causa";
 
   return (
     <div className="space-y-4">
       <section>
         <h1 className="text-2xl font-bold tracking-tight">
-          {editId ? "Editar Lançamento" : "Lançamento"}
+          {editId ? "Editar lançamento" : "Novo lançamento"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {editId ? "Atualize os dados e o comprovante deste lançamento" : "Registre entradas e saídas com comprovante"}
+          {editId ? "Atualize os dados e o comprovante deste lançamento" : "Uma causa vira parcelas com a parte do escritório e a do cliente"}
         </p>
       </section>
       <Suspense fallback={<FormFallback />}>
-        <LancamentoPageContent editId={editId} />
+        <LancamentoPageContent editId={editId} modo={modo} />
       </Suspense>
     </div>
   );

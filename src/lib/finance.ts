@@ -1,115 +1,191 @@
 import {
   Prisma,
+  StatusRecebimento,
+  StatusRepasse,
   StatusTransacao,
   TipoTransacao,
 } from "@prisma/client";
-import { startOfMonth, endOfMonth, format, subMonths } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { prisma } from "./prisma";
-import type { DashboardResumo, TransacaoComRelacoes } from "@/types";
+import type { DashboardResumo, ParcelaResumo } from "@/types";
 import { calcularRepasse } from "./repasse-calculator";
+import { dataDoDb, hojeSaoPaulo } from "./datas";
 
 export { calcularRepasse };
 
-export async function getDashboardResumo(): Promise<DashboardResumo> {
-  const agora = new Date();
-  const inicioMes = startOfMonth(agora);
-  const fimMes = endOfMonth(agora);
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-  // Executa todas as consultas de banco em paralelo para reduzir a latência de round-trip
+const incluirTransacao = {
+  categoria: true,
+  processo: { include: { cliente: true } },
+  contato: true,
+} satisfies Prisma.TransacaoInclude;
+
+const incluirParcela = {
+  recebimento: {
+    select: { id: true, clienteNome: true, reclamada: true, processoNumero: true, numeroParcelas: true },
+  },
+} satisfies Prisma.ParcelaInclude;
+
+type ParcelaComRecebimento = Prisma.ParcelaGetPayload<{ include: typeof incluirParcela }>;
+
+export function serializarParcelaResumo(p: ParcelaComRecebimento): ParcelaResumo {
+  return {
+    id: p.id,
+    numero: p.numero,
+    totalParcelas: p.recebimento.numeroParcelas,
+    vencimento: dataDoDb(p.vencimento),
+    valorParcela: p.valorParcela.toFixed(2),
+    valorEscritorio: p.valorEscritorio.toFixed(2),
+    valorCliente: p.valorCliente.toFixed(2),
+    statusRecebimento: p.statusRecebimento,
+    dataRecebimento: p.dataRecebimento ? dataDoDb(p.dataRecebimento) : null,
+    statusRepasse: p.statusRepasse,
+    dataRepasse: p.dataRepasse ? dataDoDb(p.dataRepasse) : null,
+    recebimento: {
+      id: p.recebimento.id,
+      clienteNome: p.recebimento.clienteNome,
+      reclamada: p.recebimento.reclamada,
+      processoNumero: p.recebimento.processoNumero,
+    },
+  };
+}
+
+function somaPorTipo(grupos: { tipo: TipoTransacao; _sum: { valor: Prisma.Decimal | null } }[]) {
+  let entradas = 0;
+  let saidas = 0;
+  for (const g of grupos) {
+    const v = Number(g._sum.valor ?? 0);
+    if (g.tipo === TipoTransacao.ENTRADA) entradas += v;
+    else saidas += v;
+  }
+  return { entradas, saidas };
+}
+
+/**
+ * Resumo do dashboard. Todas as somas são feitas no banco (nada de carregar
+ * todos os lançamentos na memória) e as consultas rodam em paralelo.
+ *
+ * Saldo do escritório = lançamentos pagos (entradas − saídas)
+ *                     + parte do escritório das parcelas já recebidas.
+ * A parte do cliente nunca entra no saldo: aparece em "a repassar".
+ */
+export async function getDashboardResumo(): Promise<DashboardResumo> {
+  const [ano, mes] = hojeSaoPaulo().split("-").map(Number);
+  const inicioMes = new Date(Date.UTC(ano, mes - 1, 1));
+  const inicioProxMes = new Date(Date.UTC(ano, mes, 1));
+  const inicioJanela = new Date(Date.UTC(ano, mes - 6, 1)); // últimos 6 meses
+
   const [
-    transacoesPagas,
-    repassesPendentes,
+    totaisTransacoes,
+    totaisMes,
+    escritorioRecebido,
+    escritorioRecebidoMes,
+    aRepassar,
+    aReceber,
+    fluxoBruto,
+    proximasEntradas,
+    repassesClientes,
     audienciasPendentes,
     recebiveisPendentes,
   ] = await Promise.all([
-    prisma.transacao.findMany({
-      where: { status: StatusTransacao.PAGO },
-      select: { tipo: true, valor: true, dataCompetencia: true },
+    prisma.transacao.groupBy({ by: ["tipo"], where: { status: StatusTransacao.PAGO }, _sum: { valor: true } }),
+    prisma.transacao.groupBy({
+      by: ["tipo"],
+      where: { status: StatusTransacao.PAGO, dataCompetencia: { gte: inicioMes, lt: inicioProxMes } },
+      _sum: { valor: true },
+    }),
+    prisma.parcela.aggregate({
+      where: { statusRecebimento: StatusRecebimento.RECEBIDO },
+      _sum: { valorEscritorio: true },
+    }),
+    prisma.parcela.aggregate({
+      where: { statusRecebimento: StatusRecebimento.RECEBIDO, dataRecebimento: { gte: inicioMes, lt: inicioProxMes } },
+      _sum: { valorEscritorio: true },
+    }),
+    prisma.parcela.aggregate({
+      where: { statusRecebimento: StatusRecebimento.RECEBIDO, statusRepasse: StatusRepasse.PENDENTE },
+      _sum: { valorCliente: true },
+    }),
+    prisma.parcela.aggregate({
+      where: { statusRecebimento: StatusRecebimento.PENDENTE },
+      _sum: { valorEscritorio: true },
+    }),
+    prisma.$queryRaw<{ mes: string; entradas: Prisma.Decimal | null; saidas: Prisma.Decimal | null }[]>`
+      SELECT to_char(m, 'YYYY-MM') AS mes, SUM(entradas) AS entradas, SUM(saidas) AS saidas FROM (
+        SELECT date_trunc('month', data_competencia) AS m,
+               CASE WHEN tipo = 'ENTRADA' THEN valor ELSE 0 END AS entradas,
+               CASE WHEN tipo = 'SAIDA' THEN valor ELSE 0 END AS saidas
+          FROM transacoes
+         WHERE status = 'PAGO' AND data_competencia >= ${inicioJanela}
+        UNION ALL
+        SELECT date_trunc('month', data_recebimento), valor_escritorio, 0
+          FROM parcelas
+         WHERE status_recebimento = 'RECEBIDO' AND data_recebimento >= ${inicioJanela}
+      ) x
+      GROUP BY 1`,
+    prisma.parcela.findMany({
+      where: { statusRecebimento: StatusRecebimento.PENDENTE },
+      include: incluirParcela,
+      orderBy: [{ vencimento: "asc" }, { numero: "asc" }],
+      take: 20,
+    }),
+    prisma.parcela.findMany({
+      where: { statusRepasse: StatusRepasse.PENDENTE },
+      include: incluirParcela,
+      // Recebidas (prontas para repassar) primeiro, depois por vencimento.
+      orderBy: [{ statusRecebimento: "desc" }, { vencimento: "asc" }, { numero: "asc" }],
+      take: 20,
     }),
     prisma.transacao.findMany({
-      where: {
-        categoria: { slug: "REPASSE_CLIENTE" },
-        status: StatusTransacao.PENDENTE,
-      },
-      include: {
-        categoria: true,
-        processo: { include: { cliente: true } },
-        contato: true,
-      },
+      where: { categoria: { slug: "AUDIENCIA" }, status: StatusTransacao.PENDENTE },
+      include: incluirTransacao,
       orderBy: { dataCompetencia: "asc" },
       take: 30,
     }),
     prisma.transacao.findMany({
-      where: {
-        categoria: { slug: "AUDIENCIA" },
-        status: StatusTransacao.PENDENTE,
-      },
-      include: {
-        categoria: true,
-        processo: { include: { cliente: true } },
-        contato: true,
-      },
-      orderBy: { dataCompetencia: "asc" },
-      take: 30,
-    }),
-    prisma.transacao.findMany({
-      where: {
-        tipo: TipoTransacao.ENTRADA,
-        status: StatusTransacao.PENDENTE,
-      },
-      include: {
-        categoria: true,
-        processo: { include: { cliente: true } },
-        contato: true,
-      },
+      where: { tipo: TipoTransacao.ENTRADA, status: StatusTransacao.PENDENTE },
+      include: incluirTransacao,
       orderBy: { dataCompetencia: "asc" },
       take: 30,
     }),
   ]);
 
-  let saldoAtual = 0;
-  let entradasMes = 0;
-  let saidasMes = 0;
+  const total = somaPorTipo(totaisTransacoes);
+  const doMes = somaPorTipo(totaisMes);
+  const escritorioTotal = Number(escritorioRecebido._sum.valorEscritorio ?? 0);
+  const escritorioMes = Number(escritorioRecebidoMes._sum.valorEscritorio ?? 0);
 
-  for (const t of transacoesPagas) {
-    const valor = Number(t.valor);
-    if (t.tipo === TipoTransacao.ENTRADA) {
-      saldoAtual += valor;
-    } else {
-      saldoAtual -= valor;
-    }
-
-    if (t.dataCompetencia >= inicioMes && t.dataCompetencia <= fimMes) {
-      if (t.tipo === TipoTransacao.ENTRADA) entradasMes += valor;
-      else saidasMes += valor;
-    }
-  }
-
+  // Monta os 6 meses, inclusive os que não tiveram movimento.
+  const porMes = new Map(fluxoBruto.map((r) => [r.mes, r]));
   const fluxoMensal: DashboardResumo["fluxoMensal"] = [];
   for (let i = 5; i >= 0; i--) {
-    const ref = subMonths(agora, i);
-    const ini = startOfMonth(ref);
-    const fim = endOfMonth(ref);
-    let entradas = 0;
-    let saidas = 0;
-
-    for (const t of transacoesPagas) {
-      if (t.dataCompetencia >= ini && t.dataCompetencia <= fim) {
-        const v = Number(t.valor);
-        if (t.tipo === TipoTransacao.ENTRADA) entradas += v;
-        else saidas += v;
-      }
-    }
-
+    const d = new Date(Date.UTC(ano, mes - 1 - i, 1));
+    const chave = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    const r = porMes.get(chave);
     fluxoMensal.push({
-      mes: format(ref, "MMM/yy", { locale: ptBR }),
-      entradas,
-      saidas,
+      mes: `${MESES[d.getUTCMonth()]}/${String(d.getUTCFullYear()).slice(2)}`,
+      entradas: Number(r?.entradas ?? 0),
+      saidas: Number(r?.saidas ?? 0),
     });
   }
 
-  const serializarTransacao = (t: any): any => ({
+  return {
+    saldoAtual: total.entradas - total.saidas + escritorioTotal,
+    entradasMes: doMes.entradas + escritorioMes,
+    saidasMes: doMes.saidas,
+    aRepassarClientes: Number(aRepassar._sum.valorCliente ?? 0),
+    aReceberEscritorio: Number(aReceber._sum.valorEscritorio ?? 0),
+    fluxoMensal,
+    proximasEntradas: proximasEntradas.map(serializarParcelaResumo),
+    repassesClientes: repassesClientes.map(serializarParcelaResumo),
+    audienciasPendentes: audienciasPendentes.map(serializarTransacao),
+    recebiveisPendentes: recebiveisPendentes.map(serializarTransacao),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serializarTransacao(t: any): any {
+  return {
     id: t.id,
     tipo: t.tipo,
     valor: Number(t.valor),
@@ -122,39 +198,16 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     reclamada: t.reclamada ?? "",
     anexoUrl: t.anexoUrl ?? "",
     anexoNome: t.anexoNome ?? "",
-    categoria: {
-      id: t.categoria.id,
-      nome: t.categoria.nome,
-      tipo: t.categoria.tipo,
-    },
+    categoria: { id: t.categoria.id, nome: t.categoria.nome, tipo: t.categoria.tipo },
     processo: t.processo
       ? {
           id: t.processo.id,
           numeroPje: t.processo.numeroPje,
           nomeAcao: t.processo.nomeAcao,
-          cliente: {
-            id: t.processo.cliente.id,
-            nome: t.processo.cliente.nome,
-          },
+          cliente: { id: t.processo.cliente.id, nome: t.processo.cliente.nome },
         }
       : null,
-    contato: t.contato
-      ? {
-          id: t.contato.id,
-          nome: t.contato.nome,
-          tipo: t.contato.tipo,
-        }
-      : null,
-  });
-
-  return {
-    saldoAtual,
-    entradasMes,
-    saidasMes,
-    fluxoMensal,
-    repassesPendentes: repassesPendentes.map(serializarTransacao),
-    audienciasPendentes: audienciasPendentes.map(serializarTransacao),
-    recebiveisPendentes: recebiveisPendentes.map(serializarTransacao),
+    contato: t.contato ? { id: t.contato.id, nome: t.contato.nome, tipo: t.contato.tipo } : null,
   };
 }
 

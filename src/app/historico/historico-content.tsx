@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { diasAte, formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
 import { 
   Search, 
   Trash2, 
@@ -82,19 +81,14 @@ export function HistoricoContent({ initialTransacoes }: Props) {
 
       // Filtro de período
       if (filtroPeriodo !== "TODOS") {
-        const dateObj = new Date(t.dataCompetencia);
-        const itemDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-        const today = new Date();
-        const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const diffTime = itemDate.getTime() - todayDate.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // compensa offsets
+        const diffDays = diasAte(t.dataCompetencia);
 
         if (filtroPeriodo === "HOJE") {
           if (diffDays !== 0) return false;
         } else if (filtroPeriodo === "SEMANA") {
           if (Math.abs(diffDays) > 7) return false;
         } else if (filtroPeriodo === "MES") {
-          if (dateObj.getMonth() !== today.getMonth() || dateObj.getFullYear() !== today.getFullYear()) return false;
+          if (!t.dataCompetencia.startsWith(hojeSaoPaulo().slice(0, 7))) return false;
         }
       }
 
@@ -196,7 +190,7 @@ export function HistoricoContent({ initialTransacoes }: Props) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `extrato_ferreiradash_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `extrato_ferreiradash_${hojeSaoPaulo()}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -241,8 +235,8 @@ export function HistoricoContent({ initialTransacoes }: Props) {
         </div>
 
         {/* Filtros Rápidos (Período & Tipo) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/40">
-          <div className="flex flex-wrap gap-1.5 items-center">
+        <div className="flex flex-col gap-3 pt-3 border-t border-border/40 lg:flex-row lg:items-center lg:justify-between">
+          <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&>*]:shrink-0">
             <span className="text-xs font-bold text-muted-foreground mr-1 uppercase tracking-wider">Período:</span>
             <Button
               size="sm"
@@ -278,7 +272,7 @@ export function HistoricoContent({ initialTransacoes }: Props) {
             </Button>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 items-center">
+          <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&>*]:shrink-0">
             <span className="text-xs font-bold text-muted-foreground mr-1 uppercase tracking-wider">Tipo:</span>
             <Button
               size="sm"
@@ -308,7 +302,7 @@ export function HistoricoContent({ initialTransacoes }: Props) {
         </div>
 
         {/* Filtros por Status */}
-        <div className="flex flex-wrap gap-1.5 items-center pt-3 border-t border-border/40">
+        <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pt-3 border-t border-border/40 [scrollbar-width:none] [&>*]:shrink-0">
           <span className="text-xs font-bold text-muted-foreground mr-1 uppercase tracking-wider">Status:</span>
           <Button
             size="sm"
@@ -378,12 +372,7 @@ export function HistoricoContent({ initialTransacoes }: Props) {
             const cliente = item.clienteNome || item.processo?.cliente.nome || item.contato?.nome || "Sem contato";
 
             // Calculo de Alerta de Vencimento
-            const dateObj = new Date(item.dataCompetencia);
-            const itemDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-            const today = new Date();
-            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const diffTime = itemDate.getTime() - todayDate.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = diasAte(item.dataCompetencia);
 
             const isPendente = item.status === "PENDENTE";
             const isTodayOrOverdue = isPendente && diffDays <= 0;
@@ -408,7 +397,7 @@ export function HistoricoContent({ initialTransacoes }: Props) {
               <Card 
                 key={item.id} 
                 className={cn(
-                  "overflow-hidden transition-all duration-300 hover:scale-[1.01] active:scale-[0.995] shadow-sm",
+                  "overflow-hidden transition-colors shadow-sm",
                   cardHighlightClass
                 )}
               >
@@ -465,7 +454,7 @@ export function HistoricoContent({ initialTransacoes }: Props) {
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground pt-1">
                         <span className="flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5" />
-                          {format(new Date(item.dataCompetencia), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                          {formatarDataCurta(item.dataCompetencia)}
                         </span>
 
                         {cnjNumero && (

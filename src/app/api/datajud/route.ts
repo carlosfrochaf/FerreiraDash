@@ -61,8 +61,7 @@ export async function GET(request: Request) {
           }
         }
       }),
-      // Set a strict timeout so we can fallback to mock if CNJ is slow
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(8000)
     });
 
     if (!response.ok) {
@@ -107,35 +106,19 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       numero: formattedCNJ,
-      cliente: cliente || "Cliente Indefinido",
-      reclamada: reclamada || "Empresa Reclamada Indefinida",
+      cliente: cliente || "",
+      reclamada: reclamada || "",
       tribunal: tribunal.toUpperCase(),
       classe: hit.classe?.nome || "Procedimento Comum"
     });
 
   } catch (error) {
-    console.warn("[Datajud API error, falling back to Mock]", error);
-    
-    // Return high-fidelity mock response if API fails/offline/timeout
-    // This ensures premium UX and lets them test any CNJ formatted number instantly!
-    const mockClients = ["Maria Aparecida Silva", "José Carlos dos Santos", "Ana Beatriz de Souza", "Luiz Fernando Pereira"];
-    const mockDefendants = ["Banco Bradesco S/A", "Telefonica Brasil S/A", "Casas Bahia S/A", "Enel Distribuição São Paulo"];
-    const mockClasses = ["Ação Trabalhista", "Procedimento Comum Cível", "Ação de Indenização", "Execução de Título Extrajudicial"];
-
-    // Use seed based on process number digits to return stable results for the same number
-    const seed = parseInt(cleaned.substring(0, 4), 10) || 0;
-    const client = mockClients[seed % mockClients.length];
-    const defendant = mockDefendants[(seed + 1) % mockDefendants.length];
-    const action = mockClasses[(seed + 2) % mockClasses.length];
-
-    return NextResponse.json({
-      numero: formattedCNJ,
-      cliente: client,
-      reclamada: defendant,
-      tribunal: tribunal.toUpperCase(),
-      classe: action,
-      isMock: true // Mark as mock so frontend knows it was simulated/fallback
-    });
+    // Nunca inventar dados: se o CNJ falhar, o usuário preenche à mão.
+    console.warn("[Datajud] falha na consulta", error);
+    return NextResponse.json(
+      { error: "Não foi possível consultar o Datajud agora. Preencha cliente e empresa manualmente." },
+      { status: 502 }
+    );
   }
 }
 

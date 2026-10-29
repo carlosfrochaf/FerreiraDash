@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { CategoriasContent } from "./categorias-content";
+import { ZonaDeRisco } from "./zona-de-risco";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function CategoriasPage() {
   return (
     <div className="space-y-6">
       <section>
-        <h1 className="text-2xl font-bold tracking-tight">Gerenciar Categorias</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Categorias e ajustes</h1>
         <p className="text-sm text-muted-foreground">
           Adicione, renomeie ou ative/desative categorias para seus lançamentos
         </p>
@@ -23,6 +24,7 @@ export default async function CategoriasPage() {
         tipo: c.tipo,
         ativo: c.ativo,
       }))} />
+      <ZonaDeRisco />
     </div>
   );
 }

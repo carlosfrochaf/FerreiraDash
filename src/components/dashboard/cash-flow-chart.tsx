@@ -63,10 +63,10 @@ export function CashFlowChart({ data }: Props) {
                 <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey="mes" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 25% 20%)" vertical={false} />
+            <XAxis dataKey="mes" tick={{ fill: "hsl(215 16% 60%)", fontSize: 12 }} />
             <YAxis
-              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+              tick={{ fill: "hsl(215 16% 60%)", fontSize: 12 }}
               tickFormatter={(v) =>
                 new Intl.NumberFormat("pt-BR", {
                   notation: "compact",
@@ -74,8 +74,8 @@ export function CashFlowChart({ data }: Props) {
                 }).format(v)
               }
             />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(217 25% 15% / 0.6)" }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             <Bar 
               dataKey="entradas" 
               name="Entradas" 

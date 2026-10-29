@@ -1,66 +1,93 @@
 import { Suspense } from "react";
-
-export const dynamic = "force-dynamic";
 import { SummaryCards } from "@/components/dashboard/summary-cards";
-import { CashFlowChart } from "@/components/dashboard/cash-flow-chart";
+import { CashFlowChartLazy } from "@/components/dashboard/cash-flow-chart-lazy";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { PendingList } from "@/components/dashboard/pending-list";
+import { ParcelaLista } from "@/components/parcelas/parcela-lista";
 import { getDashboardResumo } from "@/lib/finance";
+
+export const dynamic = "force-dynamic";
 
 async function DashboardContent() {
   const resumo = await getDashboardResumo();
 
   return (
-    <div className="space-y-6">
-      <section>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral do fluxo financeiro</p>
-      </section>
-
+    <>
       <SummaryCards
         saldoAtual={resumo.saldoAtual}
         entradasMes={resumo.entradasMes}
         saidasMes={resumo.saidasMes}
+        aRepassarClientes={resumo.aRepassarClientes}
+        aReceberEscritorio={resumo.aReceberEscritorio}
       />
 
-      <QuickActions />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ParcelaLista
+          titulo="Próximas entradas do escritório"
+          descricao="Sua parte em cada parcela ainda não recebida"
+          modo="entradas"
+          itens={resumo.proximasEntradas}
+          vazio="Nenhuma parcela a receber. Cadastre uma causa para começar."
+        />
+        <ParcelaLista
+          titulo="Repasses a clientes"
+          descricao="Quanto cada cliente deve receber"
+          modo="repasses"
+          itens={resumo.repassesClientes}
+          vazio="Nenhum repasse pendente."
+        />
+      </div>
 
-      <CashFlowChart data={resumo.fluxoMensal} />
+      <CashFlowChartLazy data={resumo.fluxoMensal} />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <PendingList
-          title="Próximos Pagamentos a Receber"
+          title="Outras entradas pendentes"
           items={resumo.recebiveisPendentes}
-          emptyMessage="Nenhum pagamento a receber pendente."
+          emptyMessage="Nenhuma entrada avulsa pendente."
           variant="success"
         />
         <PendingList
-          title="Próximos Repasses a Clientes"
-          items={resumo.repassesPendentes}
-          emptyMessage="Nenhum repasse pendente."
-          variant="warning"
-        />
-        <PendingList
-          title="Audiências Pendentes de Pagamento"
+          title="Audiências a pagar"
           items={resumo.audienciasPendentes}
           emptyMessage="Nenhuma audiência pendente."
           variant="danger"
         />
       </div>
-    </div>
+    </>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-[7.5rem] animate-pulse rounded-2xl border border-border bg-card" />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
+        <div className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
+      </div>
+    </>
   );
 }
 
 export default function HomePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
-          Carregando dashboard...
-        </div>
-      }
-    >
-      <DashboardContent />
-    </Suspense>
+    <div className="space-y-5">
+      <section>
+        <h1 className="text-2xl font-bold tracking-tight">Início</h1>
+        <p className="text-sm text-muted-foreground">Dinheiro do escritório, parcelas e repasses</p>
+      </section>
+
+      {/* Atalhos aparecem na hora, antes dos dados carregarem. */}
+      <QuickActions />
+
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </div>
   );
 }

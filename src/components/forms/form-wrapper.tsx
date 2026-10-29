@@ -1,78 +1,69 @@
 "use client";
 
 import { useState } from "react";
-import { PlusCircle, CalendarDays } from "lucide-react";
+import { Gavel, Receipt } from "lucide-react";
 import { LancamentoForm } from "./lancamento-form";
-import { AcordoForm } from "./acordo-form";
+import { RecebimentoForm } from "./recebimento-form";
 import { cn } from "@/lib/utils";
 
+type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
+type ContatoOption = { id: string; nome: string; tipo: string };
+type CategoriaOption = { id: string; nome: string; tipo: string };
+
 type Props = {
-  processos: any[];
-  contatos: any[];
-  categorias: any[];
+  processos: ProcessoOption[];
+  contatos: ContatoOption[];
+  categorias: CategoriaOption[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transacaoEdicao?: any;
+  modoInicial?: "causa" | "simples";
 };
 
-export function FormWrapper({ processos, contatos, categorias, transacaoEdicao }: Props) {
-  const [activeTab, setActiveTab] = useState<"single" | "acordo">("single");
+const MODOS = [
+  { id: "causa", label: "Causa / acordo", desc: "Divide em parcelas e calcula o repasse", icon: Gavel },
+  { id: "simples", label: "Despesa ou entrada", desc: "Lançamento avulso", icon: Receipt },
+] as const;
 
-  // Se estiver editando, força apenas o formulário de lançamento único sem mostrar abas
+export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, modoInicial = "causa" }: Props) {
+  const [modo, setModo] = useState<"causa" | "simples">(modoInicial);
+
+  // Edição de um lançamento existente: só o formulário simples, sem abas.
   if (transacaoEdicao) {
-    return (
-      <LancamentoForm
-        processos={processos}
-        contatos={contatos}
-        categorias={categorias}
-        transacaoEdicao={transacaoEdicao}
-      />
-    );
+    return <LancamentoForm processos={processos} contatos={contatos} categorias={categorias} transacaoEdicao={transacaoEdicao} />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Abas Glassmórficas Premium */}
-      <div className="flex w-full max-w-sm rounded-xl bg-card border border-border/60 p-1.5 shadow-md">
-        <button
-          onClick={() => setActiveTab("single")}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold rounded-lg transition-all duration-300 cursor-pointer",
-            activeTab === "single"
-              ? "bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          )}
-        >
-          <PlusCircle className="h-4 w-4" />
-          Lançamento Simples
-        </button>
-        <button
-          onClick={() => setActiveTab("acordo")}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold rounded-lg transition-all duration-300 cursor-pointer",
-            activeTab === "acordo"
-              ? "bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]"
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          )}
-        >
-          <CalendarDays className="h-4 w-4" />
-          Acordo Parcelado
-        </button>
+    <div className="space-y-4">
+      <div role="tablist" aria-label="Tipo de lançamento" className="grid grid-cols-2 gap-2 sm:max-w-lg">
+        {MODOS.map((m) => {
+          const Icon = m.icon;
+          const ativo = modo === m.id;
+          return (
+            <button
+              key={m.id}
+              role="tab"
+              aria-selected={ativo}
+              onClick={() => setModo(m.id)}
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                ativo ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-accent"
+              )}
+            >
+              <Icon className={cn("h-5 w-5 shrink-0", ativo ? "text-primary" : "text-muted-foreground")} />
+              <span className="min-w-0">
+                <span className={cn("block text-sm font-semibold", ativo && "text-primary")}>{m.label}</span>
+                <span className="hidden text-xs text-muted-foreground sm:block">{m.desc}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-        {activeTab === "single" ? (
-          <LancamentoForm
-            processos={processos}
-            contatos={contatos}
-            categorias={categorias}
-          />
-        ) : (
-          <AcordoForm
-            processos={processos}
-            contatos={contatos}
-            categorias={categorias}
-          />
-        )}
-      </div>
+      {modo === "causa" ? (
+        <RecebimentoForm processos={processos} />
+      ) : (
+        <LancamentoForm processos={processos} contatos={contatos} categorias={categorias} />
+      )}
     </div>
   );
 }

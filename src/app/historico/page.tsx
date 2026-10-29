@@ -9,6 +9,7 @@ async function getTransacoes() {
     orderBy: {
       dataCompetencia: "desc",
     },
+    take: 500, // os 500 mais recentes; a busca e os filtros funcionam sobre eles
     include: {
       categoria: true,
       processo: {

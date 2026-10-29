@@ -1,0 +1,461 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Minus, Plus, RotateCcw, Search, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn, formatCurrency, maskCurrencyInput } from "@/lib/utils";
+import { calcularParcelas, centavosParaString, paraCentavos, MAX_PARCELAS, type ResultadoParcelas } from "@/lib/parcelas";
+import { dataLocal, hojeSaoPaulo } from "@/lib/datas";
+
+type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
+
+const DIAS_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const PERCENTUAIS_RAPIDOS = ["20", "30", "40"];
+
+/** "2.500,00" (máscara) → "2500.00" */
+function mascaraParaDecimal(mascara: string): string {
+  const digitos = mascara.replace(/\D/g, "");
+  return centavosParaString(BigInt(digitos || "0"));
+}
+
+function decimalParaMascara(decimal: string): string {
+  return maskCurrencyInput(decimal.replace(".", ""));
+}
+
+type Ajuste = { valor?: string; vencimento?: string };
+
+export function RecebimentoForm({ processos }: { processos: ProcessoOption[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  const [processoNumero, setProcessoNumero] = useState("");
+  const [processoId, setProcessoId] = useState("");
+  const [clienteNome, setClienteNome] = useState("");
+  const [reclamada, setReclamada] = useState("");
+  const [observacoes, setObservacoes] = useState("");
+
+  const [valorTotal, setValorTotal] = useState("");
+  const [percentual, setPercentual] = useState("30");
+  const [numeroParcelas, setNumeroParcelas] = useState(1);
+  const [primeiroVencimento, setPrimeiroVencimento] = useState(hojeSaoPaulo());
+  const [ajustes, setAjustes] = useState<Record<number, Ajuste>>({});
+
+  const [buscando, setBuscando] = useState(false);
+  const [avisoBusca, setAvisoBusca] = useState("");
+  const [erro, setErro] = useState("");
+  const [tentouEnviar, setTentouEnviar] = useState(false);
+
+  // Mudar total, nº de parcelas ou 1º vencimento refaz a divisão e descarta ajustes manuais.
+  const mudarBase = <T,>(setter: (v: T) => void) => (v: T) => {
+    setter(v);
+    setAjustes({});
+  };
+  const setTotal = mudarBase(setValorTotal);
+  const setParcelas = mudarBase((n: number) => setNumeroParcelas(Math.min(MAX_PARCELAS, Math.max(1, n || 1))));
+  const setPrimeiro = mudarBase(setPrimeiroVencimento);
+
+  const temAjustes = Object.keys(ajustes).length > 0;
+  const totalDecimal = mascaraParaDecimal(valorTotal);
+
+  // Cálculo ao vivo, com a mesma função que o servidor usa.
+  const previa = useMemo((): { ok: true; r: ResultadoParcelas } | { ok: false; erro: string } | null => {
+    if (paraCentavos(totalDecimal) <= BigInt(0) || !primeiroVencimento) return null;
+    try {
+      const base = calcularParcelas({
+        valorTotal: totalDecimal,
+        percentualEscritorio: percentual || "0",
+        numeroParcelas,
+        primeiroVencimento,
+      });
+      if (!temAjustes) return { ok: true, r: base };
+
+      const valores = base.parcelas.map((p, i) => (ajustes[i]?.valor ? mascaraParaDecimal(ajustes[i].valor!) : p.valorParcela));
+      const soma = valores.reduce((acc, v) => acc + paraCentavos(v), BigInt(0));
+      const diferenca = soma - paraCentavos(totalDecimal);
+      if (diferenca !== BigInt(0)) {
+        const abs = diferenca < BigInt(0) ? -diferenca : diferenca;
+        return {
+          ok: false,
+          erro: `As parcelas somam ${formatCurrency(centavosParaString(soma))}: ${diferenca > BigInt(0) ? "sobram" : "faltam"} ${formatCurrency(centavosParaString(abs))} para fechar o total.`,
+        };
+      }
+      const r = calcularParcelas({
+        valorTotal: totalDecimal,
+        percentualEscritorio: percentual || "0",
+        numeroParcelas,
+        primeiroVencimento,
+        valoresParcelas: valores,
+      });
+      r.parcelas = r.parcelas.map((p, i) => ({ ...p, vencimento: ajustes[i]?.vencimento || p.vencimento }));
+      return { ok: true, r };
+    } catch (e) {
+      return { ok: false, erro: e instanceof Error ? e.message : "Dados inválidos." };
+    }
+  }, [totalDecimal, percentual, numeroParcelas, primeiroVencimento, ajustes, temAjustes]);
+
+  function ajustar(i: number, campo: keyof Ajuste, valor: string) {
+    setAjustes((prev) => ({ ...prev, [i]: { ...prev[i], [campo]: valor } }));
+  }
+
+  function escolherProcesso(valor: string) {
+    setProcessoNumero(valor);
+    const p = processos.find((x) => x.numeroPje === valor);
+    setProcessoId(p?.id ?? "");
+    if (p && !clienteNome) setClienteNome(p.clienteNome);
+  }
+
+  async function buscarDatajud() {
+    setAvisoBusca("");
+    if (processoNumero.replace(/\D/g, "").length !== 20) {
+      setAvisoBusca("Digite o número completo do processo (20 dígitos) para buscar.");
+      return;
+    }
+    setBuscando(true);
+    try {
+      const res = await fetch(`/api/datajud?numero=${encodeURIComponent(processoNumero)}`);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAvisoBusca(d.error ?? "Não foi possível buscar o processo.");
+        return;
+      }
+      setProcessoNumero(d.numero);
+      if (d.cliente) setClienteNome(d.cliente);
+      if (d.reclamada) setReclamada(d.reclamada);
+      const p = processos.find((x) => x.numeroPje.replace(/\D/g, "") === String(d.numero).replace(/\D/g, ""));
+      setProcessoId(p?.id ?? "");
+      setAvisoBusca(d.cliente || d.reclamada ? "Dados preenchidos pelo Datajud. Confira antes de salvar." : "Processo encontrado, mas sem nomes das partes.");
+    } catch {
+      setAvisoBusca("Erro de conexão com o Datajud.");
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    setTentouEnviar(true);
+    setErro("");
+    if (!clienteNome.trim()) return setErro("Informe o nome do cliente.");
+    if (!previa) return setErro("Informe o valor total e a data do 1º vencimento.");
+    if (!previa.ok) return setErro(previa.erro);
+
+    const r = previa.r;
+    const body = {
+      clienteNome: clienteNome.trim(),
+      reclamada: reclamada.trim() || undefined,
+      processoNumero: processoNumero.trim() || undefined,
+      processoId: processoId || undefined,
+      observacoes: observacoes.trim() || undefined,
+      valorTotal: r.valorTotal,
+      percentualEscritorio: percentual || "0",
+      numeroParcelas,
+      primeiroVencimento,
+      parcelas: temAjustes ? r.parcelas.map((p) => ({ valorParcela: p.valorParcela, vencimento: p.vencimento })) : undefined,
+    };
+
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/recebimentos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setErro(typeof d.error === "string" ? d.error : "Confira os campos e tente de novo.");
+          return;
+        }
+        router.push("/recebimentos");
+        router.refresh();
+      } catch {
+        setErro("Erro de conexão. Tente de novo.");
+      }
+    });
+  }
+
+  const r = previa?.ok ? previa.r : null;
+
+  return (
+    <form onSubmit={enviar} className="grid gap-4 lg:grid-cols-5 lg:items-start" noValidate>
+      {/* Dados da causa */}
+      <div className="space-y-4 lg:col-span-3">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Causa</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="processoNumero">Número do processo</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="processoNumero"
+                  list="processos-list"
+                  inputMode="numeric"
+                  placeholder="0000000-00.0000.0.00.0000"
+                  value={processoNumero}
+                  onChange={(e) => escolherProcesso(e.target.value)}
+                  className="h-11"
+                />
+                <Button type="button" variant="outline" className="h-11 shrink-0" onClick={buscarDatajud} disabled={buscando}>
+                  {buscando ? <Loader2 className="animate-spin" /> : <Search />}
+                  <span className="hidden sm:inline">Datajud</span>
+                </Button>
+              </div>
+              <datalist id="processos-list">
+                {processos.map((p) => (
+                  <option key={p.id} value={p.numeroPje}>
+                    {p.clienteNome}
+                  </option>
+                ))}
+              </datalist>
+              {avisoBusca && <p className="text-xs text-muted-foreground">{avisoBusca}</p>}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="clienteNome">
+                  Cliente <span className="text-rose-400">*</span>
+                </Label>
+                <Input
+                  id="clienteNome"
+                  placeholder="Quem recebe o repasse"
+                  value={clienteNome}
+                  onChange={(e) => setClienteNome(e.target.value)}
+                  aria-invalid={tentouEnviar && !clienteNome.trim()}
+                  className={cn("h-11", tentouEnviar && !clienteNome.trim() && "border-rose-500/60")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reclamada">Empresa / reclamada</Label>
+                <Input id="reclamada" placeholder="Quem paga" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Valores e parcelas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="valorTotal">
+                Valor total da causa <span className="text-rose-400">*</span>
+              </Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">R$</span>
+                <Input
+                  id="valorTotal"
+                  inputMode="numeric"
+                  placeholder="0,00"
+                  value={valorTotal}
+                  onChange={(e) => setTotal(maskCurrencyInput(e.target.value))}
+                  className="pl-11 text-xl font-bold tabular-nums"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="percentual">% do escritório</Label>
+                <div className="flex gap-1.5">
+                  {PERCENTUAIS_RAPIDOS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPercentual(p)}
+                      aria-pressed={percentual === p}
+                      className={cn(
+                        "h-11 w-12 shrink-0 rounded-xl border text-sm font-semibold transition-colors",
+                        percentual === p ? "border-primary bg-primary/15 text-primary" : "border-border hover:bg-accent"
+                      )}
+                    >
+                      {p}%
+                    </button>
+                  ))}
+                  <div className="relative min-w-0 flex-1">
+                    <Input
+                      id="percentual"
+                      inputMode="decimal"
+                      value={percentual}
+                      onChange={(e) => setPercentual(e.target.value.replace(",", ".").replace(/[^\d.]/g, ""))}
+                      className="h-11 pr-7 text-center font-semibold"
+                      aria-label="Percentual personalizado"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="numeroParcelas">Parcelas</Label>
+                <div className="flex items-center gap-1.5">
+                  <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setParcelas(numeroParcelas - 1)} aria-label="Menos uma parcela">
+                    <Minus />
+                  </Button>
+                  <Input
+                    id="numeroParcelas"
+                    inputMode="numeric"
+                    value={numeroParcelas}
+                    onChange={(e) => setParcelas(parseInt(e.target.value.replace(/\D/g, ""), 10))}
+                    className="h-11 text-center text-base font-bold"
+                  />
+                  <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setParcelas(numeroParcelas + 1)} aria-label="Mais uma parcela">
+                    <Plus />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{numeroParcelas === 1 ? "À vista" : `${numeroParcelas} meses`}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="primeiroVencimento">
+                {numeroParcelas === 1 ? "Data do pagamento" : "1º vencimento"} <span className="text-rose-400">*</span>
+              </Label>
+              <Input id="primeiroVencimento" type="date" value={primeiroVencimento} onChange={(e) => setPrimeiro(e.target.value)} className="h-11" />
+              {numeroParcelas > 1 && (
+                <p className="text-xs text-muted-foreground">O mesmo dia se repete todo mês. Sábado e domingo passam para segunda.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações</Label>
+              <Input id="observacoes" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Prévia */}
+      <div className="space-y-4 lg:sticky lg:top-24 lg:col-span-2">
+        <Card className="border-primary/25">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Prévia</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!previa ? (
+              <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                Digite o valor total para ver a divisão.
+              </p>
+            ) : (
+              <>
+                {r && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-emerald-500/10 p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">Escritório ({percentual || 0}%)</p>
+                      <p className="text-lg font-bold tabular-nums text-emerald-300">{formatCurrency(r.valorEscritorio)}</p>
+                    </div>
+                    <div className="rounded-xl bg-amber-500/10 p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-200/80">Cliente</p>
+                      <p className="text-lg font-bold tabular-nums text-amber-200">{formatCurrency(r.valorCliente)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {!previa.ok && (
+                  <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+                    {previa.erro}
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {numeroParcelas === 1 ? "Pagamento" : `${numeroParcelas} parcelas`}
+                    </p>
+                    {temAjustes && (
+                      <button type="button" onClick={() => setAjustes({})} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                        <RotateCcw className="h-3 w-3" /> Desfazer ajustes
+                      </button>
+                    )}
+                  </div>
+                  <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+                    {calcularLinhas(r, totalDecimal, percentual, numeroParcelas, primeiroVencimento).map((linha, i) => {
+                      const ajustada = !!ajustes[i];
+                      return (
+                        <li key={i} className={cn("rounded-xl border p-2.5", ajustada ? "border-primary/40 bg-primary/5" : "border-border/70")}>
+                          <div className="flex items-center gap-2">
+                            <span className="w-9 shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
+                              {i + 1}/{numeroParcelas}
+                            </span>
+                            <div className="relative min-w-0 flex-1">
+                              <Input
+                                type="date"
+                                aria-label={`Vencimento da parcela ${i + 1}`}
+                                value={ajustes[i]?.vencimento ?? linha.vencimento}
+                                onChange={(e) => ajustar(i, "vencimento", e.target.value)}
+                                className="h-9 rounded-lg px-2 text-sm"
+                              />
+                            </div>
+                            <span className="w-7 shrink-0 text-[11px] text-muted-foreground">
+                              {DIAS_SEMANA[dataLocal(ajustes[i]?.vencimento ?? linha.vencimento).getDay()]}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="relative w-36 shrink-0">
+                              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                              <Input
+                                inputMode="numeric"
+                                aria-label={`Valor da parcela ${i + 1}`}
+                                value={ajustes[i]?.valor ?? decimalParaMascara(linha.valorParcela)}
+                                onChange={(e) => ajustar(i, "valor", maskCurrencyInput(e.target.value))}
+                                className="h-9 rounded-lg pl-8 pr-2 text-sm font-semibold tabular-nums"
+                              />
+                            </div>
+                            {linha.valorEscritorio && (
+                              <p className="min-w-0 text-[11px] leading-tight text-muted-foreground">
+                                <span className="text-emerald-300">{formatCurrency(linha.valorEscritorio)}</span> esc.
+                                <br />
+                                <span className="text-amber-200">{formatCurrency(linha.valorCliente!)}</span> cliente
+                              </p>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </>
+            )}
+
+            {erro && (
+              <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-rose-300">
+                {erro}
+              </p>
+            )}
+
+            <Button type="submit" size="lg" className="w-full" disabled={pending}>
+              {pending ? <Loader2 className="animate-spin" /> : <Check />}
+              {numeroParcelas === 1 ? "Salvar causa" : `Salvar causa em ${numeroParcelas} parcelas`}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Linhas da tabela de parcelas. Quando a soma não fecha (prévia inválida), ainda mostra
+ * as linhas com as datas e valores base, para o usuário conseguir corrigir.
+ */
+function calcularLinhas(
+  r: ResultadoParcelas | null,
+  totalDecimal: string,
+  percentual: string,
+  n: number,
+  primeiro: string
+): { vencimento: string; valorParcela: string; valorEscritorio?: string; valorCliente?: string }[] {
+  if (r) return r.parcelas;
+  try {
+    return calcularParcelas({ valorTotal: totalDecimal, percentualEscritorio: percentual || "0", numeroParcelas: n, primeiroVencimento: primeiro }).parcelas.map(
+      (p) => ({ vencimento: p.vencimento, valorParcela: p.valorParcela })
+    );
+  } catch {
+    return [];
+  }
+}

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/utils";
+import { hojeSaoPaulo } from "@/lib/datas";
 import type { StatusTransacao, TipoTransacao } from "@prisma/client";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
@@ -57,7 +58,7 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
     transacaoEdicao ? maskCurrencyInput(transacaoEdicao.valor.toFixed(2)) : ""
   );
   const [dataCompetencia, setDataCompetencia] = useState(
-    transacaoEdicao?.dataCompetencia || new Date().toISOString().slice(0, 10)
+    transacaoEdicao?.dataCompetencia || hojeSaoPaulo()
   );
   const [dataPagamento, setDataPagamento] = useState(transacaoEdicao?.dataPagamento || "");
   const [status, setStatus] = useState<StatusTransacao>(transacaoEdicao?.status || "PENDENTE");
@@ -126,7 +127,7 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
   async function handleBuscarDatajud() {
     const cleaned = processoNumero.replace(/\D/g, "");
     if (cleaned.length !== 20) {
-      alert("Por favor, digite um número de processo CNJ completo com 20 dígitos para pesquisar no Datajud.");
+      setErro("Digite o número completo do processo (20 dígitos) para buscar no Datajud.");
       return;
     }
 
@@ -142,8 +143,8 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
       }
 
       setProcessoNumero(data.numero);
-      setClienteNome(data.cliente);
-      setReclamada(data.reclamada);
+      if (data.cliente) setClienteNome(data.cliente);
+      if (data.reclamada) setReclamada(data.reclamada);
 
       // Tenta associar com algum processo no banco local
       const match = processos.find((p) => p.numeroPje.replace(/\D/g, "") === data.numero.replace(/\D/g, ""));
@@ -218,7 +219,7 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
         setErro(data.error ?? "Erro ao salvar lançamento.");
         return;
       }
-      router.push("/");
+      router.push(transacaoEdicao ? "/historico" : "/");
       router.refresh();
     });
   }

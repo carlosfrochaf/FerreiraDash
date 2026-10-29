@@ -13,12 +13,39 @@ export type TransacaoComRelacoes = Omit<Transacao, "valor"> & {
   contato?: Contato | null;
 };
 
+/** Parcela com os dados da causa, pronta para listas no cliente. Valores em string "0.00". */
+export type ParcelaResumo = {
+  id: string;
+  numero: number;
+  totalParcelas: number;
+  vencimento: string; // AAAA-MM-DD
+  valorParcela: string;
+  valorEscritorio: string;
+  valorCliente: string;
+  statusRecebimento: "PENDENTE" | "RECEBIDO";
+  dataRecebimento: string | null;
+  statusRepasse: "PENDENTE" | "REPASSADO";
+  dataRepasse: string | null;
+  recebimento: {
+    id: string;
+    clienteNome: string;
+    reclamada: string | null;
+    processoNumero: string | null;
+  };
+};
+
 export type DashboardResumo = {
+  /** Saldo do escritório: só a parte do escritório das parcelas recebidas + lançamentos pagos. */
   saldoAtual: number;
   entradasMes: number;
   saidasMes: number;
+  /** Parte dos clientes já recebida e ainda não repassada (não entra no saldo). */
+  aRepassarClientes: number;
+  /** Parte do escritório nas parcelas ainda não recebidas. */
+  aReceberEscritorio: number;
   fluxoMensal: { mes: string; entradas: number; saidas: number }[];
-  repassesPendentes: TransacaoComRelacoes[];
+  proximasEntradas: ParcelaResumo[];
+  repassesClientes: ParcelaResumo[];
   audienciasPendentes: TransacaoComRelacoes[];
   recebiveisPendentes: TransacaoComRelacoes[];
 };

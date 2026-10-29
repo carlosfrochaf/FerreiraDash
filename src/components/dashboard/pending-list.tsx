@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { TransacaoComRelacoes } from "@/types";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { diasAte, formatarData, formatarDataCurta } from "@/lib/datas";
 import { X, Check, ExternalLink, Loader2, Calendar, FileText, User, ShieldAlert } from "lucide-react";
 
 type Props = {
@@ -55,23 +54,18 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
 
   return (
     <>
-      <Card className="h-[400px] flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between shrink-0">
+      <Card className="flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between shrink-0 pb-3">
           <CardTitle className="text-base">{title}</CardTitle>
           <Badge variant={variant}>{items.length}</Badge>
         </CardHeader>
-        <CardContent className="flex-1 space-y-3 overflow-y-auto pr-1.5 scroll-smooth">
+        <CardContent className="max-h-[22rem] flex-1 space-y-2 overflow-y-auto">
           {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>
           ) : (
             items.map((item) => {
-              const dateObj = new Date(item.dataCompetencia);
-              const itemDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-              const today = new Date();
-              const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-              const diffTime = itemDate.getTime() - todayDate.getTime();
-              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // usa floor para compensar fusos no calculo de dias completos
-              
+              const diffDays = diasAte(String(item.dataCompetencia));
+
               const isTodayOrOverdue = diffDays <= 0;
               const isUpcomingCritical = diffDays > 0 && diffDays <= 3;
 
@@ -91,7 +85,7 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
                   key={item.id}
                   onClick={() => setSelectedItem(item)}
                   className={cn(
-                    "w-full text-left block rounded-xl border p-3 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 cursor-pointer",
+                    "w-full text-left block rounded-xl border p-3 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     borderClass
                   )}
                 >
@@ -105,7 +99,7 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
                       </p>
                       <div className="mt-1.5 flex items-center gap-2">
                         <span className="text-xs text-muted-foreground shrink-0">
-                          {format(new Date(item.dataCompetencia), "dd MMM yyyy", { locale: ptBR })}
+                          {formatarDataCurta(String(item.dataCompetencia))}
                         </span>
                         {badgeText && (
                           <span className={cn(
@@ -193,7 +187,7 @@ export function PendingList({ title, items, emptyMessage, variant = "warning" }:
                   <div>
                     <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Data de Competência</p>
                     <p className="text-sm font-medium text-foreground">
-                      {format(new Date(selectedItem.dataCompetencia), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      {formatarData(String(selectedItem.dataCompetencia))}
                     </p>
                   </div>
                 </div>

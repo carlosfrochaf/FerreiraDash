@@ -42,6 +42,37 @@ export function montarParcelas(input: RecebimentoInput): ResultadoParcelas {
   return resultado;
 }
 
+/**
+ * Dados de criação das parcelas. As `jaPagas` primeiras entram como recebidas
+ * (e repassadas, se `jaRepassadas`) na data do vencimento, ou hoje se o
+ * vencimento ainda não chegou. Puro: não acessa o banco.
+ */
+export function dadosDasParcelas(
+  parcelas: ParcelaCalculada[],
+  jaPagas: number,
+  jaRepassadas: boolean,
+  hoje: string = hojeSaoPaulo()
+): Prisma.ParcelaCreateWithoutRecebimentoInput[] {
+  return parcelas.map((p, i) => {
+    const paga = i < jaPagas;
+    const data = dataParaDb(p.vencimento <= hoje ? p.vencimento : hoje);
+    return {
+      numero: p.numero,
+      vencimento: dataParaDb(p.vencimento),
+      valorParcela: new Prisma.Decimal(p.valorParcela),
+      valorEscritorio: new Prisma.Decimal(p.valorEscritorio),
+      valorCliente: new Prisma.Decimal(p.valorCliente),
+      ...(paga
+        ? {
+            statusRecebimento: StatusRecebimento.RECEBIDO,
+            dataRecebimento: data,
+            ...(jaRepassadas ? { statusRepasse: StatusRepasse.REPASSADO, dataRepasse: data } : {}),
+          }
+        : {}),
+    };
+  });
+}
+
 export async function criarRecebimento(input: RecebimentoInput) {
   const calc = montarParcelas(input);
 
@@ -62,15 +93,7 @@ export async function criarRecebimento(input: RecebimentoInput) {
       numeroParcelas: input.numeroParcelas,
       dataPrimeiroVencimento: dataParaDb(input.primeiroVencimento),
       diaVencimento: calc.diaVencimento,
-      parcelas: {
-        create: calc.parcelas.map((p: ParcelaCalculada) => ({
-          numero: p.numero,
-          vencimento: dataParaDb(p.vencimento),
-          valorParcela: new Prisma.Decimal(p.valorParcela),
-          valorEscritorio: new Prisma.Decimal(p.valorEscritorio),
-          valorCliente: new Prisma.Decimal(p.valorCliente),
-        })),
-      },
+      parcelas: { create: dadosDasParcelas(calc.parcelas, input.parcelasJaPagas, input.jaRepassadas) },
     },
     include: { parcelas: { orderBy: { numero: "asc" } } },
   });
@@ -122,7 +145,8 @@ export async function atualizarRecebimento(id: string, input: RecebimentoInput) 
       paraCentavos(input.percentualEscritorio) !== paraCentavos(atual.percentualEscritorio.toFixed(2)) ||
       input.numeroParcelas !== atual.numeroParcelas ||
       input.primeiroVencimento !== dataDoDb(atual.dataPrimeiroVencimento) ||
-      input.parcelas !== undefined;
+      input.parcelas !== undefined ||
+      input.parcelasJaPagas > 0;
     if (mudouValores) {
       throw new ErroRecebimento(
         "Esta causa já tem parcela recebida: só dá para editar cliente, empresa, processo e observações. Para mudar uma data, use a parcela.",
@@ -145,15 +169,7 @@ export async function atualizarRecebimento(id: string, input: RecebimentoInput) 
         numeroParcelas: input.numeroParcelas,
         dataPrimeiroVencimento: dataParaDb(input.primeiroVencimento),
         diaVencimento: calc.diaVencimento,
-        parcelas: {
-          create: calc.parcelas.map((p) => ({
-            numero: p.numero,
-            vencimento: dataParaDb(p.vencimento),
-            valorParcela: new Prisma.Decimal(p.valorParcela),
-            valorEscritorio: new Prisma.Decimal(p.valorEscritorio),
-            valorCliente: new Prisma.Decimal(p.valorCliente),
-          })),
-        },
+        parcelas: { create: dadosDasParcelas(calc.parcelas, input.parcelasJaPagas, input.jaRepassadas) },
       },
     }),
   ]);

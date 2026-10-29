@@ -80,6 +80,9 @@ export function RecebimentoForm({ processos, inicial }: Props) {
   const [numeroParcelas, setNumeroParcelas] = useState(inicial?.numeroParcelas ?? 1);
   const [primeiroVencimento, setPrimeiroVencimento] = useState(inicial?.dataPrimeiroVencimento ?? hojeSaoPaulo());
   const [ajustes, setAjustes] = useState<Record<number, Ajuste>>(() => (inicial ? ajustesIniciais(inicial) : {}));
+  // Causas que começaram antes do sistema: primeiras parcelas já pagas pela empresa.
+  const [jaPagas, setJaPagas] = useState(0);
+  const [jaRepassadas, setJaRepassadas] = useState(true);
 
   const [buscando, setBuscando] = useState(false);
   const [avisoBusca, setAvisoBusca] = useState("");
@@ -191,6 +194,8 @@ export function RecebimentoForm({ processos, inicial }: Props) {
       percentualEscritorio: percentual || "0",
       numeroParcelas,
       primeiroVencimento,
+      parcelasJaPagas: bloqueada ? 0 : jaPagasEf,
+      jaRepassadas,
       parcelas:
         temAjustes && !bloqueada ? r.parcelas.map((p) => ({ valorParcela: p.valorParcela, vencimento: p.vencimento })) : undefined,
     };
@@ -216,6 +221,19 @@ export function RecebimentoForm({ processos, inicial }: Props) {
   }
 
   const r = previa?.ok ? previa.r : null;
+  const jaPagasEf = Math.min(jaPagas, numeroParcelas);
+  const hoje = hojeSaoPaulo();
+  const linhas = calcularLinhas(r, totalDecimal, percentual, numeroParcelas, primeiroVencimento);
+  const vencidas = linhas.filter((l, i) => (ajustes[i]?.vencimento ?? l.vencimento) < hoje).length;
+
+  /** Situação de cada parcela na prévia (já paga / repassada). */
+  function situacao(i: number): { recebida: boolean; repassada: boolean } | null {
+    if (bloqueada) {
+      const p = inicial?.parcelas[i];
+      return p ? { recebida: p.statusRecebimento === "RECEBIDO", repassada: p.statusRepasse === "REPASSADO" } : null;
+    }
+    return i < jaPagasEf ? { recebida: true, repassada: jaRepassadas } : null;
+  }
 
   return (
     <form onSubmit={enviar} className="grid gap-4 lg:grid-cols-5 lg:items-start" noValidate>
@@ -371,6 +389,45 @@ export function RecebimentoForm({ processos, inicial }: Props) {
               )}
             </div>
 
+            {!bloqueada && (
+              <div className="space-y-3 rounded-xl border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label htmlFor="jaPagas">Já pagas antes do cadastro</Label>
+                    <p className="text-xs text-muted-foreground">Para causas que começaram antes do sistema.</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setJaPagas(Math.max(0, jaPagasEf - 1))} aria-label="Uma a menos">
+                      <Minus />
+                    </Button>
+                    <Input
+                      id="jaPagas"
+                      inputMode="numeric"
+                      value={jaPagasEf}
+                      onChange={(e) => setJaPagas(Math.min(numeroParcelas, parseInt(e.target.value.replace(/\D/g, "") || "0", 10)))}
+                      className="h-9 w-12 px-1 text-center font-bold"
+                    />
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setJaPagas(Math.min(numeroParcelas, jaPagasEf + 1))} aria-label="Uma a mais">
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
+                {vencidas > 0 && jaPagasEf !== vencidas && (
+                  <button type="button" onClick={() => setJaPagas(vencidas)} className="text-xs font-medium text-primary hover:underline">
+                    Marcar as {vencidas} que já venceram como pagas
+                  </button>
+                )}
+                {jaPagasEf > 0 && (
+                  <label className="flex items-start gap-2 text-sm">
+                    <input type="checkbox" checked={jaRepassadas} onChange={(e) => setJaRepassadas(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[hsl(217_91%_60%)]" />
+                    <span>
+                      O cliente também já recebeu a parte dele nessas {jaPagasEf === 1 ? "parcela" : `${jaPagasEf} parcelas`}
+                    </span>
+                  </label>
+                )}
+              </div>
+            )}
+
             </fieldset>
           </CardContent>
         </Card>
@@ -420,14 +477,20 @@ export function RecebimentoForm({ processos, inicial }: Props) {
                     )}
                   </div>
                   <ul className={cn("max-h-[26rem] space-y-2 overflow-y-auto pr-1", bloqueada && "pointer-events-none opacity-70")} aria-disabled={bloqueada}>
-                    {calcularLinhas(r, totalDecimal, percentual, numeroParcelas, primeiroVencimento).map((linha, i) => {
+                    {linhas.map((linha, i) => {
                       const ajustada = !!ajustes[i];
+                      const sit = situacao(i);
                       return (
                         <li key={i} className={cn("rounded-xl border p-2.5", ajustada ? "border-primary/40 bg-primary/5" : "border-border/70")}>
                           <div className="flex items-center gap-2">
                             <span className="w-9 shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
                               {i + 1}/{numeroParcelas}
                             </span>
+                            {sit?.recebida && (
+                              <span className="shrink-0 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-300">
+                                {sit.repassada ? "Paga e repassada" : "Paga"}
+                              </span>
+                            )}
                             <div className="relative min-w-0 flex-1">
                               <Input
                                 type="date"

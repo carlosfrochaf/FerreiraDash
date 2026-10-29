@@ -52,10 +52,18 @@ export const recebimentoSchema = z
       .array(z.object({ valorParcela: valorSchema, vencimento: dataSchema }))
       .max(120)
       .optional(),
+    /** Causas antigas: quantas das primeiras parcelas a empresa já pagou antes do cadastro. */
+    parcelasJaPagas: z.coerce.number().int().min(0).max(120).default(0),
+    /** Nessas parcelas já pagas, o cliente também já recebeu a parte dele? */
+    jaRepassadas: z.boolean().default(true),
   })
   .refine((d) => !d.parcelas || d.parcelas.length === d.numeroParcelas, {
     message: "A quantidade de parcelas não bate com o número informado",
     path: ["parcelas"],
+  })
+  .refine((d) => d.parcelasJaPagas <= d.numeroParcelas, {
+    message: "Há mais parcelas já pagas do que parcelas na causa",
+    path: ["parcelasJaPagas"],
   });
 
 export type RecebimentoInput = z.infer<typeof recebimentoSchema>;

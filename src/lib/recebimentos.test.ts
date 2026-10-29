@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { montarParcelas, ErroRecebimento } from "./recebimentos";
+import { dadosDasParcelas, montarParcelas, ErroRecebimento } from "./recebimentos";
 import { parcelaAcaoSchema, recebimentoSchema } from "./validations";
 
 const base = {
@@ -68,6 +68,36 @@ describe("montarParcelas", () => {
       ],
     });
     expect(() => montarParcelas(input)).toThrow(ErroRecebimento);
+  });
+});
+
+describe("parcelas já pagas antes do cadastro", () => {
+  const calc = () =>
+    montarParcelas(recebimentoSchema.parse({ ...base, numeroParcelas: 4, primeiroVencimento: "2026-08-20" })).parcelas;
+
+  it("marca as primeiras como recebidas e repassadas na data do vencimento", () => {
+    const d = dadosDasParcelas(calc(), 2, true, "2026-10-29");
+    expect(d.map((p) => p.statusRecebimento ?? "PENDENTE")).toEqual(["RECEBIDO", "RECEBIDO", "PENDENTE", "PENDENTE"]);
+    expect(d[0].statusRepasse).toBe("REPASSADO");
+    expect((d[1].dataRecebimento as Date).toISOString().slice(0, 10)).toBe("2026-09-21"); // 20/09/2026 é domingo
+  });
+
+  it("sem repasse: só recebidas", () => {
+    const d = dadosDasParcelas(calc(), 1, false, "2026-10-29");
+    expect(d[0].statusRecebimento).toBe("RECEBIDO");
+    expect(d[0].statusRepasse).toBeUndefined();
+  });
+
+  it("vencimento futuro marcado como pago usa a data de hoje", () => {
+    const d = dadosDasParcelas(calc(), 4, true, "2026-10-29");
+    expect((d[3].dataRecebimento as Date).toISOString().slice(0, 10)).toBe("2026-10-29");
+  });
+
+  it("schema: padrão 0 já pagas e repasse marcado; não aceita mais que o total", () => {
+    const r = recebimentoSchema.parse(base);
+    expect(r.parcelasJaPagas).toBe(0);
+    expect(r.jaRepassadas).toBe(true);
+    expect(recebimentoSchema.safeParse({ ...base, parcelasJaPagas: 5 }).success).toBe(false);
   });
 });
 

@@ -259,6 +259,19 @@ model Peticao {
   @@map("peticoes")
 }
 
+/// Dados de cada advogado parceiro (por enquanto, o Pix para pagamento).
+/// Ligado às audiências e petições pelo nome (`chave` = nome em minúsculas).
+model Advogado {
+  id        String   @id @default(cuid())
+  nome      String
+  chave     String   @unique
+  pix       String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("advogados")
+}
+
 model PushSubscription {
   id        String   @id @default(cuid())
   endpoint  String   @unique

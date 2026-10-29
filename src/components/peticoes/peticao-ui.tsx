@@ -12,6 +12,7 @@ import { cn, formatCurrency, maskCurrencyInput } from "@/lib/utils";
 import { centavosParaString } from "@/lib/parcelas";
 import { formatarData, formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
 import type { PeticaoSerializada } from "@/lib/peticoes";
+import { PixCopiar } from "@/components/ui/pix-copiar";
 
 export const STATUS_PETICAO: Record<PeticaoSerializada["status"], { label: string; cor: string }> = {
   A_VALIDAR: { label: "Falta validar", cor: "bg-amber-500/15 text-amber-300 ring-amber-500/30" },
@@ -161,6 +162,7 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
         {p.status !== "PAGA" && (
           <div className="space-y-2 rounded-xl border border-border p-3">
             {p.status === "A_VALIDAR" && <p className="text-xs text-muted-foreground">Ou, se já conferiu, marque direto como paga:</p>}
+            <PixCopiar rotulo={`Pix de ${p.advogadoNome}`} pix={p.advogadoPix} linkCadastro={`/peticoes/${p.id}/editar`} />
             {!p.valor && (
               <div className="space-y-1">
                 <label htmlFor="pet-modal-valor" className="text-xs font-semibold text-muted-foreground">

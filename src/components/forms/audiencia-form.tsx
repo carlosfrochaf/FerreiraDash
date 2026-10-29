@@ -10,11 +10,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn, maskCurrencyInput } from "@/lib/utils";
 import { centavosParaString } from "@/lib/parcelas";
 import { hojeSaoPaulo } from "@/lib/datas";
+import { chaveAdvogado } from "@/lib/advogado-chave";
 import type { AudienciaSerializada } from "@/lib/audiencias";
 
 export type SugestoesAudiencia = {
   advogados: string[];
   processos: { numero: string; clienteNome: string; reclamada: string | null }[];
+  /** chave do advogado → Pix */
+  pixAdvogados?: Record<string, string>;
 };
 
 type Props = {
@@ -32,6 +35,18 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
   const [data, setData] = useState(inicial?.data ?? hojeSaoPaulo());
   const [hora, setHora] = useState(inicial?.hora ?? "");
   const [advogadoNome, setAdvogadoNome] = useState(inicial?.advogadoNome ?? "");
+  const [advogadoPix, setAdvogadoPix] = useState(inicial?.advogadoPix ?? "");
+  const [pixAuto, setPixAuto] = useState(false);
+
+  function mudarAdvogado(nome: string) {
+    setAdvogadoNome(nome);
+    // Advogado já cadastrado: traz o Pix dele (sem apagar o que foi digitado à mão).
+    const conhecido = sugestoes.pixAdvogados?.[chaveAdvogado(nome)];
+    if (conhecido && (!advogadoPix || pixAuto)) {
+      setAdvogadoPix(conhecido);
+      setPixAuto(true);
+    }
+  }
   const [clienteNome, setClienteNome] = useState(inicial?.clienteNome ?? "");
   const [reclamada, setReclamada] = useState(inicial?.reclamada ?? "");
   const [processoNumero, setProcessoNumero] = useState(inicial?.processoNumero ?? "");
@@ -62,6 +77,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
       data,
       hora: hora || undefined,
       advogadoNome: advogadoNome.trim(),
+      advogadoPix: advogadoPix.trim(),
       clienteNome: clienteNome.trim(),
       reclamada: reclamada.trim() || undefined,
       processoNumero: processoNumero.trim() || undefined,
@@ -116,7 +132,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
               list="advogados-list"
               placeholder="Nome do advogado"
               value={advogadoNome}
-              onChange={(e) => setAdvogadoNome(e.target.value)}
+              onChange={(e) => mudarAdvogado(e.target.value)}
               aria-invalid={invalido(advogadoNome)}
               className={cn("h-11", invalido(advogadoNome) && "border-rose-500/60")}
             />
@@ -125,6 +141,24 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
                 <option key={a} value={a} />
               ))}
             </datalist>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="aud-pix">Pix do advogado</Label>
+            <Input
+              id="aud-pix"
+              placeholder="Para pagar o advogado (opcional)"
+              value={advogadoPix}
+              onChange={(e) => {
+                setAdvogadoPix(e.target.value);
+                setPixAuto(false);
+              }}
+              autoComplete="off"
+              className="h-11 font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              {pixAuto ? "Pix já cadastrado deste advogado. " : ""}Fica salvo para todas as audiências e petições dele.
+            </p>
           </div>
 
           <div className="space-y-2">

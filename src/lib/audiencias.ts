@@ -4,6 +4,7 @@ import { centavosParaString, paraCentavos } from "./parcelas";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import type { AudienciaAcao, AudienciaInput } from "./validations";
 import { ErroRecebimento as ErroNegocio } from "./recebimentos";
+import { chaveAdvogado, pixDosAdvogados, salvarPixAdvogado } from "./advogados";
 
 export { ErroNegocio };
 
@@ -12,6 +13,7 @@ export type AudienciaSerializada = {
   data: string; // AAAA-MM-DD
   hora: string | null;
   advogadoNome: string;
+  advogadoPix: string | null;
   clienteNome: string;
   reclamada: string | null;
   processoNumero: string | null;
@@ -23,12 +25,13 @@ export type AudienciaSerializada = {
 
 type AudienciaDb = Prisma.AudienciaGetPayload<object>;
 
-export function serializarAudiencia(a: AudienciaDb): AudienciaSerializada {
+export function serializarAudiencia(a: AudienciaDb, pix: Record<string, string> = {}): AudienciaSerializada {
   return {
     id: a.id,
     data: dataDoDb(a.data),
     hora: a.hora,
     advogadoNome: a.advogadoNome,
+    advogadoPix: pix[chaveAdvogado(a.advogadoNome)] ?? null,
     clienteNome: a.clienteNome,
     reclamada: a.reclamada,
     processoNumero: a.processoNumero,
@@ -65,7 +68,9 @@ function dadosDoInput(input: AudienciaInput) {
 }
 
 export async function criarAudiencia(input: AudienciaInput) {
-  return serializarAudiencia(await prisma.audiencia.create({ data: dadosDoInput(input) }));
+  const criada = await prisma.audiencia.create({ data: dadosDoInput(input) });
+  await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
+  return serializarAudiencia(criada, await pixDosAdvogados());
 }
 
 export async function atualizarAudiencia(id: string, input: AudienciaInput) {
@@ -75,7 +80,9 @@ export async function atualizarAudiencia(id: string, input: AudienciaInput) {
   if (atual.statusPagamento === StatusPagamento.PAGO && !dados.valor) {
     throw new ErroNegocio("Esta audiência já foi paga: o valor não pode ficar em branco.");
   }
-  return serializarAudiencia(await prisma.audiencia.update({ where: { id }, data: dados }));
+  const salva = await prisma.audiencia.update({ where: { id }, data: dados });
+  await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
+  return serializarAudiencia(salva, await pixDosAdvogados());
 }
 
 export async function excluirAudiencia(id: string) {
@@ -101,17 +108,20 @@ export async function aplicarAcaoAudiencia(id: string, acao: AudienciaAcao) {
     });
     if (count === 0) throw new ErroNegocio("Esta audiência não está marcada como paga.", 409);
   }
-  return serializarAudiencia(await prisma.audiencia.findUniqueOrThrow({ where: { id } }));
+  return serializarAudiencia(await prisma.audiencia.findUniqueOrThrow({ where: { id } }), await pixDosAdvogados());
 }
 
 export async function listarAudiencias() {
-  const lista = await prisma.audiencia.findMany({ orderBy: [{ data: "desc" }, { hora: "desc" }], take: 300 });
-  return lista.map(serializarAudiencia);
+  const [lista, pix] = await Promise.all([
+    prisma.audiencia.findMany({ orderBy: [{ data: "desc" }, { hora: "desc" }], take: 300 }),
+    pixDosAdvogados(),
+  ]);
+  return lista.map((a) => serializarAudiencia(a, pix));
 }
 
 /** Nomes já usados, para sugerir no formulário. */
 export async function sugestoesAudiencia() {
-  const [advogados, advogadosPeticoes, causas, audienciasAnteriores] = await Promise.all([
+  const [advogados, advogadosPeticoes, causas, audienciasAnteriores, pixAdvogados] = await Promise.all([
     prisma.audiencia.findMany({ distinct: ["advogadoNome"], select: { advogadoNome: true }, orderBy: { advogadoNome: "asc" }, take: 100 }),
     prisma.peticao.findMany({ distinct: ["advogadoNome"], select: { advogadoNome: true }, take: 100 }),
     prisma.recebimento.findMany({
@@ -121,6 +131,7 @@ export async function sugestoesAudiencia() {
       take: 200,
     }),
     prisma.audiencia.findMany({ distinct: ["clienteNome"], select: { clienteNome: true, reclamada: true, processoNumero: true }, take: 200 }),
+    pixDosAdvogados(),
   ]);
   // Processos conhecidos (das causas e de audiências anteriores), para preencher cliente e empresa.
   const processos = new Map<string, { clienteNome: string; reclamada: string | null }>();
@@ -130,5 +141,6 @@ export async function sugestoesAudiencia() {
   return {
     advogados: [...new Set([...advogados, ...advogadosPeticoes].map((a) => a.advogadoNome))].sort((x, y) => x.localeCompare(y, "pt-BR")),
     processos: [...processos.entries()].map(([numero, v]) => ({ numero, ...v })),
+    pixAdvogados,
   };
 }

@@ -12,6 +12,7 @@ import type { DashboardResumo, ParcelaResumo } from "@/types";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import { serializarAudiencia } from "./audiencias";
 import { serializarPeticao } from "./peticoes";
+import { pixDosAdvogados } from "./advogados";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -76,6 +77,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
   const hoje = hojeSaoPaulo();
   const diaHoje = dataParaDb(hoje);
   const [ano, mes] = hoje.split("-").map(Number);
+  const pixPromessa = pixDosAdvogados();
   const inicioMes = new Date(Date.UTC(ano, mes - 1, 1));
   const inicioProxMes = new Date(Date.UTC(ano, mes, 1));
   const inicioJanela = new Date(Date.UTC(ano, mes - 6, 1)); // últimos 6 meses
@@ -190,6 +192,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     }),
   ]);
 
+  const pix = await pixPromessa;
   const total = somaPorTipo(totaisTransacoes);
   const doMes = somaPorTipo(totaisMes);
   const escritorioTotal = Number(escritorioRecebido._sum.valorEscritorio ?? 0);
@@ -222,9 +225,9 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     fluxoMensal,
     proximasEntradas: proximasEntradas.map(serializarParcelaResumo),
     repassesClientes: repassesClientes.map(serializarParcelaResumo),
-    proximasAudiencias: proximasAudiencias.map(serializarAudiencia),
-    audienciasAPagar: audienciasAPagar.map(serializarAudiencia),
-    peticoesPendentes: peticoesPendentes.map(serializarPeticao),
+    proximasAudiencias: proximasAudiencias.map((a) => serializarAudiencia(a, pix)),
+    audienciasAPagar: audienciasAPagar.map((a) => serializarAudiencia(a, pix)),
+    peticoesPendentes: peticoesPendentes.map((p) => serializarPeticao(p, pix)),
     recebiveisPendentes: recebiveisPendentes.map(serializarTransacao),
   };
 }

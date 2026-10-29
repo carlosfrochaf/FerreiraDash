@@ -4,12 +4,14 @@ import { centavosParaString, paraCentavos } from "./parcelas";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import type { PeticaoAcao, PeticaoInput } from "./validations";
 import { ErroRecebimento as ErroNegocio } from "./recebimentos";
+import { chaveAdvogado, pixDosAdvogados, salvarPixAdvogado } from "./advogados";
 
 export { ErroNegocio };
 
 export type PeticaoSerializada = {
   id: string;
   advogadoNome: string;
+  advogadoPix: string | null;
   clienteNome: string;
   reclamada: string | null;
   processoNumero: string | null;
@@ -24,10 +26,11 @@ export type PeticaoSerializada = {
 
 type PeticaoDb = Prisma.PeticaoGetPayload<object>;
 
-export function serializarPeticao(p: PeticaoDb): PeticaoSerializada {
+export function serializarPeticao(p: PeticaoDb, pix: Record<string, string> = {}): PeticaoSerializada {
   return {
     id: p.id,
     advogadoNome: p.advogadoNome,
+    advogadoPix: pix[chaveAdvogado(p.advogadoNome)] ?? null,
     clienteNome: p.clienteNome,
     reclamada: p.reclamada,
     processoNumero: p.processoNumero,
@@ -75,13 +78,17 @@ function dadosDoInput(input: PeticaoInput, atual?: PeticaoDb) {
 }
 
 export async function criarPeticao(input: PeticaoInput) {
-  return serializarPeticao(await prisma.peticao.create({ data: dadosDoInput(input) }));
+  const criada = await prisma.peticao.create({ data: dadosDoInput(input) });
+  await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
+  return serializarPeticao(criada, await pixDosAdvogados());
 }
 
 export async function atualizarPeticao(id: string, input: PeticaoInput) {
   const atual = await prisma.peticao.findUnique({ where: { id } });
   if (!atual) throw new ErroNegocio("Petição não encontrada.", 404);
-  return serializarPeticao(await prisma.peticao.update({ where: { id }, data: dadosDoInput(input, atual) }));
+  const salva = await prisma.peticao.update({ where: { id }, data: dadosDoInput(input, atual) });
+  await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
+  return serializarPeticao(salva, await pixDosAdvogados());
 }
 
 export async function excluirPeticao(id: string) {
@@ -136,10 +143,13 @@ export async function aplicarAcaoPeticao(id: string, acao: PeticaoAcao) {
   if (acao.acao === "pagar") {
     await prisma.peticao.updateMany({ where: { id, dataValidacao: null }, data: { dataValidacao: hoje } });
   }
-  return serializarPeticao(await prisma.peticao.findUniqueOrThrow({ where: { id } }));
+  return serializarPeticao(await prisma.peticao.findUniqueOrThrow({ where: { id } }), await pixDosAdvogados());
 }
 
 export async function listarPeticoes() {
-  const lista = await prisma.peticao.findMany({ orderBy: [{ dataEntrega: "desc" }, { createdAt: "desc" }], take: 500 });
-  return lista.map(serializarPeticao);
+  const [lista, pix] = await Promise.all([
+    prisma.peticao.findMany({ orderBy: [{ dataEntrega: "desc" }, { createdAt: "desc" }], take: 500 }),
+    pixDosAdvogados(),
+  ]);
+  return lista.map((p) => serializarPeticao(p, pix));
 }

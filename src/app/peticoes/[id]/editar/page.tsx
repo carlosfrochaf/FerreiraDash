@@ -18,7 +18,7 @@ export default async function EditarPeticaoPage({ params }: { params: Promise<{ 
         <ChevronLeft className="h-4 w-4" /> Petições
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Editar petição</h1>
-      <PeticaoForm sugestoes={sugestoes} inicial={serializarPeticao(p)} />
+      <PeticaoForm sugestoes={sugestoes} inicial={serializarPeticao(p, sugestoes.pixAdvogados)} />
     </div>
   );
 }

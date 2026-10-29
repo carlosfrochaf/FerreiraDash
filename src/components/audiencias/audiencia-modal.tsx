@@ -11,6 +11,7 @@ import { formatCurrency, maskCurrencyInput } from "@/lib/utils";
 import { centavosParaString } from "@/lib/parcelas";
 import { diasAte, formatarData, hojeSaoPaulo } from "@/lib/datas";
 import type { AudienciaSerializada } from "@/lib/audiencias";
+import { PixCopiar } from "@/components/ui/pix-copiar";
 
 export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSerializada | null; onFechar: () => void }) {
   const router = useRouter();
@@ -127,6 +128,7 @@ export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSe
 
         {!paga && (
           <div className="space-y-2 rounded-xl border border-border p-3">
+            <PixCopiar rotulo={`Pix de ${a.advogadoNome}`} pix={a.advogadoPix} linkCadastro={`/audiencias/${a.id}/editar`} />
             {!aconteceu && <p className="text-xs text-muted-foreground">A audiência ainda não aconteceu. Dá para pagar antes, se for o caso.</p>}
             {!a.valor && (
               <div className="space-y-1">

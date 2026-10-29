@@ -91,6 +91,8 @@ export const audienciaSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   advogadoNome: z.string().trim().min(1, "Informe o advogado"),
+  /** Pix do advogado (fica no cadastro do advogado). "" apaga; ausente não mexe. */
+  advogadoPix: z.string().trim().max(140).optional(),
   clienteNome: z.string().trim().min(1, "Informe o cliente"),
   reclamada: textoOpcional,
   processoNumero: textoOpcional,
@@ -116,6 +118,8 @@ export type AudienciaAcao = z.infer<typeof audienciaAcaoSchema>;
 export const peticaoSchema = z
   .object({
     advogadoNome: z.string().trim().min(1, "Informe o advogado"),
+    /** Pix do advogado (fica no cadastro do advogado). "" apaga; ausente não mexe. */
+    advogadoPix: z.string().trim().max(140).optional(),
     clienteNome: z.string().trim().min(1, "Informe o cliente"),
     descricao: z.string().trim().min(1, "Informe qual petição foi feita"),
     dataEntrega: dataSchema,

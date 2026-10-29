@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { montarNotificacoes, turnoPorHorario, type DadosDoDia, type ParcelaAviso } from "./notificacoes";
+import { montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type DadosDoDia, type ParcelaAviso } from "./notificacoes";
 
 const parcela = (o: Partial<ParcelaAviso> = {}): ParcelaAviso => ({
   numero: 2,
@@ -95,6 +95,25 @@ describe("petições", () => {
   });
   it("19h não repete o resumo", () => {
     expect(montar("noite", { ...vazio, peticoesAValidar: 2 })).toEqual([]);
+  });
+});
+
+describe("pagamentos do próximo dia (19h)", () => {
+  it("avisa o pagamento de amanhã com empresa, cliente e valores", () => {
+    const [n] = montar("noite", { ...vazio, proximoPagamento: { quando: "amanhã", parcelas: [parcela()] } });
+    expect(n.title).toBe("Pagamento amanhã: Empresa X Ltda");
+    expect(n.body).toContain("Cliente: Maria Silva · parcela 2/5");
+    expect(n.body).toContain("R$ 2.500,00 (seu escritório: R$ 750,00)");
+  });
+  it("vários pagamentos viram um aviso só; a manhã não repete", () => {
+    const prox = { quando: "segunda", parcelas: [parcela(), parcela({ clienteNome: "José" })] };
+    expect(montar("noite", { ...vazio, proximoPagamento: prox })[0].title).toBe("2 pagamentos segunda · R$ 5.000,00");
+    expect(montar("manha", { ...vazio, proximoPagamento: prox })).toEqual([]);
+  });
+  it("sexta avisa os de segunda; nos outros dias, os de amanhã", () => {
+    expect(proximoDiaDePagamento("2026-10-29")).toEqual({ data: "2026-10-30", quando: "amanhã" }); // quinta
+    expect(proximoDiaDePagamento("2026-10-30")).toEqual({ data: "2026-11-02", quando: "segunda" }); // sexta
+    expect(proximoDiaDePagamento("2026-11-01")).toEqual({ data: "2026-11-02", quando: "amanhã" }); // domingo
   });
 });
 

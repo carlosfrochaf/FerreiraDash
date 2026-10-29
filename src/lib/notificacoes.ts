@@ -41,6 +41,8 @@ export interface DadosDoDia {
   /** Audiências de hoje (aviso das 8h) e de amanhã (lembrete das 19h). */
   audienciasHoje?: AudienciaAviso[];
   audienciasAmanha?: AudienciaAviso[];
+  /** Parcelas do próximo dia de pagamento (aviso das 19h). `quando`: "amanhã" ou "segunda". */
+  proximoPagamento?: { quando: string; parcelas: ParcelaAviso[] };
   /** Petições pendentes (resumo das 8h). */
   peticoesAValidar?: number;
   peticoesAPagar?: { quantidade: number; total: number };
@@ -105,7 +107,7 @@ function plural(n: number, um: string, varios: string) {
 
 /**
  * Manhã (8h): audiências de hoje + o que vence hoje + repasses prontos + lançamentos do dia.
- * Noite (19h): audiências de amanhã + o que venceu hoje e não foi marcado + atrasadas.
+ * Noite (19h): audiências e pagamentos de amanhã (na sexta, os de segunda) + o que venceu hoje e não foi marcado + atrasadas.
  * Várias parcelas viram uma notificação só, para não gerar spam.
  */
 export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
@@ -171,6 +173,30 @@ export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
     const aud = avisoAudiencias(d.audienciasAmanha ?? [], "amanhã", "audiencias-amanha");
     if (aud) out.push(aud);
 
+    const prox = d.proximoPagamento;
+    if (prox && prox.parcelas.length === 1) {
+      const p = prox.parcelas[0];
+      out.push({
+        title: `Pagamento ${prox.quando}: ${empresa(p)}`,
+        body: [
+          `Cliente: ${p.clienteNome} · parcela ${p.numero}/${p.totalParcelas}`,
+          `${brl(p.valorParcela)} (seu escritório: ${brl(p.valorEscritorio)})`,
+          p.processoNumero ? `Proc. ${p.processoNumero}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        url: "/recebimentos",
+        tag: "pagamentos-amanha",
+      });
+    } else if (prox && prox.parcelas.length > 1) {
+      out.push({
+        title: `${prox.parcelas.length} pagamentos ${prox.quando} · ${brl(soma(prox.parcelas, "valorParcela"))}`,
+        body: listar(prox.parcelas, linhaParcela),
+        url: "/recebimentos",
+        tag: "pagamentos-amanha",
+      });
+    }
+
     if (d.vencemHoje.length > 0) {
       const n = d.vencemHoje.length;
       out.push({
@@ -193,6 +219,17 @@ export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
   }
 
   return out;
+}
+
+/**
+ * Dia do próximo aviso de pagamento, visto às 19h de `hoje` (AAAA-MM-DD):
+ * normalmente amanhã; na sexta, segunda (vencimentos de fim de semana vão para segunda).
+ */
+export function proximoDiaDePagamento(hoje: string): { data: string; quando: string } {
+  const d = new Date(`${hoje}T00:00:00Z`);
+  const sexta = d.getUTCDay() === 5;
+  const alvo = new Date(d.getTime() + (sexta ? 3 : 1) * 86_400_000);
+  return { data: alvo.toISOString().slice(0, 10), quando: sexta ? "segunda" : "amanhã" };
 }
 
 /** Turno pelo horário de Brasília: antes das 14h é manhã. */

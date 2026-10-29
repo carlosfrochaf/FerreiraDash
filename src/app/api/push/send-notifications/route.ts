@@ -3,7 +3,7 @@ import webpush from "web-push";
 import { StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
-import { montarNotificacoes, turnoPorHorario, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
+import { montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +96,8 @@ async function buscarDadosDoDia(hoje: string) {
   } as const;
 
   const amanha = new Date(dia.getTime() + 86_400_000);
-  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje, audienciasHoje, audienciasAmanha, peticoesAValidar, peticoesAPagar] =
+  const proximo = proximoDiaDePagamento(hoje);
+  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje, audienciasHoje, audienciasAmanha, peticoesAValidar, peticoesAPagar, vencemProximo] =
     await Promise.all([
     prisma.parcela.findMany({
       where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: dia },
@@ -122,6 +123,11 @@ async function buscarDadosDoDia(hoje: string) {
     prisma.audiencia.findMany({ where: { data: amanha }, orderBy: { hora: "asc" } }),
     prisma.peticao.count({ where: { status: StatusPeticao.A_VALIDAR } }),
     prisma.peticao.aggregate({ where: { status: StatusPeticao.A_PAGAR }, _count: true, _sum: { valor: true } }),
+    prisma.parcela.findMany({
+      where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: dataParaDb(proximo.data) },
+      include: incluir,
+      orderBy: { valorParcela: "desc" },
+    }),
   ]);
 
   const audiencia = (a: (typeof audienciasHoje)[number]) => ({
@@ -148,6 +154,7 @@ async function buscarDadosDoDia(hoje: string) {
     vencemHoje: vencemHoje.map(aviso),
     atrasadas: atrasadas.map(aviso),
     repassesProntos: repassesProntos.map(aviso),
+    proximoPagamento: { quando: proximo.quando, parcelas: vencemProximo.map(aviso) },
     peticoesAValidar,
     peticoesAPagar: { quantidade: peticoesAPagar._count, total: Number(peticoesAPagar._sum.valor ?? 0) },
     audienciasHoje: audienciasHoje.map(audiencia),

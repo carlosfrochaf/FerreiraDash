@@ -3,11 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronRight, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Check, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatCurrency, maskCurrencyInput } from "@/lib/utils";
 import { centavosParaString } from "@/lib/parcelas";
 import { formatarData, formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
@@ -199,36 +198,5 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
         </div>
       </div>
     </Modal>
-  );
-}
-
-/** Card do início: petições ainda não pagas. */
-export function PeticaoLista({ itens }: { itens: PeticaoSerializada[] }) {
-  const [sel, setSel] = useState<PeticaoSerializada | null>(null);
-  const total = itens.reduce((s, p) => s + Number(p.valor ?? 0), 0);
-  return (
-    <>
-      <Card className="flex flex-col">
-        <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
-          <div className="space-y-1">
-            <CardTitle className="text-base">Petições não pagas</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {itens.length === 0 ? "Feitas pelos advogados" : `${itens.length} ${itens.length === 1 ? "petição" : "petições"} · ${formatCurrency(total)} a pagar`}
-            </p>
-          </div>
-          <Link href="/peticoes" className="flex shrink-0 items-center text-xs font-medium text-primary hover:underline">
-            Ver tudo <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
-        </CardHeader>
-        <CardContent className="max-h-[22rem] flex-1 space-y-2 overflow-y-auto">
-          {itens.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nenhuma petição para pagar.</p>
-          ) : (
-            itens.map((p) => <PeticaoItem key={p.id} p={p} onClick={() => setSel(p)} />)
-          )}
-        </CardContent>
-      </Card>
-      <PeticaoModal peticao={sel} onFechar={() => setSel(null)} />
-    </>
   );
 }

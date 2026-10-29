@@ -1,54 +1,32 @@
 import Link from "next/link";
-import { CalendarClock, Gavel, Receipt } from "lucide-react";
+import { CalendarClock, FileText, Gavel, Receipt } from "lucide-react";
 
 const acoes = [
-  {
-    href: "/lancamentos/novo?modo=causa",
-    titulo: "Nova causa",
-    texto: "Valor, % e parcelas",
-    icon: Gavel,
-    estilo: "bg-primary text-primary-foreground hover:bg-primary/90",
-    iconeEstilo: "bg-black/10",
-  },
-  {
-    href: "/audiencias/nova",
-    titulo: "Audiência",
-    texto: "Data e advogado",
-    icon: CalendarClock,
-    estilo: "border border-border bg-card hover:bg-accent",
-    iconeEstilo: "bg-primary/10 text-primary",
-  },
-  {
-    href: "/lancamentos/novo?modo=simples",
-    titulo: "Outro",
-    texto: "Despesa ou entrada",
-    icon: Receipt,
-    estilo: "border border-border bg-card hover:bg-accent",
-    iconeEstilo: "bg-primary/10 text-primary",
-  },
+  { href: "/lancamentos/novo?modo=causa", titulo: "Causa", icon: Gavel },
+  { href: "/audiencias/nova", titulo: "Audiência", icon: CalendarClock },
+  { href: "/peticoes/nova", titulo: "Petição", icon: FileText },
+  { href: "/lancamentos/novo?modo=simples", titulo: "Outro", icon: Receipt },
 ];
 
+/** Atalhos discretos para cadastrar. */
 export function QuickActions() {
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+    <nav aria-label="Cadastrar" className="grid grid-cols-4 gap-2">
       {acoes.map((a) => {
         const Icon = a.icon;
         return (
           <Link
             key={a.href}
             href={a.href}
-            className={`flex flex-col items-start gap-2 rounded-2xl p-3 transition-colors sm:flex-row sm:items-center sm:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-4 ${a.estilo}`}
+            className="group flex flex-col items-center gap-1.5 rounded-2xl py-2 text-center transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${a.iconeEstilo}`}>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/20">
               <Icon className="h-5 w-5" />
             </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">{a.titulo}</span>
-              <span className="hidden truncate text-xs opacity-75 sm:block">{a.texto}</span>
-            </span>
+            <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">{a.titulo}</span>
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

@@ -1,21 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
 import { diasAte, formatarDataCurta } from "@/lib/datas";
 import type { AudienciaSerializada } from "@/lib/audiencias";
-import { AudienciaModal } from "./audiencia-modal";
-
-type Props = {
-  titulo: string;
-  descricao: string;
-  modo: "proximas" | "apagar";
-  itens: AudienciaSerializada[];
-  vazio: string;
-};
 
 function quando(data: string) {
   const d = diasAte(data);
@@ -24,34 +11,6 @@ function quando(data: string) {
   if (d > 1 && d <= 7) return { texto: `Em ${d} dias`, cor: "bg-muted text-muted-foreground ring-border" };
   if (d < 0) return { texto: `Há ${-d}d`, cor: "bg-muted text-muted-foreground ring-border" };
   return null;
-}
-
-export function AudienciaLista({ titulo, descricao, modo, itens, vazio }: Props) {
-  const [sel, setSel] = useState<AudienciaSerializada | null>(null);
-
-  return (
-    <>
-      <Card className="flex flex-col">
-        <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 pb-3">
-          <div className="space-y-1">
-            <CardTitle className="text-base">{titulo}</CardTitle>
-            <p className="text-xs text-muted-foreground">{descricao}</p>
-          </div>
-          <Link href="/audiencias" className="flex shrink-0 items-center text-xs font-medium text-primary hover:underline">
-            Ver tudo <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
-        </CardHeader>
-        <CardContent className="max-h-[22rem] flex-1 space-y-2 overflow-y-auto">
-          {itens.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">{vazio}</p>
-          ) : (
-            itens.map((a) => <AudienciaItem key={a.id} a={a} modo={modo} onClick={() => setSel(a)} />)
-          )}
-        </CardContent>
-      </Card>
-      <AudienciaModal audiencia={sel} onFechar={() => setSel(null)} />
-    </>
-  );
 }
 
 export function AudienciaItem({ a, modo, onClick }: { a: AudienciaSerializada; modo: "proximas" | "apagar" | "todas"; onClick: () => void }) {

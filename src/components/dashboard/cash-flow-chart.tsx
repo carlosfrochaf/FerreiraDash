@@ -46,11 +46,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function CashFlowChart({ data }: Props) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Fluxo de Caixa</CardTitle>
+    <Card className="rounded-3xl border-border/60">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Últimos 6 meses</CardTitle>
+        <p className="text-xs text-muted-foreground">O que entrou e saiu do escritório</p>
       </CardHeader>
-      <CardContent className="h-72">
+      <CardContent className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
             <defs>
@@ -75,14 +76,14 @@ export function CashFlowChart({ data }: Props) {
               }
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(217 25% 15% / 0.6)" }} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
             <Bar 
               dataKey="entradas" 
               name="Entradas" 
               fill="url(#colorEntradas)" 
               stroke="#10b981"
               strokeWidth={1.5}
-              radius={[6, 6, 0, 0]} 
+              radius={[6, 6, 0, 0]} maxBarSize={28} 
             />
             <Bar 
               dataKey="saidas" 
@@ -90,7 +91,7 @@ export function CashFlowChart({ data }: Props) {
               fill="url(#colorSaidas)" 
               stroke="#f43f5e"
               strokeWidth={1.5}
-              radius={[6, 6, 0, 0]} 
+              radius={[6, 6, 0, 0]} maxBarSize={28} 
             />
           </BarChart>
         </ResponsiveContainer>

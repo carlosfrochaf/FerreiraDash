@@ -7,6 +7,6 @@ export const CashFlowChartLazy = dynamic(
   () => import("./cash-flow-chart").then((m) => m.CashFlowChart),
   {
     ssr: false,
-    loading: () => <div className="h-[22rem] animate-pulse rounded-2xl border border-border bg-card" />,
+    loading: () => <div className="h-[20rem] animate-pulse rounded-3xl border border-border/60 bg-card" />,
   }
 );

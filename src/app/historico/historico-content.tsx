@@ -21,6 +21,7 @@ const ORIGENS: { id: Origem; label: string }[] = [
   { id: "parcela", label: "Parcelas" },
   { id: "repasse", label: "Repasses" },
   { id: "audiencia", label: "Audiências" },
+  { id: "peticao", label: "Petições" },
   { id: "lancamento", label: "Avulsos" },
 ];
 
@@ -60,6 +61,7 @@ const ORIGEM_LABEL: Record<Movimento["origem"], string> = {
   parcela: "Parcela da causa",
   repasse: "Repasse ao cliente",
   audiencia: "Audiência",
+  peticao: "Petição",
   lancamento: "Lançamento avulso",
 };
 

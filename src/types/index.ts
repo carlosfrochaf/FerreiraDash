@@ -1,4 +1,5 @@
 import type { AudienciaSerializada } from "@/lib/audiencias";
+import type { PeticaoSerializada } from "@/lib/peticoes";
 import type {
   Contato,
   Processo,
@@ -49,6 +50,8 @@ export type DashboardResumo = {
   repassesClientes: ParcelaResumo[];
   proximasAudiencias: AudienciaSerializada[];
   audienciasAPagar: AudienciaSerializada[];
+  /** Petições que faltam validar ou pagar. */
+  peticoesPendentes: PeticaoSerializada[];
   recebiveisPendentes: TransacaoComRelacoes[];
 };
 

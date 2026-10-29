@@ -227,6 +227,36 @@ model Audiencia {
   @@map("audiencias")
 }
 
+enum StatusPeticao {
+  A_VALIDAR
+  A_PAGAR
+  PAGA
+}
+
+/// Petição feita por um advogado (geralmente parceiro): entregue → validada → paga.
+model Peticao {
+  id             String        @id @default(cuid())
+  advogadoNome   String        @map("advogado_nome")
+  clienteNome    String        @map("cliente_nome")
+  reclamada      String?
+  processoNumero String?       @map("processo_numero")
+  /// Qual petição foi feita (ex.: "Contestação", "Recurso ordinário").
+  descricao      String
+  dataEntrega    DateTime      @map("data_entrega") @db.Date
+  /// Quanto o escritório paga ao advogado. Obrigatório para marcar como paga.
+  valor          Decimal?      @db.Decimal(14, 2)
+  status         StatusPeticao @default(A_VALIDAR)
+  dataValidacao  DateTime?     @map("data_validacao") @db.Date
+  dataPagamento  DateTime?     @map("data_pagamento") @db.Date
+  observacoes    String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([status, dataEntrega])
+  @@index([dataPagamento])
+  @@map("peticoes")
+}
+
 model PushSubscription {
   id        String   @id @default(cuid())
   endpoint  String   @unique

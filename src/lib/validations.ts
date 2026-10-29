@@ -108,3 +108,38 @@ export const audienciaAcaoSchema = z.discriminatedUnion("acao", [
 ]);
 
 export type AudienciaAcao = z.infer<typeof audienciaAcaoSchema>;
+
+// ---------- Petições ----------
+
+export const peticaoSchema = z
+  .object({
+    advogadoNome: z.string().trim().min(1, "Informe o advogado"),
+    clienteNome: z.string().trim().min(1, "Informe o cliente"),
+    descricao: z.string().trim().min(1, "Informe qual petição foi feita"),
+    dataEntrega: dataSchema,
+    reclamada: textoOpcional,
+    processoNumero: textoOpcional,
+    observacoes: textoOpcional,
+    valor: z
+      .union([z.number(), z.string().trim()])
+      .optional()
+      .transform((v) => (v === "" || v === undefined ? undefined : v)),
+    status: z.enum(["A_VALIDAR", "A_PAGAR", "PAGA"]).default("A_VALIDAR"),
+    /** Só quando status = PAGA; se faltar, usa hoje. */
+    dataPagamento: dataSchema.optional().or(z.literal("").transform(() => undefined)),
+  })
+  .refine((d) => d.status !== "PAGA" || d.valor !== undefined, {
+    message: "Informe o valor para marcar como paga",
+    path: ["valor"],
+  });
+
+export type PeticaoInput = z.infer<typeof peticaoSchema>;
+
+export const peticaoAcaoSchema = z.discriminatedUnion("acao", [
+  z.object({ acao: z.literal("validar") }),
+  z.object({ acao: z.literal("desfazer_validacao") }),
+  z.object({ acao: z.literal("pagar"), data: dataSchema.optional() }),
+  z.object({ acao: z.literal("desfazer_pagamento") }),
+]);
+
+export type PeticaoAcao = z.infer<typeof peticaoAcaoSchema>;

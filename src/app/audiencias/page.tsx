@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { listarAudiencias } from "@/lib/audiencias";
 import { AudienciasContent } from "./audiencias-content";
+import { AdvogadosTabs } from "@/components/layout/advogados-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ async function Lista() {
 export default function AudienciasPage() {
   return (
     <div className="space-y-5">
+      <AdvogadosTabs />
       <section className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Audiências</h1>

@@ -1,11 +1,11 @@
-import { StatusPagamento, StatusRecebimento, StatusRepasse } from "@prisma/client";
+import { StatusPagamento, StatusPeticao, StatusRecebimento, StatusRepasse } from "@prisma/client";
 import { prisma } from "./prisma";
 import { dataDoDb, formatarData } from "./datas";
 
 /** Uma linha do extrato, venha de onde vier o dinheiro. */
 export type Movimento = {
   key: string;
-  origem: "lancamento" | "parcela" | "repasse" | "audiencia";
+  origem: "lancamento" | "parcela" | "repasse" | "audiencia" | "peticao";
   tipo: "ENTRADA" | "SAIDA";
   valor: number;
   /** Data do pagamento, se já foi pago; senão a data prevista. AAAA-MM-DD */
@@ -29,7 +29,7 @@ export type Movimento = {
 const LIMITE = 1000;
 
 export async function listarMovimentos(): Promise<Movimento[]> {
-  const [transacoes, parcelas, audiencias] = await Promise.all([
+  const [transacoes, parcelas, audiencias, peticoes] = await Promise.all([
     prisma.transacao.findMany({
       include: { categoria: true, processo: { include: { cliente: true } }, contato: true },
       orderBy: { dataCompetencia: "desc" },
@@ -43,6 +43,11 @@ export async function listarMovimentos(): Promise<Movimento[]> {
     prisma.audiencia.findMany({
       where: { valor: { not: null } },
       orderBy: { data: "desc" },
+      take: 500,
+    }),
+    prisma.peticao.findMany({
+      where: { valor: { not: null } },
+      orderBy: { dataEntrega: "desc" },
       take: 500,
     }),
   ]);
@@ -129,6 +134,27 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       valorCliente: null,
       lancamentoId: null,
       link: `/audiencias/${a.id}/editar`,
+    });
+  }
+
+  for (const p of peticoes) {
+    out.push({
+      key: `pt:${p.id}`,
+      origem: "peticao",
+      tipo: "SAIDA",
+      valor: Number(p.valor),
+      data: dataDoDb(p.dataPagamento ?? p.dataEntrega),
+      status: p.status === StatusPeticao.PAGA ? "PAGO" : "PENDENTE",
+      nome: p.advogadoNome,
+      categoria: "Petição",
+      descricao: `${p.descricao} · cliente ${p.clienteNome}${p.status === StatusPeticao.A_VALIDAR ? " · falta validar" : ""}`,
+      reclamada: p.reclamada ?? "",
+      processoNumero: p.processoNumero ?? "",
+      advogado: p.advogadoNome,
+      valorEscritorio: null,
+      valorCliente: null,
+      lancamentoId: null,
+      link: `/peticoes/${p.id}/editar`,
     });
   }
 

@@ -87,6 +87,17 @@ describe("audiências", () => {
   });
 });
 
+describe("petições", () => {
+  it("8h resume petições a validar e a pagar", () => {
+    const [n] = montar("manha", { ...vazio, peticoesAValidar: 2, peticoesAPagar: { quantidade: 1, total: 300 } });
+    expect(n.title).toBe("Petições dos advogados");
+    expect(n.body).toBe("2 petições a validar · 1 a pagar (R$ 300,00)");
+  });
+  it("19h não repete o resumo", () => {
+    expect(montar("noite", { ...vazio, peticoesAValidar: 2 })).toEqual([]);
+  });
+});
+
 describe("turnoPorHorario", () => {
   it("usa o horário de Brasília", () => {
     expect(turnoPorHorario(new Date("2026-11-20T11:00:00Z"))).toBe("manha"); // 8h

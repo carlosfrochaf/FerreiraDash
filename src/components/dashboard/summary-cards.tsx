@@ -31,7 +31,7 @@ export function SummaryCards({ saldoAtual, entradasMes, saidasMes, aRepassarClie
     {
       label: "Saídas do mês",
       value: saidasMes,
-      hint: "Despesas e audiências pagas",
+      hint: "Despesas, audiências e petições",
       icon: TrendingDown,
       accent: "text-rose-400",
       bg: "bg-rose-500/10",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import webpush from "web-push";
-import { StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
+import { StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
 import { montarNotificacoes, turnoPorHorario, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
@@ -96,7 +96,8 @@ async function buscarDadosDoDia(hoje: string) {
   } as const;
 
   const amanha = new Date(dia.getTime() + 86_400_000);
-  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje, audienciasHoje, audienciasAmanha] = await Promise.all([
+  const [vencemHoje, atrasadas, repassesProntos, lancamentosHoje, audienciasHoje, audienciasAmanha, peticoesAValidar, peticoesAPagar] =
+    await Promise.all([
     prisma.parcela.findMany({
       where: { statusRecebimento: StatusRecebimento.PENDENTE, vencimento: dia },
       include: incluir,
@@ -119,6 +120,8 @@ async function buscarDadosDoDia(hoje: string) {
     }),
     prisma.audiencia.findMany({ where: { data: dia }, orderBy: { hora: "asc" } }),
     prisma.audiencia.findMany({ where: { data: amanha }, orderBy: { hora: "asc" } }),
+    prisma.peticao.count({ where: { status: StatusPeticao.A_VALIDAR } }),
+    prisma.peticao.aggregate({ where: { status: StatusPeticao.A_PAGAR }, _count: true, _sum: { valor: true } }),
   ]);
 
   const audiencia = (a: (typeof audienciasHoje)[number]) => ({
@@ -145,6 +148,8 @@ async function buscarDadosDoDia(hoje: string) {
     vencemHoje: vencemHoje.map(aviso),
     atrasadas: atrasadas.map(aviso),
     repassesProntos: repassesProntos.map(aviso),
+    peticoesAValidar,
+    peticoesAPagar: { quantidade: peticoesAPagar._count, total: Number(peticoesAPagar._sum.valor ?? 0) },
     audienciasHoje: audienciasHoje.map(audiencia),
     audienciasAmanha: audienciasAmanha.map(audiencia),
     lancamentosHoje: lancamentosHoje.map((t) => ({

@@ -111,8 +111,9 @@ export async function listarAudiencias() {
 
 /** Nomes já usados, para sugerir no formulário. */
 export async function sugestoesAudiencia() {
-  const [advogados, causas, audienciasAnteriores] = await Promise.all([
+  const [advogados, advogadosPeticoes, causas, audienciasAnteriores] = await Promise.all([
     prisma.audiencia.findMany({ distinct: ["advogadoNome"], select: { advogadoNome: true }, orderBy: { advogadoNome: "asc" }, take: 100 }),
+    prisma.peticao.findMany({ distinct: ["advogadoNome"], select: { advogadoNome: true }, take: 100 }),
     prisma.recebimento.findMany({
       distinct: ["clienteNome"],
       select: { clienteNome: true, reclamada: true, processoNumero: true },
@@ -127,7 +128,7 @@ export async function sugestoesAudiencia() {
     if (r.processoNumero) processos.set(r.processoNumero, { clienteNome: r.clienteNome, reclamada: r.reclamada });
   }
   return {
-    advogados: advogados.map((a) => a.advogadoNome),
+    advogados: [...new Set([...advogados, ...advogadosPeticoes].map((a) => a.advogadoNome))].sort((x, y) => x.localeCompare(y, "pt-BR")),
     processos: [...processos.entries()].map(([numero, v]) => ({ numero, ...v })),
   };
 }

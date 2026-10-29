@@ -5,6 +5,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { PendingList } from "@/components/dashboard/pending-list";
 import { ParcelaLista } from "@/components/parcelas/parcela-lista";
 import { AudienciaLista } from "@/components/audiencias/audiencia-lista";
+import { PeticaoLista } from "@/components/peticoes/peticao-ui";
 import { getDashboardResumo } from "@/lib/finance";
 
 export const dynamic = "force-dynamic";
@@ -56,16 +57,19 @@ async function DashboardContent() {
         />
       </div>
 
-      <CashFlowChartLazy data={resumo.fluxoMensal} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PeticaoLista itens={resumo.peticoesPendentes} />
+        {resumo.recebiveisPendentes.length > 0 && (
+          <PendingList
+            title="Outras entradas pendentes"
+            items={resumo.recebiveisPendentes}
+            emptyMessage="Nenhuma entrada avulsa pendente."
+            variant="success"
+          />
+        )}
+      </div>
 
-      {resumo.recebiveisPendentes.length > 0 && (
-        <PendingList
-          title="Outras entradas pendentes"
-          items={resumo.recebiveisPendentes}
-          emptyMessage="Nenhuma entrada avulsa pendente."
-          variant="success"
-        />
-      )}
+      <CashFlowChartLazy data={resumo.fluxoMensal} />
     </>
   );
 }

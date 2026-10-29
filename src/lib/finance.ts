@@ -1,6 +1,7 @@
 import {
   Prisma,
   StatusPagamento,
+  StatusPeticao,
   StatusRecebimento,
   StatusRepasse,
   StatusTransacao,
@@ -10,6 +11,7 @@ import { prisma } from "./prisma";
 import type { DashboardResumo, ParcelaResumo } from "@/types";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import { serializarAudiencia } from "./audiencias";
+import { serializarPeticao } from "./peticoes";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -67,7 +69,7 @@ function somaPorTipo(grupos: { tipo: TipoTransacao; _sum: { valor: Prisma.Decima
  * Saldo do escritório = lançamentos pagos (entradas − saídas)
  *                     + parte do escritório das parcelas já recebidas.
  * A parte do cliente nunca entra no saldo: aparece em "a repassar".
- * Audiências pagas aos advogados entram como saída.
+ * Audiências e petições pagas aos advogados entram como saída.
  */
 export async function getDashboardResumo(): Promise<DashboardResumo> {
   const hoje = hojeSaoPaulo();
@@ -91,6 +93,9 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     audienciasAPagar,
     audienciasPagas,
     audienciasPagasMes,
+    peticoesPendentes,
+    peticoesPagas,
+    peticoesPagasMes,
     recebiveisPendentes,
   ] = await Promise.all([
     prisma.transacao.groupBy({ by: ["tipo"], where: { status: StatusTransacao.PAGO }, _sum: { valor: true } }),
@@ -130,6 +135,10 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
         SELECT date_trunc('month', data_pagamento), 0, valor
           FROM audiencias
          WHERE status_pagamento = 'PAGO' AND valor IS NOT NULL AND data_pagamento >= ${inicioJanela}
+        UNION ALL
+        SELECT date_trunc('month', data_pagamento), 0, valor
+          FROM peticoes
+         WHERE status = 'PAGA' AND valor IS NOT NULL AND data_pagamento >= ${inicioJanela}
       ) x
       GROUP BY 1`,
     prisma.parcela.findMany({
@@ -161,6 +170,17 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
       where: { statusPagamento: StatusPagamento.PAGO, dataPagamento: { gte: inicioMes, lt: inicioProxMes } },
       _sum: { valor: true },
     }),
+    prisma.peticao.findMany({
+      where: { status: { in: [StatusPeticao.A_VALIDAR, StatusPeticao.A_PAGAR] } },
+      // Falta validar primeiro, depois as mais antigas.
+      orderBy: [{ status: "asc" }, { dataEntrega: "asc" }],
+      take: 30,
+    }),
+    prisma.peticao.aggregate({ where: { status: StatusPeticao.PAGA }, _sum: { valor: true } }),
+    prisma.peticao.aggregate({
+      where: { status: StatusPeticao.PAGA, dataPagamento: { gte: inicioMes, lt: inicioProxMes } },
+      _sum: { valor: true },
+    }),
     prisma.transacao.findMany({
       where: { tipo: TipoTransacao.ENTRADA, status: StatusTransacao.PENDENTE },
       include: incluirTransacao,
@@ -175,6 +195,8 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
   const escritorioMes = Number(escritorioRecebidoMes._sum.valorEscritorio ?? 0);
   const audienciasTotal = Number(audienciasPagas._sum.valor ?? 0);
   const audienciasMes = Number(audienciasPagasMes._sum.valor ?? 0);
+  const peticoesTotal = Number(peticoesPagas._sum.valor ?? 0);
+  const peticoesMes = Number(peticoesPagasMes._sum.valor ?? 0);
 
   // Monta os 6 meses, inclusive os que não tiveram movimento.
   const porMes = new Map(fluxoBruto.map((r) => [r.mes, r]));
@@ -191,9 +213,9 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
   }
 
   return {
-    saldoAtual: total.entradas - total.saidas + escritorioTotal - audienciasTotal,
+    saldoAtual: total.entradas - total.saidas + escritorioTotal - audienciasTotal - peticoesTotal,
     entradasMes: doMes.entradas + escritorioMes,
-    saidasMes: doMes.saidas + audienciasMes,
+    saidasMes: doMes.saidas + audienciasMes + peticoesMes,
     aRepassarClientes: Number(aRepassar._sum.valorCliente ?? 0),
     aReceberEscritorio: Number(aReceber._sum.valorEscritorio ?? 0),
     fluxoMensal,
@@ -201,6 +223,7 @@ export async function getDashboardResumo(): Promise<DashboardResumo> {
     repassesClientes: repassesClientes.map(serializarParcelaResumo),
     proximasAudiencias: proximasAudiencias.map(serializarAudiencia),
     audienciasAPagar: audienciasAPagar.map(serializarAudiencia),
+    peticoesPendentes: peticoesPendentes.map(serializarPeticao),
     recebiveisPendentes: recebiveisPendentes.map(serializarTransacao),
   };
 }

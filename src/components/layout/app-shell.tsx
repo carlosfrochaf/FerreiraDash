@@ -11,12 +11,13 @@ const navItems = [
   { href: "/", label: "Início", icon: Home },
   { href: "/lancamentos/novo", label: "Lançar", icon: PlusCircle },
   { href: "/recebimentos", label: "Recebimentos", icon: HandCoins },
-  { href: "/audiencias", label: "Audiências", icon: CalendarClock },
+  { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: "/peticoes" },
   { href: "/historico", label: "Histórico", icon: History },
 ];
 
-function ativo(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+function ativo(pathname: string, href: string, tambem?: string) {
+  if (href === "/") return pathname === "/";
+  return pathname.startsWith(href) || (!!tambem && pathname.startsWith(tambem));
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -55,10 +56,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={ativo(pathname, item.href) ? "page" : undefined}
+                aria-current={ativo(pathname, item.href, "tambem" in item ? item.tambem : undefined) ? "page" : undefined}
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  ativo(pathname, item.href) ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  ativo(pathname, item.href, "tambem" in item ? item.tambem : undefined) ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -97,7 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto grid max-w-5xl grid-cols-5 gap-0.5 px-1.5 pt-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isAtivo = ativo(pathname, item.href);
+            const isAtivo = ativo(pathname, item.href, "tambem" in item ? item.tambem : undefined);
             return (
               <Link
                 key={item.href}

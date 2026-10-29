@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
+import { tribunalDoProcesso } from "@/lib/tribunais";
 
-const TRIBUNAL_MAPPING: Record<string, string> = {
-  "8.26": "tjsp", "8.19": "tjrj", "8.13": "tjmg", "8.21": "tjrs", "8.09": "tjpr",
-  "8.06": "tjce", "8.17": "tjpe", "8.05": "tjba", "8.24": "tjsc", "8.16": "tgespr",
-  "5.02": "trt2", "5.15": "trt15", "5.01": "trt1", "5.03": "trt3", "5.04": "trt4",
-  "5.05": "trt5", "5.06": "trt6", "5.09": "trt9", "5.10": "trt10", "5.12": "trt12",
-  "4.03": "trf3", "4.01": "trf1", "4.02": "trf2", "4.04": "trf4", "4.05": "trf5", "4.06": "trf6"
-};
+// Chave pública do CNJ. Ela muda de tempos em tempos: a atual fica em
+// https://datajud-wiki.cnj.jus.br/api-publica/acesso e vai na variável DATAJUD_API_KEY.
+const CHAVE_PADRAO = "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==";
 
-const CNJ_PUBLIC_KEY = "APIKey c3RyYXRlZ2lhOmJhY2t1cF9kZWNpc29lc19jb25qdW50YXM=";
+function chaveDatajud(): string {
+  const k = (process.env.DATAJUD_API_KEY || CHAVE_PADRAO).trim();
+  return k.startsWith("APIKey ") ? k : `APIKey ${k}`;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -22,25 +22,10 @@ export async function GET(request: Request) {
     );
   }
 
-  // Parse segments for court identification
-  // CNJ pattern: NNNNNNN-DD.AAAA.J.TR.OOOO (length 20: NNNNNNNDDAAAAJTROOOO)
-  // J is at index 13 (14th char)
-  // TR is at index 14 and 15 (15th and 16th char)
-  const jDigit = cleaned.substring(13, 14);
-  const trDigits = cleaned.substring(14, 16);
-  const segment = `${jDigit}.${trDigits}`;
-
-  let tribunal = TRIBUNAL_MAPPING[segment];
+  // Número CNJ: NNNNNNN-DD.AAAA.J.TR.OOOO (J no índice 13, TR em 14-15)
+  const tribunal = tribunalDoProcesso(cleaned.substring(13, 14), cleaned.substring(14, 16));
   if (!tribunal) {
-    if (jDigit === "8") {
-      tribunal = `tj${getSiglaEstado(trDigits)}`;
-    } else if (jDigit === "5") {
-      tribunal = `trt${parseInt(trDigits, 10)}`;
-    } else if (jDigit === "4") {
-      tribunal = `trf${parseInt(trDigits, 10)}`;
-    } else {
-      tribunal = "tjsp"; // Default fallback
-    }
+    return NextResponse.json({ error: "Tribunal deste processo não é atendido pela busca do Datajud." }, { status: 400 });
   }
 
   const formattedCNJ = `${cleaned.substring(0, 7)}-${cleaned.substring(7, 9)}.${cleaned.substring(9, 13)}.${cleaned.substring(13, 14)}.${cleaned.substring(14, 16)}.${cleaned.substring(16, 20)}`;
@@ -52,7 +37,7 @@ export async function GET(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": CNJ_PUBLIC_KEY
+        "Authorization": chaveDatajud()
       },
       body: JSON.stringify({
         query: {
@@ -64,6 +49,13 @@ export async function GET(request: Request) {
       signal: AbortSignal.timeout(8000)
     });
 
+    if (response.status === 401 || response.status === 403) {
+      console.error("[Datajud] chave recusada pelo CNJ (status", response.status, ")");
+      return NextResponse.json(
+        { error: "O CNJ recusou a chave do Datajud (ela muda de tempos em tempos). Atualize DATAJUD_API_KEY no Render." },
+        { status: 502 }
+      );
+    }
     if (!response.ok) {
       throw new Error(`Datajud API returned status ${response.status}`);
     }
@@ -123,13 +115,6 @@ export async function GET(request: Request) {
 }
 
 // Helpers
-function getSiglaEstado(trCode: string): string {
-  const codes: Record<string, string> = {
-    "26": "sp", "19": "rj", "13": "mg", "21": "rs", "09": "pr", "06": "ce", "17": "pe", "05": "ba", "24": "sc"
-  };
-  return codes[trCode] || "sp";
-}
-
 function formatCapitalName(name: string): string {
   if (!name) return "";
   return name

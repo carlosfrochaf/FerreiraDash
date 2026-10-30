@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
+import { resumoCausa } from "@/lib/resumo-causa";
 import { formatarDataCurta } from "@/lib/datas";
 import type { RecebimentoSerializado } from "@/lib/recebimentos";
 import type { ParcelaResumo } from "@/types";
@@ -116,8 +117,7 @@ function CausaCard({
 
   const recebidas = r.parcelas.filter((p) => p.statusRecebimento === "RECEBIDO").length;
   const repassadas = r.parcelas.filter((p) => p.statusRepasse === "REPASSADO").length;
-  const valorEscritorio = r.parcelas.reduce((s, p) => s + Number(p.valorEscritorio), 0);
-  const valorCliente = r.parcelas.reduce((s, p) => s + Number(p.valorCliente), 0);
+  const resumo = resumoCausa(r.parcelas);
 
   function excluir() {
     setErro("");
@@ -153,11 +153,13 @@ function CausaCard({
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-lg bg-muted/40 p-2">
             <p className="text-muted-foreground">Escritório</p>
-            <p className="font-semibold tabular-nums text-emerald-300">{formatCurrency(valorEscritorio)}</p>
+            <p className="font-semibold tabular-nums text-emerald-300">{formatCurrency(resumo.escritorio.total)}</p>
+            <Andamento feito={resumo.escritorio.recebido} falta={resumo.escritorio.falta} verbo="recebido" />
           </div>
           <div className="rounded-lg bg-muted/40 p-2">
             <p className="text-muted-foreground">Cliente</p>
-            <p className="font-semibold tabular-nums text-amber-200">{formatCurrency(valorCliente)}</p>
+            <p className="font-semibold tabular-nums text-amber-200">{formatCurrency(resumo.cliente.total)}</p>
+            <Andamento feito={resumo.cliente.repassado} falta={resumo.cliente.falta} verbo="repassado" />
           </div>
         </div>
 
@@ -242,5 +244,21 @@ function CausaCard({
         {erro && <p className="text-xs text-rose-300">{erro}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+/** "✓ R$ X recebido · falta R$ Y" (ou "✓ tudo recebido"), embaixo do total. */
+function Andamento({ feito, falta, verbo }: { feito: number; falta: number; verbo: "recebido" | "repassado" }) {
+  if (falta <= 0 && feito > 0) return <p className="mt-0.5 text-[11px] font-medium text-emerald-400">✓ tudo {verbo}</p>;
+  return (
+    <p className="mt-0.5 text-[11px] leading-snug tabular-nums">
+      {feito > 0 && (
+        <span className="font-medium text-emerald-400">
+          ✓ {formatCurrency(feito)} {verbo}
+          <br />
+        </span>
+      )}
+      <span className="text-muted-foreground">falta {formatCurrency(falta)}</span>
+    </p>
   );
 }

@@ -16,7 +16,18 @@ export const transacaoSchema = z.object({
   processoNumero: z.string().optional(),
   clienteNome: z.string().optional(),
   reclamada: z.string().optional(),
+
+  /** Custo operacional ou salário que se repete todo mês. */
+  recorrente: z.boolean().optional(),
 });
+
+/** Mudar o valor dos próximos meses ou parar de repetir uma despesa recorrente. */
+export const recorrenciaPatchSchema = z
+  .object({
+    valor: z.number().positive("Valor deve ser maior que zero").optional(),
+    ativa: z.literal(false).optional(),
+  })
+  .refine((d) => d.valor !== undefined || d.ativa !== undefined, "Nada para alterar.");
 
 export const categoriaSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),

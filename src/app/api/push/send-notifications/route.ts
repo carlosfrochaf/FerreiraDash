@@ -3,6 +3,7 @@ import webpush from "web-push";
 import { StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
+import { gerarDespesasRecorrentes } from "@/lib/despesas-recorrentes";
 import { montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
 
 export const dynamic = "force-dynamic";
@@ -35,17 +36,26 @@ export async function POST(request: Request) {
 
     let notificacoes: Notificacao[];
     let turno: Turno | "teste";
+    let despesasCriadas = 0;
 
     if (param === "teste") {
       turno = "teste";
       notificacoes = [{ title: "Notificações funcionando ✅", body: "Você vai receber os avisos às 8h e às 19h.", url: "/", tag: "teste" }];
     } else {
       turno = param === "manha" || param === "noite" ? param : turnoPorHorario();
+      if (turno === "manha") {
+        // Lança antes os custos fixos e salários do mês, para entrarem no aviso do dia.
+        try {
+          despesasCriadas = await gerarDespesasRecorrentes(hoje);
+        } catch (err) {
+          console.error("[recorrencias]", err);
+        }
+      }
       notificacoes = montarNotificacoes(turno, await buscarDadosDoDia(hoje));
     }
 
     if (notificacoes.length === 0) {
-      return NextResponse.json({ success: true, turno, hoje, mensagem: "Nada para avisar." });
+      return NextResponse.json({ success: true, turno, hoje, despesasCriadas, mensagem: "Nada para avisar." });
     }
 
     const aparelhos = await prisma.pushSubscription.findMany();
@@ -78,6 +88,7 @@ export async function POST(request: Request) {
       success: true,
       turno,
       hoje,
+      despesasCriadas,
       notificacoes: notificacoes.map((n) => n.title),
       aparelhos: aparelhos.length,
       enviados,

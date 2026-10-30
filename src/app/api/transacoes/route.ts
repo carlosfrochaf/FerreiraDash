@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { transacaoSchema } from "@/lib/validations";
+import { SLUGS_RECORRENTES, criarDespesaRecorrente } from "@/lib/despesas-recorrentes";
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
       processoNumero: formData.get("processoNumero") || undefined,
       clienteNome: formData.get("clienteNome") || undefined,
       reclamada: formData.get("reclamada") || undefined,
+      recorrente: formData.get("recorrente") === "true",
     });
 
     if (!parsed.success) {
@@ -30,6 +32,24 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
+
+    if (data.recorrente) {
+      const nome = data.descricao?.trim();
+      if (!nome) return NextResponse.json({ error: "Informe o nome." }, { status: 400 });
+      const categoria = await prisma.categoria.findUnique({ where: { id: data.categoriaId }, select: { slug: true } });
+      if (data.tipo !== "SAIDA" || !categoria?.slug || !SLUGS_RECORRENTES.includes(categoria.slug)) {
+        return NextResponse.json({ error: "Só custos operacionais e salários podem se repetir." }, { status: 400 });
+      }
+      const transacao = await criarDespesaRecorrente({
+        nome,
+        valor: data.valor,
+        categoriaId: data.categoriaId,
+        vencimento: data.dataCompetencia,
+        status: data.status,
+        dataPagamento: data.dataPagamento,
+      });
+      return NextResponse.json(transacao, { status: 201 });
+    }
 
     const transacao = await prisma.transacao.create({
       data: {

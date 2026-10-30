@@ -1,4 +1,5 @@
 -- Agendamento dos avisos das 8h e das 19h (Brasília), direto no Supabase.
+-- O disparo das 8h também lança as despesas recorrentes do mês (custos fixos e salários).
 -- Substitui o agendamento do GitHub Actions, que atrasava horas ou pulava.
 -- Fica fora das migrations do Prisma porque o banco local não tem pg_cron.
 -- Os horários do pg_cron são em UTC (Brasília = UTC-3, sem horário de verão).

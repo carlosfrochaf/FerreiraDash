@@ -99,8 +99,15 @@ erDiagram
 | Honorários Sucumbência | Repasse ao Cliente |
 | Alvará / Causa Ganha | Advogado / Colaborador |
 | Honorários Escritório* | Custo Operacional |
+| | Salário |
 
 \* Gerado automaticamente no repasse.
+
+## Despesas
+
+- **Formulário simples**: saídas de Custo Operacional e Salário (slugs `CUSTO_OPERACIONAL`, `SALARIO`) não pedem causa nem cliente; o nome do custo/funcionário fica em `descricao`.
+- **Recorrentes** (`despesas_recorrentes`): guardam nome, valor, dia do vencimento e o último mês já lançado. `gerarDespesasRecorrentes()` (`src/lib/despesas-recorrentes.ts`) lança os meses que faltam como pendentes; roda no disparo das 8h (`/api/push/send-notifications?turno=manha`) e ao abrir `/despesas`. A regra dos meses é pura, em `src/lib/recorrencias.ts`.
+- **Tela `/despesas`**: total, pago e falta pagar do mês, separados em advogados (audiências, petições, Advogado/Colaborador), salários, custos operacionais e outras saídas. Repasses ao cliente não contam como despesa. Agrupamento em `src/lib/despesas.ts`.
 
 ## Próximos passos sugeridos
 

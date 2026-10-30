@@ -16,7 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/utils";
 import { hojeSaoPaulo } from "@/lib/datas";
-import { usaFormularioSimples } from "@/lib/formulario-lancamento";
+import { camposDaCausa, usaFormularioSimples } from "@/lib/formulario-lancamento";
 import type { StatusTransacao, TipoTransacao } from "@prisma/client";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
@@ -211,20 +211,15 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
     if (dataPagamento) formData.append("dataPagamento", dataPagamento);
     formData.append("status", status);
     if (descricao) formData.append("descricao", descricao);
-    if (simples) {
-      if (repetir && !transacaoEdicao) formData.append("recorrente", "true");
-    } else {
-      if (finalProcessoId) formData.append("processoId", finalProcessoId);
-      if (finalContatoId) formData.append("contatoId", finalContatoId);
-      if (processoNumero) formData.append("processoNumero", processoNumero);
-
-      let finalClienteNome = clienteNome;
-      if (!finalClienteNome && contatoNome) {
-        finalClienteNome = contatoNome;
-      }
-      if (finalClienteNome) formData.append("clienteNome", finalClienteNome);
-      if (reclamada) formData.append("reclamada", reclamada);
-    }
+    if (simples && repetir && !transacaoEdicao) formData.append("recorrente", "true");
+    const campos = camposDaCausa(simples, !!transacaoEdicao, {
+      processoId: finalProcessoId,
+      contatoId: finalContatoId,
+      processoNumero,
+      clienteNome: clienteNome || contatoNome,
+      reclamada,
+    });
+    for (const [chave, valor] of campos) formData.append(chave, valor);
 
     startTransition(async () => {
       const url = transacaoEdicao ? `/api/transacoes/${transacaoEdicao.id}` : "/api/transacoes";

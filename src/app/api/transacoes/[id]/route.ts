@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { transacaoSchema } from "@/lib/validations";
+import { dataParaDb, hojeSaoPaulo } from "@/lib/datas";
 
 const updateSchema = transacaoSchema.partial();
 
@@ -29,11 +30,11 @@ export async function PATCH(
       if (formData.has("dataPagamento")) updatePayload.dataPagamento = formData.get("dataPagamento") || undefined;
       if (formData.has("status")) updatePayload.status = formData.get("status");
       if (formData.has("descricao")) updatePayload.descricao = formData.get("descricao") || undefined;
-      if (formData.has("processoId")) updatePayload.processoId = formData.get("processoId") || undefined;
-      if (formData.has("contatoId")) updatePayload.contatoId = formData.get("contatoId") || undefined;
-      if (formData.has("processoNumero")) updatePayload.processoNumero = formData.get("processoNumero") || undefined;
-      if (formData.has("clienteNome")) updatePayload.clienteNome = formData.get("clienteNome") || undefined;
-      if (formData.has("reclamada")) updatePayload.reclamada = formData.get("reclamada") || undefined;
+      if (formData.has("processoId")) updatePayload.processoId = String(formData.get("processoId")); // "" apaga
+      if (formData.has("contatoId")) updatePayload.contatoId = String(formData.get("contatoId")); // "" apaga
+      if (formData.has("processoNumero")) updatePayload.processoNumero = String(formData.get("processoNumero")); // "" apaga
+      if (formData.has("clienteNome")) updatePayload.clienteNome = String(formData.get("clienteNome")); // "" apaga
+      if (formData.has("reclamada")) updatePayload.reclamada = String(formData.get("reclamada")); // "" apaga
     }
 
     const parsed = updateSchema.safeParse(updatePayload);
@@ -72,7 +73,7 @@ export async function PATCH(
     if (data.reclamada !== undefined) updateData.reclamada = data.reclamada || null;
 
     if (data.status === "PAGO") {
-      updateData.dataPagamento = data.dataPagamento ? new Date(data.dataPagamento) : new Date();
+      updateData.dataPagamento = dataParaDb(data.dataPagamento || hojeSaoPaulo());
     } else if (data.status === "PENDENTE" || data.status === "NAO_PAGO") {
       updateData.dataPagamento = null;
     } else if (data.dataPagamento !== undefined) {
@@ -108,7 +109,15 @@ export async function DELETE(
       );
     }
 
-    await prisma.transacao.delete({ where: { id } });
+    const recorrenciaId = transacao.recorrenciaId;
+    await prisma.$transaction(async (tx) => {
+      await tx.transacao.delete({ where: { id } });
+      // Apagou o único lançamento de uma despesa recorrente (ex.: cadastrou errado):
+      // para de repetir, senão ela ficaria lançando todo mês sem tela para pará-la.
+      if (recorrenciaId && (await tx.transacao.count({ where: { recorrenciaId } })) === 0) {
+        await tx.despesaRecorrente.update({ where: { id: recorrenciaId }, data: { ativa: false } });
+      }
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[DELETE /api/transacoes/[id]]", error);

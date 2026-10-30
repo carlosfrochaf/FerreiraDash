@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/utils";
 import { hojeSaoPaulo } from "@/lib/datas";
 import { mesAnterior, mesDe } from "@/lib/recorrencias";
-import { camposDaCausa, categoriasDoAvulso, usaFormularioSimples } from "@/lib/formulario-lancamento";
+import { camposDaCausa, categoriasDoAvulso, mesDaSaida, usaFormularioSimples } from "@/lib/formulario-lancamento";
 import type { StatusTransacao, TipoTransacao } from "@prisma/client";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
@@ -244,7 +244,16 @@ export function LancamentoForm({ processos, contatos, categorias: todasCategoria
         setErro(typeof data.error === "string" ? data.error : "Erro ao salvar lançamento.");
         return;
       }
-      router.push(transacaoEdicao ? "/historico" : "/");
+      if (tipo === "SAIDA") {
+        // Abre a tela Despesas no mês em que a saída vai aparecer.
+        const mes = mesDaSaida(
+          { slug: slugCategoria, status, dataCompetencia, dataPagamento, editando: !!transacaoEdicao },
+          hojeSaoPaulo()
+        );
+        router.push(`/despesas?mes=${mes}`);
+      } else {
+        router.push(transacaoEdicao ? "/historico" : "/");
+      }
       router.refresh();
     });
   }

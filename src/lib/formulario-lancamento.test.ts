@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { camposDaCausa, categoriasDoAvulso, usaFormularioSimples, usadaEmOutraAba } from "./formulario-lancamento";
+import { camposDaCausa, categoriasDoAvulso, mesDaSaida, usaFormularioSimples, usadaEmOutraAba } from "./formulario-lancamento";
 
 describe("usaFormularioSimples", () => {
   it("só custos operacionais e salários de saída", () => {
@@ -65,5 +65,27 @@ describe("categorias da aba Outro", () => {
     expect(usadaEmOutraAba("AUDIENCIA")).toBe(true);
     expect(usadaEmOutraAba("SALARIO")).toBe(false);
     expect(usadaEmOutraAba(null)).toBe(false);
+  });
+});
+
+describe("mesDaSaida", () => {
+  const base = { slug: "CUSTO_OPERACIONAL", status: "PENDENTE", dataCompetencia: "2026-10-21", dataPagamento: "", editando: false };
+  const hoje = "2026-11-03";
+
+  it("pendente: mês do vencimento", () => {
+    expect(mesDaSaida(base, hoje)).toBe("2026-10");
+  });
+
+  it("pago com data: mês do pagamento", () => {
+    expect(mesDaSaida({ ...base, status: "PAGO", dataPagamento: "2026-11-02" }, hoje)).toBe("2026-11");
+  });
+
+  it("pago sem data: hoje na edição, vencimento no cadastro (como o servidor grava)", () => {
+    expect(mesDaSaida({ ...base, status: "PAGO", editando: true }, hoje)).toBe("2026-11");
+    expect(mesDaSaida({ ...base, status: "PAGO" }, hoje)).toBe("2026-10");
+  });
+
+  it("salário: sempre o mês de referência", () => {
+    expect(mesDaSaida({ ...base, slug: "SALARIO", dataCompetencia: "2026-09-01", status: "PAGO", dataPagamento: "2026-10-05" }, hoje)).toBe("2026-09");
   });
 });

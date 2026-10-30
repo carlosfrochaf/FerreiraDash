@@ -36,3 +36,19 @@ export function usadaEmOutraAba(slug: string | null | undefined): boolean {
 export function categoriasDoAvulso<T extends { id: string; slug?: string | null }>(categorias: T[], categoriaAtualId?: string): T[] {
   return categorias.filter((c) => c.id === categoriaAtualId || !usadaEmOutraAba(c.slug));
 }
+
+/**
+ * Mês da tela Despesas em que a saída salva vai aparecer (para abrir direto nele).
+ * Segue a mesma data que o Histórico/Despesas usam: salário pelo mês de referência;
+ * os demais pela data do pagamento, se houver, senão pelo vencimento.
+ */
+export function mesDaSaida(
+  s: { slug: string | null | undefined; status: string; dataCompetencia: string; dataPagamento: string; editando: boolean },
+  hoje: string
+): string {
+  if (s.slug === "SALARIO") return s.dataCompetencia.slice(0, 7);
+  if (s.dataPagamento) return s.dataPagamento.slice(0, 7);
+  // Sem data, a edição marca o pagamento como hoje; o cadastro não grava data.
+  if (s.status === "PAGO" && s.editando) return hoje.slice(0, 7);
+  return s.dataCompetencia.slice(0, 7);
+}

@@ -122,6 +122,40 @@ function dividirIgual(total: bigint, n: number): bigint[] {
   return partes;
 }
 
+/**
+ * Regra do escritório (percentual até 50%): ele leva metade de cada parcela,
+ * na ordem, até completar a sua parte; as parcelas seguintes são só do cliente.
+ * Ex.: R$ 8.000 a 30% em 2 × R$ 4.000 → escritório 2.000 na 1ª e 400 na 2ª.
+ * Metade de valor ímpar em centavos arredonda para cima (33,33 → 16,67).
+ */
+function escritorioPrimeiro(valores: bigint[], escritorioTotal: bigint): bigint[] {
+  let falta = escritorioTotal;
+  return valores.map((v) => {
+    const metade = (v + 1n) / 2n;
+    const parte = falta < metade ? falta : metade;
+    falta -= parte;
+    return parte;
+  });
+}
+
+/**
+ * Percentual acima de 50%: metade de cada parcela não basta, então divide
+ * proporcional. Cada parcela recebe sua parte arredondada para baixo, e os
+ * centavos que sobram vão para as de maior fração cortada (empate: as últimas).
+ */
+function escritorioProporcional(valores: bigint[], pb: bigint, escritorioTotal: bigint): bigint[] {
+  const escritorio = valores.map((v) => (v * pb) / 10000n);
+  const fracoes = valores.map((v, i) => ({ i, resto: (v * pb) % 10000n }));
+  fracoes.sort((a, b) => (a.resto === b.resto ? b.i - a.i : a.resto > b.resto ? -1 : 1));
+  let sobra = escritorioTotal - escritorio.reduce((a, b) => a + b, 0n);
+  for (const { i } of fracoes) {
+    if (sobra <= 0n) break;
+    escritorio[i] += 1n;
+    sobra -= 1n;
+  }
+  return escritorio;
+}
+
 export function calcularParcelas(entrada: EntradaParcelas): ResultadoParcelas {
   const n = entrada.numeroParcelas;
   if (!Number.isInteger(n) || n < 1 || n > MAX_PARCELAS) {
@@ -151,20 +185,8 @@ export function calcularParcelas(entrada: EntradaParcelas): ResultadoParcelas {
     valores = dividirIgual(total, n);
   }
 
-  // O total do escritório é calculado uma vez e repartido entre as parcelas:
-  // cada uma recebe sua parte arredondada para baixo, e os centavos que sobram
-  // vão para as parcelas com maior fração cortada (empate: as últimas primeiro).
-  // Assim a soma sempre bate e nenhuma parcela fica com mais que o próprio valor.
   const escritorioTotal = aplicarPercentual(total, pb);
-  const escritorio = valores.map((v) => (v * pb) / 10000n);
-  const fracoes = valores.map((v, i) => ({ i, resto: (v * pb) % 10000n }));
-  fracoes.sort((a, b) => (a.resto === b.resto ? b.i - a.i : a.resto > b.resto ? -1 : 1));
-  let sobra = escritorioTotal - escritorio.reduce((a, b) => a + b, 0n);
-  for (const { i } of fracoes) {
-    if (sobra <= 0n) break;
-    escritorio[i] += 1n;
-    sobra -= 1n;
-  }
+  const escritorio = pb <= 5000n ? escritorioPrimeiro(valores, escritorioTotal) : escritorioProporcional(valores, pb, escritorioTotal);
 
   const vencimentos = gerarVencimentos(entrada.primeiroVencimento, n);
 

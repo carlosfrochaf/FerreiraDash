@@ -38,11 +38,29 @@ describe("calcularParcelas: valores", () => {
     });
     expect(r.valorEscritorio).toBe("3000.00");
     expect(r.valorCliente).toBe("7000.00");
-    for (const p of r.parcelas) {
-      expect(p.valorParcela).toBe("2500.00");
-      expect(p.valorEscritorio).toBe("750.00");
-      expect(p.valorCliente).toBe("1750.00");
-    }
+    expect(r.parcelas.map((p) => p.valorParcela)).toEqual(["2500.00", "2500.00", "2500.00", "2500.00"]);
+    // Metade de cada parcela até completar os R$ 3.000; o resto é do cliente.
+    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual(["1250.00", "1250.00", "500.00", "0.00"]);
+    expect(r.parcelas.map((p) => p.valorCliente)).toEqual(["1250.00", "1250.00", "2000.00", "2500.00"]);
+  });
+
+  it("R$ 8.000 em 2 parcelas: escritório leva 2.000 e depois só os 400 que faltam", () => {
+    const r = calcularParcelas({ valorTotal: 8000, percentualEscritorio: 30, numeroParcelas: 2, primeiroVencimento: "2026-11-20" });
+    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual(["2000.00", "400.00"]);
+    expect(r.parcelas.map((p) => p.valorCliente)).toEqual(["2000.00", "3600.00"]);
+  });
+
+  it("R$ 10.000 em 10 parcelas: 6 meio a meio, 4 só do cliente", () => {
+    const r = calcularParcelas({ valorTotal: 10000, percentualEscritorio: 30, numeroParcelas: 10, primeiroVencimento: "2026-11-20" });
+    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual([
+      ...Array(6).fill("500.00"),
+      ...Array(4).fill("0.00"),
+    ]);
+  });
+
+  it("percentual acima de 50%: divide proporcional em todas as parcelas", () => {
+    const r = calcularParcelas({ valorTotal: 10000, percentualEscritorio: 60, numeroParcelas: 4, primeiroVencimento: "2026-11-20" });
+    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual(["1500.00", "1500.00", "1500.00", "1500.00"]);
   });
 
   it("à vista = 1 parcela", () => {
@@ -101,6 +119,19 @@ describe("calcularParcelas: valores", () => {
       });
       expect(validarParcelas(r.valorTotal, r.parcelas)).toEqual([]);
       expect(somar(r.parcelas.map((p) => p.valorEscritorio))).toBe(r.valorEscritorio);
+      if (Number(pct) <= 50) {
+        // Até 50%: cada parcela dá no máximo metade ao escritório, e depois
+        // da primeira parcela que não deu a metade, as próximas são só do cliente.
+        let completou = false;
+        for (const p of r.parcelas) {
+          const v = paraCentavos(p.valorParcela);
+          const e = paraCentavos(p.valorEscritorio);
+          const metade = (v + BigInt(1)) / BigInt(2);
+          expect(e <= metade).toBe(true);
+          if (completou) expect(e).toBe(BigInt(0));
+          if (e < metade) completou = true;
+        }
+      }
     }
   });
 
@@ -119,8 +150,8 @@ describe("calcularParcelas: valores", () => {
       primeiroVencimento: "2026-11-20",
       valoresParcelas: ["5000", "2500", "2500"],
     });
-    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual(["1500.00", "750.00", "750.00"]);
-    expect(r.parcelas.map((p) => p.valorCliente)).toEqual(["3500.00", "1750.00", "1750.00"]);
+    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual(["2500.00", "500.00", "0.00"]);
+    expect(r.parcelas.map((p) => p.valorCliente)).toEqual(["2500.00", "2000.00", "2500.00"]);
   });
 
   it("rejeita valores personalizados que não somam o total", () => {

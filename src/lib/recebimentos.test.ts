@@ -40,7 +40,7 @@ describe("montarParcelas", () => {
   it("calcula as parcelas do exemplo do plano", () => {
     const r = montarParcelas(recebimentoSchema.parse(base));
     expect(r.valorEscritorio).toBe("3000.00");
-    expect(r.parcelas.map((p) => p.valorCliente)).toEqual(["1750.00", "1750.00", "1750.00", "1750.00"]);
+    expect(r.parcelas.map((p) => p.valorCliente)).toEqual(["1250.00", "1250.00", "2000.00", "2500.00"]);
   });
 
   it("usa valores e datas ajustados na prévia", () => {
@@ -55,7 +55,7 @@ describe("montarParcelas", () => {
       })
     );
     expect(r.parcelas.map((p) => p.vencimento)).toEqual(["2026-11-25", "2027-01-10"]);
-    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual(["1800.00", "1200.00"]);
+    expect(r.parcelas.map((p) => p.valorEscritorio)).toEqual(["3000.00", "0.00"]); // metade da 1ª já cobre os 30%
   });
 
   it("transforma erro de cálculo em ErroRecebimento (400)", () => {

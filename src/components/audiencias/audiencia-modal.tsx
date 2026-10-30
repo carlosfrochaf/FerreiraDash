@@ -128,7 +128,7 @@ export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSe
 
         {!paga && (
           <div className="space-y-2 rounded-xl border border-border p-3">
-            <PixCopiar rotulo={`Pix de ${a.advogadoNome}`} pix={a.advogadoPix} linkCadastro={`/audiencias/${a.id}/editar`} />
+            <PixCopiar rotulo={`Pix de ${a.advogadoNome}`} pix={a.advogadoPix} linkCadastro={`/audiencias/${a.id}/editar`} valor={a.valor} nome={a.advogadoNome} />
             {!aconteceu && <p className="text-xs text-muted-foreground">A audiência ainda não aconteceu. Dá para pagar antes, se for o caso.</p>}
             {!a.valor && (
               <div className="space-y-1">

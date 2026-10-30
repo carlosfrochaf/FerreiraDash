@@ -152,7 +152,7 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
 
         {p.status !== "PAGA" && (
           <div className="space-y-2 rounded-xl border border-border p-3">
-            <PixCopiar rotulo={`Pix de ${p.advogadoNome}`} pix={p.advogadoPix} linkCadastro={`/peticoes/${p.id}/editar`} />
+            <PixCopiar rotulo={`Pix de ${p.advogadoNome}`} pix={p.advogadoPix} linkCadastro={`/peticoes/${p.id}/editar`} valor={p.valor} nome={p.advogadoNome} />
             {!p.valor && (
               <div className="space-y-1">
                 <label htmlFor="pet-modal-valor" className="text-xs font-semibold text-muted-foreground">

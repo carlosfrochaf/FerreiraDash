@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Check, Copy, Loader2, RotateCcw, Send, CalendarClock } from "lucide-react";
+import { Check, Loader2, RotateCcw, Send, CalendarClock } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PixCopiar } from "@/components/ui/pix-copiar";
 import { formatCurrency } from "@/lib/utils";
 import { formatarData, hojeSaoPaulo } from "@/lib/datas";
 import type { ParcelaResumo } from "@/types";
@@ -31,17 +31,6 @@ export function ParcelaModal({ parcela, onFechar }: Props) {
   const [data, setData] = useState(hojeSaoPaulo());
   const [novoVencimento, setNovoVencimento] = useState("");
   const [editandoVencimento, setEditandoVencimento] = useState(false);
-  const [copiado, setCopiado] = useState(false);
-
-  async function copiarPix(chave: string) {
-    try {
-      await navigator.clipboard.writeText(chave);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
-    } catch {
-      setErro("Não foi possível copiar. Selecione e copie a chave manualmente.");
-    }
-  }
 
   function fechar() {
     setErro("");
@@ -144,26 +133,13 @@ export function ParcelaModal({ parcela, onFechar }: Props) {
             </label>
             <Input id="data-acao" type="date" value={data} max={hojeSaoPaulo()} onChange={(e) => setData(e.target.value)} className="h-11" />
             {recebida && (
-              <div className="flex items-center gap-2 rounded-lg bg-muted/40 p-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pix do cliente</p>
-                  {p.recebimento.clientePix ? (
-                    <p className="break-all font-mono text-sm">{p.recebimento.clientePix}</p>
-                  ) : (
-                    <p className="text-sm text-amber-300">
-                      Não cadastrado ·{" "}
-                      <Link href={`/recebimentos/${p.recebimento.id}/editar`} className="underline">
-                        cadastrar
-                      </Link>
-                    </p>
-                  )}
-                </div>
-                {p.recebimento.clientePix && (
-                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => copiarPix(p.recebimento.clientePix!)}>
-                    {copiado ? <Check /> : <Copy />} {copiado ? "Copiado" : "Copiar"}
-                  </Button>
-                )}
-              </div>
+              <PixCopiar
+                rotulo="Pix do cliente"
+                pix={p.recebimento.clientePix}
+                linkCadastro={`/recebimentos/${p.recebimento.id}/editar`}
+                valor={p.valorCliente}
+                nome={p.recebimento.clienteNome}
+              />
             )}
             {!recebida ? (
               <Button variant="success" className="w-full" disabled={pending || !data} onClick={() => executar({ acao: "receber", data })}>

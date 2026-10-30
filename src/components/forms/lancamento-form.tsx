@@ -16,7 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/utils";
 import { hojeSaoPaulo } from "@/lib/datas";
-import { camposDaCausa, usaFormularioSimples } from "@/lib/formulario-lancamento";
+import { camposDaCausa, categoriasDoAvulso, usaFormularioSimples } from "@/lib/formulario-lancamento";
 import type { StatusTransacao, TipoTransacao } from "@prisma/client";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
@@ -45,7 +45,9 @@ type Props = {
   };
 };
 
-export function LancamentoForm({ processos, contatos, categorias, transacaoEdicao }: Props) {
+export function LancamentoForm({ processos, contatos, categorias: todasCategorias, transacaoEdicao }: Props) {
+  // Audiência, repasse, causa etc. têm aba própria e não aparecem aqui.
+  const categorias = categoriasDoAvulso(todasCategorias, transacaoEdicao?.categoriaId);
   const router = useRouter();
   const searchParams = useSearchParams();
   const tipoInicial = transacaoEdicao?.tipo || (searchParams.get("tipo") as TipoTransacao) || "ENTRADA";

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { usadaEmOutraAba } from "@/lib/formulario-lancamento";
 import {
   Select,
   SelectContent,
@@ -248,6 +249,15 @@ export function CategoriasContent({ initialCategorias }: Props) {
                           Sistema
                         </Badge>
                       )}
+                      {usadaEmOutraAba(cat.slug) && (
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] h-4 uppercase tracking-wider font-bold text-muted-foreground"
+                          title="Lançada pelas abas Causa, Audiência ou Petição; não aparece em Outro"
+                        >
+                          Usada em outra aba
+                        </Badge>
+                      )}
                     </div>
                   )}
                 </div>
@@ -335,6 +345,15 @@ export function CategoriasContent({ initialCategorias }: Props) {
                       {cat.slug && (
                         <Badge variant="outline" className="text-[9px] h-4 uppercase tracking-wider font-bold">
                           Sistema
+                        </Badge>
+                      )}
+                      {usadaEmOutraAba(cat.slug) && (
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] h-4 uppercase tracking-wider font-bold text-muted-foreground"
+                          title="Lançada pelas abas Causa, Audiência ou Petição; não aparece em Outro"
+                        >
+                          Usada em outra aba
                         </Badge>
                       )}
                     </div>

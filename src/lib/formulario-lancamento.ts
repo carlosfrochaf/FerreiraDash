@@ -24,3 +24,15 @@ export function camposDaCausa(simples: boolean, editando: boolean, v: CamposCaus
   if (simples) return editando ? chaves.map((k) => [k, ""]) : [];
   return chaves.filter((k) => v[k]).map((k) => [k, v[k]]);
 }
+
+/** Categorias lançadas pelas abas Causa, Audiência e Petição: não aparecem em "Outro". */
+const SLUGS_DE_OUTRA_ABA = ["AUDIENCIA", "REPASSE_CLIENTE", "ADVOGADO_COLABORADOR", "ALVARA_CAUSA_GANHA", "HONORARIOS_ESCRITORIO"];
+
+export function usadaEmOutraAba(slug: string | null | undefined): boolean {
+  return !!slug && SLUGS_DE_OUTRA_ABA.includes(slug);
+}
+
+/** Categorias da aba "Outro". Na edição, mantém a do lançamento mesmo que tenha saído da lista. */
+export function categoriasDoAvulso<T extends { id: string; slug?: string | null }>(categorias: T[], categoriaAtualId?: string): T[] {
+  return categorias.filter((c) => c.id === categoriaAtualId || !usadaEmOutraAba(c.slug));
+}

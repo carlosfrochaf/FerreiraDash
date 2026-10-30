@@ -113,7 +113,10 @@ export const audienciaSchema = z.object({
     .union([z.number(), z.string().trim()])
     .optional()
     .transform((v) => (v === "" || v === undefined ? undefined : v)),
-});
+  /** Só no cadastro: audiência que já aconteceu e o advogado já foi pago. */
+  pago: z.boolean().optional(),
+  dataPagamento: dataSchema.optional(),
+}).refine((d) => !d.pago || d.valor !== undefined, { message: "Informe o valor pago.", path: ["valor"] });
 
 export type AudienciaInput = z.infer<typeof audienciaSchema>;
 

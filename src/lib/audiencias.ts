@@ -67,8 +67,24 @@ function dadosDoInput(input: AudienciaInput) {
   };
 }
 
+/** Audiência cadastrada já paga: grava como paga na data informada (ou hoje). */
+export function pagamentoInicial(
+  input: { pago?: boolean; dataPagamento?: string },
+  hoje: string = hojeSaoPaulo()
+): { statusPagamento?: "PAGO"; dataPagamento?: string } {
+  return input.pago ? { statusPagamento: StatusPagamento.PAGO, dataPagamento: input.dataPagamento ?? hoje } : {};
+}
+
 export async function criarAudiencia(input: AudienciaInput) {
-  const criada = await prisma.audiencia.create({ data: dadosDoInput(input) });
+  const pagamento = pagamentoInicial(input);
+  const criada = await prisma.audiencia.create({
+    data: {
+      ...dadosDoInput(input),
+      ...(pagamento.statusPagamento
+        ? { statusPagamento: pagamento.statusPagamento, dataPagamento: dataParaDb(pagamento.dataPagamento!) }
+        : {}),
+    },
+  });
   await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
   return serializarAudiencia(criada, await pixDosAdvogados());
 }

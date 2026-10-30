@@ -52,6 +52,18 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
   const [processoNumero, setProcessoNumero] = useState(inicial?.processoNumero ?? "");
   const [valor, setValor] = useState(mascara(inicial?.valor ?? null));
   const [observacoes, setObservacoes] = useState(inicial?.observacoes ?? "");
+  // Só no cadastro: audiência que já aconteceu e o advogado já foi pago.
+  const [jaPago, setJaPago] = useState(false);
+  const [dataPagamento, setDataPagamento] = useState("");
+
+  function marcarJaPago(marcado: boolean) {
+    setJaPago(marcado);
+    // Sugere a data da audiência, se já passou; senão, hoje.
+    if (marcado && !dataPagamento) {
+      const hoje = hojeSaoPaulo();
+      setDataPagamento(data && data <= hoje ? data : hoje);
+    }
+  }
   const [erro, setErro] = useState("");
   const [tentou, setTentou] = useState(false);
 
@@ -73,6 +85,10 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
       return;
     }
     const digitos = valor.replace(/\D/g, "");
+    if (jaPago && !digitos) {
+      setErro("Informe o valor pago.");
+      return;
+    }
     const body = {
       data,
       hora: hora || undefined,
@@ -83,6 +99,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
       processoNumero: processoNumero.trim() || undefined,
       observacoes: observacoes.trim() || undefined,
       valor: digitos ? centavosParaString(BigInt(digitos)) : undefined,
+      ...(!inicial && jaPago ? { pago: true, dataPagamento: dataPagamento || undefined } : {}),
     };
     startTransition(async () => {
       try {
@@ -216,6 +233,35 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
             </div>
             <p className="text-xs text-muted-foreground">Pode deixar em branco e definir depois da audiência.</p>
           </div>
+
+          {!inicial && (
+            <div className="space-y-3 rounded-xl border border-border/80 bg-muted/20 p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-5 w-5 accent-primary"
+                  checked={jaPago}
+                  onChange={(e) => marcarJaPago(e.target.checked)}
+                />
+                <span className="space-y-0.5">
+                  <span className="block text-sm font-semibold">Já paguei o advogado</span>
+                  <span className="block text-xs text-muted-foreground">Para audiência que já aconteceu: salva direto como paga.</span>
+                </span>
+              </label>
+              {jaPago && (
+                <div className="space-y-2">
+                  <Label htmlFor="aud-data-pagamento">Data do pagamento</Label>
+                  <Input
+                    id="aud-data-pagamento"
+                    type="date"
+                    value={dataPagamento}
+                    onChange={(e) => setDataPagamento(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="aud-obs">Observações</Label>

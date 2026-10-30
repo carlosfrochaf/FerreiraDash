@@ -1,9 +1,8 @@
-name: Notificações diárias
+name: Notificações (disparo manual)
 
+# Os avisos das 8h e 19h são agendados no Supabase (supabase/agendamento-notificacoes.sql).
+# O agendamento do GitHub atrasava horas ou pulava; aqui fica só o disparo manual.
 on:
-  schedule:
-    - cron: "0 11 * * *" # 8h em Brasília (UTC-3)
-    - cron: "0 22 * * *" # 19h em Brasília
   workflow_dispatch:
     inputs:
       turno:
@@ -22,8 +21,7 @@ jobs:
         run: |
           if [ -z "$CRON_SECRET" ]; then echo "Falta o segredo CRON_SECRET no GitHub."; exit 1; fi
           url="https://ferreiradash.onrender.com/api/push/send-notifications"
-          # O GitHub pode atrasar o agendamento; o turno vai explícito na URL.
-          if [ -n "$TURNO" ]; then t="$TURNO"; elif [ "$(date -u +%H)" -lt 17 ]; then t="manha"; else t="noite"; fi
+          t="${TURNO:-teste}"
           # O plano gratuito do Render "dorme": a primeira chamada pode só acordar o servidor.
           for i in 1 2 3 4 5; do
             code=$(curl -s -o resp.json -w "%{http_code}" --max-time 90 -X POST \

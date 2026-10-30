@@ -8,7 +8,7 @@ import { montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type Notifi
 export const dynamic = "force-dynamic";
 
 /**
- * Disparado por um cron às 8h e às 19h (Brasília), com
+ * Disparado pelo pg_cron do Supabase às 8h e às 19h (Brasília; ver supabase/agendamento-notificacoes.sql), com
  * "Authorization: Bearer <CRON_SECRET>".
  * O turno vem do horário; dá para forçar com ?turno=manha|noite.
  * ?turno=teste manda uma notificação de teste para todos os aparelhos.

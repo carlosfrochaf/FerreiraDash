@@ -41,6 +41,7 @@ async function getFormData() {
       id: c.id,
       nome: c.nome,
       tipo: c.tipo,
+      slug: c.slug,
     })),
   };
 }
@@ -55,6 +56,7 @@ async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: 
     editId
       ? prisma.transacao.findUnique({
           where: { id: editId },
+          include: { recorrencia: true },
         }).then((t) =>
           t
             ? {
@@ -71,6 +73,9 @@ async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: 
                 processoNumero: t.processoNumero ?? "",
                 clienteNome: t.clienteNome ?? "",
                 reclamada: t.reclamada ?? "",
+                recorrencia: t.recorrencia
+                  ? { id: t.recorrencia.id, valor: Number(t.recorrencia.valor), ativa: t.recorrencia.ativa }
+                  : null,
               }
             : null
         )

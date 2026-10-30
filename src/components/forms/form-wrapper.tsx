@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
 type ContatoOption = { id: string; nome: string; tipo: string };
-type CategoriaOption = { id: string; nome: string; tipo: string };
+type CategoriaOption = { id: string; nome: string; tipo: string; slug?: string | null };
 
 type Props = {
   processos: ProcessoOption[];

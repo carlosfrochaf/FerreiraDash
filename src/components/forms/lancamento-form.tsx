@@ -16,11 +16,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/utils";
 import { hojeSaoPaulo } from "@/lib/datas";
+import { usaFormularioSimples } from "@/lib/formulario-lancamento";
 import type { StatusTransacao, TipoTransacao } from "@prisma/client";
 
 type ProcessoOption = { id: string; numeroPje: string; nomeAcao: string; clienteNome: string };
 type ContatoOption = { id: string; nome: string; tipo: string };
-type CategoriaOption = { id: string; nome: string; tipo: string };
+type CategoriaOption = { id: string; nome: string; tipo: string; slug?: string | null };
 
 type Props = {
   processos: ProcessoOption[];
@@ -40,6 +41,7 @@ type Props = {
     processoNumero: string;
     clienteNome: string;
     reclamada: string;
+    recorrencia?: { id: string; valor: number; ativa: boolean } | null;
   };
 };
 
@@ -80,8 +82,16 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
     return transacaoEdicao?.clienteNome || "";
   });
 
+  const [repetir, setRepetir] = useState(false);
+  const [recorrencia, setRecorrencia] = useState(transacaoEdicao?.recorrencia ?? null);
+  const [avisoRecorrencia, setAvisoRecorrencia] = useState("");
+
   const [erro, setErro] = useState("");
   const [pending, startTransition] = useTransition();
+
+  const slugCategoria = categorias.find((c) => c.id === categoriaId)?.slug;
+  const simples = usaFormularioSimples(tipo, slugCategoria);
+  const rotuloNome = slugCategoria === "SALARIO" ? "Nome do funcionário" : "Nome do custo";
 
   const categoriasFiltradas = useMemo(() => {
     return categorias.filter((c) => c.tipo === tipo);
@@ -169,6 +179,10 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
       setErro("Informe um valor válido.");
       return;
     }
+    if (simples && !descricao.trim()) {
+      setErro("Informe o nome.");
+      return;
+    }
 
     // Resolve IDs dinamicamente antes de submeter
     let finalProcessoId = processoId;
@@ -197,16 +211,20 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
     if (dataPagamento) formData.append("dataPagamento", dataPagamento);
     formData.append("status", status);
     if (descricao) formData.append("descricao", descricao);
-    if (finalProcessoId) formData.append("processoId", finalProcessoId);
-    if (finalContatoId) formData.append("contatoId", finalContatoId);
-    if (processoNumero) formData.append("processoNumero", processoNumero);
+    if (simples) {
+      if (repetir && !transacaoEdicao) formData.append("recorrente", "true");
+    } else {
+      if (finalProcessoId) formData.append("processoId", finalProcessoId);
+      if (finalContatoId) formData.append("contatoId", finalContatoId);
+      if (processoNumero) formData.append("processoNumero", processoNumero);
 
-    let finalClienteNome = clienteNome;
-    if (!finalClienteNome && contatoNome) {
-      finalClienteNome = contatoNome;
+      let finalClienteNome = clienteNome;
+      if (!finalClienteNome && contatoNome) {
+        finalClienteNome = contatoNome;
+      }
+      if (finalClienteNome) formData.append("clienteNome", finalClienteNome);
+      if (reclamada) formData.append("reclamada", reclamada);
     }
-    if (finalClienteNome) formData.append("clienteNome", finalClienteNome);
-    if (reclamada) formData.append("reclamada", reclamada);
 
     startTransition(async () => {
       const url = transacaoEdicao ? `/api/transacoes/${transacaoEdicao.id}` : "/api/transacoes";
@@ -214,12 +232,44 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
       const res = await fetch(url, { method, body: formData });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErro(data.error ?? "Erro ao salvar lançamento.");
+        setErro(typeof data.error === "string" ? data.error : "Erro ao salvar lançamento.");
         return;
       }
       router.push(transacaoEdicao ? "/historico" : "/");
       router.refresh();
     });
+  }
+
+  async function alterarRecorrencia(corpo: { valor: number } | { ativa: false }) {
+    if (!recorrencia) return;
+    setErro("");
+    setAvisoRecorrencia("");
+    const res = await fetch(`/api/recorrencias/${recorrencia.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo),
+    }).catch(() => null);
+    const data = await res?.json().catch(() => ({}));
+    if (!res?.ok) {
+      setErro(data?.error ?? "Não foi possível alterar a despesa recorrente.");
+      return;
+    }
+    setRecorrencia({ id: data.id, valor: Number(data.valor), ativa: data.ativa });
+    setAvisoRecorrencia("ativa" in corpo ? "Esta despesa não vai mais se repetir." : "Os próximos meses vão usar este valor.");
+  }
+
+  function pararDeRepetir() {
+    if (!confirm("Parar de lançar esta despesa todo mês? Os meses já lançados continuam.")) return;
+    alterarRecorrencia({ ativa: false });
+  }
+
+  function usarValorNosProximos() {
+    const valor = parseCurrencyInput(valorMasked);
+    if (valor <= 0) {
+      setErro("Informe um valor válido.");
+      return;
+    }
+    alterarRecorrencia({ valor });
   }
 
   return (
@@ -283,7 +333,7 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="competencia">Data da Competência</Label>
+              <Label htmlFor="competencia">{simples ? "Vencimento" : "Data da Competência"}</Label>
               <Input
                 id="competencia"
                 type="date"
@@ -317,6 +367,8 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
             </Select>
           </div>
 
+          {!simples && (
+          <>
           {/* Novos Campos Opcionais da Causa Jurídica */}
           <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Informações da Causa / Processo</h4>
@@ -397,16 +449,61 @@ export function LancamentoForm({ processos, contatos, categorias, transacaoEdica
               ))}
             </datalist>
           </div>
+          </>
+          )}
 
           <div className="space-y-2">
-            <Label htmlFor="descricao">Descrição</Label>
+            <Label htmlFor="descricao">{simples ? rotuloNome : "Descrição"}</Label>
             <Input
               id="descricao"
-              placeholder="Ex: Audiência TJSP — custas e deslocamento"
+              placeholder={
+                !simples
+                  ? "Ex: Audiência TJSP — custas e deslocamento"
+                  : slugCategoria === "SALARIO"
+                  ? "Ex.: Maria Souza"
+                  : "Ex.: Aluguel, Tráfego pago – Google"
+              }
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
+              required={simples}
             />
           </div>
+
+          {simples && !transacaoEdicao && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/80 bg-muted/20 p-4">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 accent-primary"
+                checked={repetir}
+                onChange={(e) => setRepetir(e.target.checked)}
+              />
+              <span className="space-y-0.5">
+                <span className="block text-sm font-semibold">Repetir todo mês</span>
+                <span className="block text-xs text-muted-foreground">
+                  O app lança sozinho todo mês, no mesmo dia, como pendente.
+                </span>
+              </span>
+            </label>
+          )}
+
+          {recorrencia && (
+            <div className="space-y-3 rounded-xl border border-border/80 bg-muted/20 p-4">
+              <p className="text-sm font-semibold">
+                {recorrencia.ativa ? "Esta despesa se repete todo mês." : "Esta despesa parou de se repetir."}
+              </p>
+              {recorrencia.ativa && (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={usarValorNosProximos}>
+                    Usar este valor nos próximos meses
+                  </Button>
+                  <Button type="button" variant="danger" size="sm" onClick={pararDeRepetir}>
+                    Parar de repetir
+                  </Button>
+                </div>
+              )}
+              {avisoRecorrencia && <p className="text-xs text-emerald-400">{avisoRecorrencia}</p>}
+            </div>
+          )}
 
           {erro && <p className="text-sm text-rose-400">{erro}</p>}
 

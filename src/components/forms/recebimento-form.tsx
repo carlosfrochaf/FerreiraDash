@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatCurrency, maskCurrencyInput } from "@/lib/utils";
+import { mascaraDigitada, valorFixoDaParcela } from "@/lib/formulario-causa";
 import { calcularParcelas, centavosParaString, distribuirRestante, paraCentavos, MAX_PARCELAS, type ResultadoParcelas } from "@/lib/parcelas";
 import { dataLocal, hojeSaoPaulo } from "@/lib/datas";
 import type { RecebimentoSerializado } from "@/lib/recebimentos";
@@ -118,7 +119,7 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
       // Parcelas com valor digitado ficam fixas; o resto do total se divide entre as outras.
       const dist = distribuirRestante(
         totalDecimal,
-        base.parcelas.map((_, i) => (ajustes[i]?.valor ? mascaraParaDecimal(ajustes[i].valor!) : undefined))
+        base.parcelas.map((_, i) => valorFixoDaParcela(ajustes[i]?.valor))
       );
       if (!dist.ok) return { ok: false, erro: dist.erro };
       const valores = dist.valores;
@@ -138,11 +139,23 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
 
   function ajustar(i: number, campo: keyof Ajuste, valor: string) {
     setAjustes((prev) => {
+      // O valor pode ficar vazio enquanto a pessoa digita; a prévia trata como automático.
       const atual = { ...prev[i], [campo]: valor };
-      // Valor apagado (zero) volta a ser calculado automaticamente.
-      if (campo === "valor" && !/[1-9]/.test(valor)) delete atual.valor;
       const novo = { ...prev };
-      if (atual.valor || atual.vencimento) novo[i] = atual;
+      if (atual.valor !== undefined || atual.vencimento) novo[i] = atual;
+      else delete novo[i];
+      return novo;
+    });
+  }
+
+  /** Ao sair do campo vazio (ou zero), a parcela volta a ser calculada automaticamente. */
+  function soltarValor(i: number) {
+    setAjustes((prev) => {
+      if (prev[i]?.valor === undefined || valorFixoDaParcela(prev[i].valor)) return prev;
+      const atual = { ...prev[i] };
+      delete atual.valor;
+      const novo = { ...prev };
+      if (atual.vencimento) novo[i] = atual;
       else delete novo[i];
       return novo;
     });
@@ -514,7 +527,8 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
                                 inputMode="numeric"
                                 aria-label={`Valor da parcela ${i + 1}`}
                                 value={ajustes[i]?.valor ?? decimalParaMascara(linha.valorParcela)}
-                                onChange={(e) => ajustar(i, "valor", maskCurrencyInput(e.target.value))}
+                                onChange={(e) => ajustar(i, "valor", mascaraDigitada(e.target.value))}
+                                onBlur={() => soltarValor(i)}
                                 className="h-9 rounded-lg pl-8 pr-2 text-sm font-semibold tabular-nums"
                               />
                             </div>

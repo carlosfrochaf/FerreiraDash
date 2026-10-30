@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, HandCoins, Scale, Settings2, History, LogOut, CalendarClock } from "lucide-react";
+import { Home, PlusCircle, HandCoins, Scale, Settings2, History, LogOut, CalendarClock, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { NotificationBell } from "./notification-bell";
@@ -12,7 +12,7 @@ const navItems = [
   { href: "/lancamentos/novo", label: "Lançar", icon: PlusCircle },
   { href: "/recebimentos", label: "Recebimentos", icon: HandCoins },
   { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: "/peticoes" },
-  { href: "/historico", label: "Histórico", icon: History },
+  { href: "/despesas", label: "Despesas", icon: Wallet },
 ];
 
 function ativo(pathname: string, href: string, tambem?: string) {
@@ -69,6 +69,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex shrink-0 items-center gap-1.5">
             <NotificationBell />
+            <Link
+              href="/historico"
+              aria-current={pathname.startsWith("/historico") ? "page" : undefined}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
+                pathname.startsWith("/historico")
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}
+              title="Histórico"
+              aria-label="Histórico"
+            >
+              <History className="h-4 w-4" />
+            </Link>
             <Link
               href="/categorias"
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

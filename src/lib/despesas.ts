@@ -1,0 +1,69 @@
+// Tela Despesas: o que saiu (ou vai sair) do escritório num mês, por tipo. Puro.
+import type { Movimento } from "./extrato";
+import { centavosParaString, paraCentavos } from "./parcelas";
+import { mesDe } from "./recorrencias";
+
+export type TipoDespesa = "advogados" | "salarios" | "custos" | "outras";
+
+export const TIPOS_DESPESA: { id: TipoDespesa; label: string }[] = [
+  { id: "advogados", label: "Advogados" },
+  { id: "salarios", label: "Salários" },
+  { id: "custos", label: "Custos operacionais" },
+  { id: "outras", label: "Outras saídas" },
+];
+
+/** null para entradas e repasses (dinheiro do cliente, não despesa do escritório). */
+export function tipoDaDespesa(m: Movimento): TipoDespesa | null {
+  if (m.tipo !== "SAIDA" || m.origem === "repasse" || m.categoriaSlug === "REPASSE_CLIENTE") return null;
+  if (m.origem === "audiencia" || m.origem === "peticao") return "advogados";
+  if (m.categoriaSlug === "ADVOGADO_COLABORADOR" || m.categoriaSlug === "AUDIENCIA") return "advogados";
+  if (m.categoriaSlug === "SALARIO") return "salarios";
+  if (m.categoriaSlug === "CUSTO_OPERACIONAL") return "custos";
+  return "outras";
+}
+
+export type ItemDespesa = Movimento & { tipoDespesa: TipoDespesa };
+
+export type ResumoDespesas = {
+  total: number;
+  pago: number;
+  falta: number;
+  porTipo: Record<TipoDespesa, { total: number; quantidade: number }>;
+  itens: ItemDespesa[];
+};
+
+const reais = (c: bigint) => Number(centavosParaString(c));
+
+/** Despesas do mês ("AAAA-MM"), mantendo a ordem dos movimentos. */
+export function resumirDespesas(movimentos: Movimento[], mes: string): ResumoDespesas {
+  const zero = BigInt(0);
+  const porTipo = Object.fromEntries(TIPOS_DESPESA.map((t) => [t.id, { total: zero, quantidade: 0 }])) as Record<
+    TipoDespesa,
+    { total: bigint; quantidade: number }
+  >;
+  let total = zero;
+  let pago = zero;
+  const itens: ItemDespesa[] = [];
+
+  for (const m of movimentos) {
+    if (mesDe(m.data) !== mes) continue;
+    const tipoDespesa = tipoDaDespesa(m);
+    if (!tipoDespesa) continue;
+    const c = paraCentavos(m.valor);
+    total += c;
+    if (m.status === "PAGO") pago += c;
+    porTipo[tipoDespesa].total += c;
+    porTipo[tipoDespesa].quantidade++;
+    itens.push({ ...m, tipoDespesa });
+  }
+
+  return {
+    total: reais(total),
+    pago: reais(pago),
+    falta: reais(total - pago),
+    porTipo: Object.fromEntries(
+      TIPOS_DESPESA.map((t) => [t.id, { total: reais(porTipo[t.id].total), quantidade: porTipo[t.id].quantidade }])
+    ) as ResumoDespesas["porTipo"],
+    itens,
+  };
+}

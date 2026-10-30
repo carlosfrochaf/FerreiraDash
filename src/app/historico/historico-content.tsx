@@ -264,6 +264,9 @@ export function HistoricoContent({ movimentos }: { movimentos: Movimento[] }) {
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
                       <span className="rounded-md bg-muted px-1.5 py-0.5 font-medium">{m.categoria}</span>
+                      {m.recorrente && (
+                        <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary">Recorrente</span>
+                      )}
                       <span
                         className={cn(
                           "rounded-md px-1.5 py-0.5 font-semibold",

@@ -14,6 +14,10 @@ export type Movimento = {
   /** Nome principal: cliente (causas/lançamentos) ou advogado (audiências). */
   nome: string;
   categoria: string;
+  /** Slug da categoria do lançamento avulso (ex.: "SALARIO"); null nas outras origens. */
+  categoriaSlug: string | null;
+  /** Lançamento criado por uma despesa recorrente. */
+  recorrente: boolean;
   descricao: string;
   reclamada: string;
   processoNumero: string;
@@ -62,8 +66,10 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       valor: Number(t.valor),
       data: (t.dataPagamento ?? t.dataCompetencia).toISOString().slice(0, 10),
       status: t.status,
-      nome: t.clienteNome || t.processo?.cliente.nome || t.contato?.nome || "Sem nome",
+      nome: t.clienteNome || t.processo?.cliente.nome || t.contato?.nome || t.descricao || "Sem nome",
       categoria: t.categoria.nome,
+      categoriaSlug: t.categoria.slug,
+      recorrente: t.recorrenciaId !== null,
       descricao: t.descricao ?? "",
       reclamada: t.reclamada ?? "",
       processoNumero: t.processoNumero || t.processo?.numeroPje || "",
@@ -83,6 +89,8 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       reclamada: r.reclamada ?? "",
       processoNumero: r.processoNumero ?? "",
       advogado: "",
+      categoriaSlug: null,
+      recorrente: false,
       valorEscritorio: Number(p.valorEscritorio),
       valorCliente: Number(p.valorCliente),
       lancamentoId: null,
@@ -130,6 +138,8 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       reclamada: a.reclamada ?? "",
       processoNumero: a.processoNumero ?? "",
       advogado: a.advogadoNome,
+      categoriaSlug: null,
+      recorrente: false,
       valorEscritorio: null,
       valorCliente: null,
       lancamentoId: null,
@@ -151,6 +161,8 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       reclamada: p.reclamada ?? "",
       processoNumero: p.processoNumero ?? "",
       advogado: p.advogadoNome,
+      categoriaSlug: null,
+      recorrente: false,
       valorEscritorio: null,
       valorCliente: null,
       lancamentoId: null,

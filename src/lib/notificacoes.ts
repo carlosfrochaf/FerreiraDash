@@ -1,6 +1,8 @@
 // Monta as notificações push do dia a partir das parcelas e lançamentos.
 // Puro (não acessa banco nem rede), para poder ser testado.
 
+import { chaveAdvogado } from "./advogado-chave";
+
 export type Turno = "manha" | "noite";
 
 export interface ParcelaAviso {
@@ -45,6 +47,51 @@ export interface DadosDoDia {
   proximoPagamento?: { quando: string; parcelas: ParcelaAviso[] };
   /** Petições pendentes (resumo das 8h). */
   peticoesAPagar?: { quantidade: number; total: number };
+  /** Quanto pagar a cada advogado (aviso de sexta, 8h). */
+  advogadosAPagar?: AdvogadoAPagar[];
+}
+
+export interface AdvogadoAPagar {
+  nome: string;
+  total: number;
+  audiencias: number;
+  peticoes: number;
+}
+
+/**
+ * Soma o que falta pagar a cada advogado (audiências e petições com valor),
+ * juntando nomes escritos diferente ("Winnie" e "winnie "). Maior total primeiro.
+ */
+export function agruparAdvogados(
+  audiencias: { advogadoNome: string; valor: number }[],
+  peticoes: { advogadoNome: string; valor: number }[]
+): AdvogadoAPagar[] {
+  const porChave = new Map<string, { nome: string; centavos: number; audiencias: number; peticoes: number }>();
+  const somar = (nome: string, valor: number, campo: "audiencias" | "peticoes") => {
+    const chave = chaveAdvogado(nome);
+    const a = porChave.get(chave) ?? { nome: nome.trim(), centavos: 0, audiencias: 0, peticoes: 0 };
+    a.centavos += Math.round(valor * 100);
+    a[campo]++;
+    porChave.set(chave, a);
+  };
+  audiencias.forEach((a) => somar(a.advogadoNome, a.valor, "audiencias"));
+  peticoes.forEach((p) => somar(p.advogadoNome, p.valor, "peticoes"));
+  return [...porChave.values()]
+    .sort((x, y) => y.centavos - x.centavos || x.nome.localeCompare(y.nome))
+    .map((a) => ({ nome: a.nome, total: a.centavos / 100, audiencias: a.audiencias, peticoes: a.peticoes }));
+}
+
+/** "AAAA-MM-DD" é sexta-feira? */
+export function ehSexta(data: string): boolean {
+  return new Date(`${data}T12:00:00Z`).getUTCDay() === 5;
+}
+
+function linhaAdvogado(a: AdvogadoAPagar) {
+  const partes = [
+    a.audiencias ? `${a.audiencias} ${plural(a.audiencias, "audiência", "audiências")}` : "",
+    a.peticoes ? `${a.peticoes} ${plural(a.peticoes, "petição", "petições")}` : "",
+  ].filter(Boolean);
+  return `${a.nome} · ${brl(a.total)} (${partes.join(", ")})`;
 }
 
 export interface Notificacao {
@@ -168,6 +215,15 @@ export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
         tag: "lancamentos-hoje",
       });
     }
+    const advogados = d.advogadosAPagar ?? [];
+    if (advogados.length > 0) {
+      out.push({
+        title: `Pagar advogados · ${brl(advogados.reduce((s, a) => s + a.total, 0))}`,
+        body: listar(advogados, linhaAdvogado),
+        url: "/",
+        tag: "advogados-semana",
+      });
+    }
   } else {
     const aud = avisoAudiencias(d.audienciasAmanha ?? [], "amanhã", "audiencias-amanha");
     if (aud) out.push(aud);
@@ -196,10 +252,21 @@ export function montarNotificacoes(turno: Turno, d: DadosDoDia): Notificacao[] {
       });
     }
 
-    if (d.vencemHoje.length > 0) {
-      const n = d.vencemHoje.length;
+    if (d.vencemHoje.length === 1) {
+      const p = d.vencemHoje[0];
       out.push({
-        title: `${n} ${plural(n, "pagamento de hoje ainda não confirmado", "pagamentos de hoje ainda não confirmados")}`,
+        title: `${empresa(p)} deveria pagar hoje e não pagou`,
+        body: [
+          `Cliente: ${p.clienteNome} · parcela ${p.numero}/${p.totalParcelas}`,
+          `${brl(p.valorParcela)} (seu escritório: ${brl(p.valorEscritorio)})`,
+          "Toque para marcar como recebido.",
+        ].join("\n"),
+        url: "/recebimentos",
+        tag: "vencem-hoje",
+      });
+    } else if (d.vencemHoje.length > 1) {
+      out.push({
+        title: `${d.vencemHoje.length} pagamentos de hoje não foram feitos`,
         body: `${listar(d.vencemHoje, linhaParcela)}\nToque para marcar como recebido.`,
         url: "/recebimentos",
         tag: "vencem-hoje",

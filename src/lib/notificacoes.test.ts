@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type DadosDoDia, type ParcelaAviso } from "./notificacoes";
+import { agruparAdvogados, ehSexta, montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type DadosDoDia, type ParcelaAviso } from "./notificacoes";
 
 const parcela = (o: Partial<ParcelaAviso> = {}): ParcelaAviso => ({
   numero: 2,
@@ -121,5 +121,59 @@ describe("turnoPorHorario", () => {
   it("usa o horário de Brasília", () => {
     expect(turnoPorHorario(new Date("2026-11-20T11:00:00Z"))).toBe("manha"); // 8h
     expect(turnoPorHorario(new Date("2026-11-20T22:00:00Z"))).toBe("noite"); // 19h
+  });
+});
+
+describe("aviso das 19h: pagamento que não veio", () => {
+  it("uma parcela: a empresa deveria pagar hoje e não pagou", () => {
+    const [n] = montar("noite", { ...vazio, vencemHoje: [parcela()] });
+    expect(n.title).toBe("Empresa X Ltda deveria pagar hoje e não pagou");
+    expect(n.body).toContain("Cliente: Maria Silva · parcela 2/5");
+    expect(n.body).toContain("R$ 2.500,00");
+    expect(n.body).toContain("Toque para marcar como recebido.");
+    expect(n.tag).toBe("vencem-hoje");
+  });
+
+  it("várias: N pagamentos de hoje não foram feitos", () => {
+    const [n] = montar("noite", { ...vazio, vencemHoje: [parcela(), parcela({ reclamada: "Empresa Y" })] });
+    expect(n.title).toBe("2 pagamentos de hoje não foram feitos");
+    expect(n.body).toContain("Empresa Y");
+  });
+});
+
+describe("advogados a pagar (sexta, 8h)", () => {
+  const advogados = agruparAdvogados(
+    [
+      { advogadoNome: "Winnie", valor: 100 },
+      { advogadoNome: "winnie ", valor: 90 },
+      { advogadoNome: "Rosangela", valor: 150 },
+    ],
+    [{ advogadoNome: "Winnie", valor: 100 }]
+  );
+
+  it("agrupa por advogado (ignorando maiúsculas e espaços), maior total primeiro", () => {
+    expect(advogados).toEqual([
+      { nome: "Winnie", total: 290, audiencias: 2, peticoes: 1 },
+      { nome: "Rosangela", total: 150, audiencias: 1, peticoes: 0 },
+    ]);
+  });
+
+  it("8h: um aviso com o total e uma linha por advogado; abre o Início", () => {
+    const ns = montar("manha", { ...vazio, advogadosAPagar: advogados });
+    expect(ns).toHaveLength(1);
+    expect(ns[0].title).toBe("Pagar advogados · R$ 440,00");
+    expect(ns[0].body).toBe("Winnie · R$ 290,00 (2 audiências, 1 petição)\nRosangela · R$ 150,00 (1 audiência)");
+    expect(ns[0].url).toBe("/");
+    expect(ns[0].tag).toBe("advogados-semana");
+  });
+
+  it("19h não repete; sem nada a pagar, sem aviso", () => {
+    expect(montar("noite", { ...vazio, advogadosAPagar: advogados })).toEqual([]);
+    expect(montar("manha", { ...vazio, advogadosAPagar: [] })).toEqual([]);
+  });
+
+  it("ehSexta", () => {
+    expect(ehSexta("2026-10-30")).toBe(true);
+    expect(ehSexta("2026-10-29")).toBe(false);
   });
 });

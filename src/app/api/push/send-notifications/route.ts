@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import webpush from "web-push";
-import { StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
+import { StatusPagamento, StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
 import { gerarDespesasRecorrentes } from "@/lib/despesas-recorrentes";
-import { montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
+import { agruparAdvogados, ehSexta, montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type DadosDoDia, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,9 @@ export async function POST(request: Request) {
           console.error("[recorrencias]", err);
         }
       }
-      notificacoes = montarNotificacoes(turno, await buscarDadosDoDia(hoje));
+      const dados: DadosDoDia = await buscarDadosDoDia(hoje);
+      if (turno === "manha" && ehSexta(hoje)) dados.advogadosAPagar = await buscarAdvogadosAPagar(hoje);
+      notificacoes = montarNotificacoes(turno, dados);
     }
 
     if (notificacoes.length === 0) {
@@ -179,4 +181,22 @@ async function buscarDadosDoDia(hoje: string) {
       tipo: t.tipo,
     })),
   };
+}
+
+/** O que falta pagar a cada advogado: audiências já feitas e petições não pagas, com valor. */
+async function buscarAdvogadosAPagar(hoje: string) {
+  const [audiencias, peticoes] = await Promise.all([
+    prisma.audiencia.findMany({
+      where: { statusPagamento: StatusPagamento.PENDENTE, valor: { not: null }, data: { lt: dataParaDb(hoje) } },
+      select: { advogadoNome: true, valor: true },
+    }),
+    prisma.peticao.findMany({
+      where: { status: { not: StatusPeticao.PAGA }, valor: { not: null } },
+      select: { advogadoNome: true, valor: true },
+    }),
+  ]);
+  return agruparAdvogados(
+    audiencias.map((a) => ({ advogadoNome: a.advogadoNome, valor: Number(a.valor) })),
+    peticoes.map((p) => ({ advogadoNome: p.advogadoNome, valor: Number(p.valor) }))
+  );
 }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Minus, Plus, RotateCcw, Search, Check } from "lucide-react";
+import { Loader2, Minus, Plus, RotateCcw, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,8 +88,6 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
   const [jaPagas, setJaPagas] = useState(0);
   const [jaRepassadas, setJaRepassadas] = useState(true);
 
-  const [buscando, setBuscando] = useState(false);
-  const [avisoBusca, setAvisoBusca] = useState("");
   const [erro, setErro] = useState("");
   const [tentouEnviar, setTentouEnviar] = useState(false);
 
@@ -155,33 +153,6 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
     const p = processos.find((x) => x.numeroPje === valor);
     setProcessoId(p?.id ?? "");
     if (p && !clienteNome) setClienteNome(p.clienteNome);
-  }
-
-  async function buscarDatajud() {
-    setAvisoBusca("");
-    if (processoNumero.replace(/\D/g, "").length !== 20) {
-      setAvisoBusca("Digite o número completo do processo (20 dígitos) para buscar.");
-      return;
-    }
-    setBuscando(true);
-    try {
-      const res = await fetch(`/api/datajud?numero=${encodeURIComponent(processoNumero)}`);
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setAvisoBusca(d.error ?? "Não foi possível buscar o processo.");
-        return;
-      }
-      setProcessoNumero(d.numero);
-      if (d.cliente) setClienteNome(d.cliente);
-      if (d.reclamada) setReclamada(d.reclamada);
-      const p = processos.find((x) => x.numeroPje.replace(/\D/g, "") === String(d.numero).replace(/\D/g, ""));
-      setProcessoId(p?.id ?? "");
-      setAvisoBusca(d.cliente || d.reclamada ? "Dados preenchidos pelo Datajud. Confira antes de salvar." : "Processo encontrado, mas sem nomes das partes.");
-    } catch {
-      setAvisoBusca("Erro de conexão com o Datajud.");
-    } finally {
-      setBuscando(false);
-    }
   }
 
   function enviar(e: React.FormEvent) {
@@ -256,21 +227,15 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="processoNumero">Número do processo</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="processoNumero"
-                  list="processos-list"
-                  inputMode="numeric"
-                  placeholder="0000000-00.0000.0.00.0000"
-                  value={processoNumero}
-                  onChange={(e) => escolherProcesso(e.target.value)}
-                  className="h-11"
-                />
-                <Button type="button" variant="outline" className="h-11 shrink-0" onClick={buscarDatajud} disabled={buscando}>
-                  {buscando ? <Loader2 className="animate-spin" /> : <Search />}
-                  <span className="hidden sm:inline">Datajud</span>
-                </Button>
-              </div>
+              <Input
+                id="processoNumero"
+                list="processos-list"
+                inputMode="numeric"
+                placeholder="0000000-00.0000.0.00.0000"
+                value={processoNumero}
+                onChange={(e) => escolherProcesso(e.target.value)}
+                className="h-11"
+              />
               <datalist id="processos-list">
                 {processos.map((p) => (
                   <option key={p.id} value={p.numeroPje}>
@@ -278,7 +243,6 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
                   </option>
                 ))}
               </datalist>
-              {avisoBusca && <p className="text-xs text-muted-foreground">{avisoBusca}</p>}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

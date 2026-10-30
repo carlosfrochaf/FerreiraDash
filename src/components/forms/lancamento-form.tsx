@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Search } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,45 +142,6 @@ export function LancamentoForm({ processos, contatos, categorias: todasCategoria
       }
     } else {
       setContatoId("");
-    }
-  }
-
-  const [loadingDatajud, setLoadingDatajud] = useState(false);
-
-  async function handleBuscarDatajud() {
-    const cleaned = processoNumero.replace(/\D/g, "");
-    if (cleaned.length !== 20) {
-      setErro("Digite o número completo do processo (20 dígitos) para buscar no Datajud.");
-      return;
-    }
-
-    setLoadingDatajud(true);
-    setErro("");
-    try {
-      const res = await fetch(`/api/datajud?numero=${encodeURIComponent(processoNumero)}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErro(data.error ?? "Erro ao buscar processo no Datajud.");
-        return;
-      }
-
-      setProcessoNumero(data.numero);
-      if (data.cliente) setClienteNome(data.cliente);
-      if (data.reclamada) setReclamada(data.reclamada);
-
-      // Tenta associar com algum processo no banco local
-      const match = processos.find((p) => p.numeroPje.replace(/\D/g, "") === data.numero.replace(/\D/g, ""));
-      if (match) {
-        setProcessoId(match.id);
-      } else {
-        setProcessoId("");
-      }
-    } catch (err) {
-      console.error(err);
-      setErro("Erro ao conectar com a busca do Datajud.");
-    } finally {
-      setLoadingDatajud(false);
     }
   }
 
@@ -412,22 +373,6 @@ export function LancamentoForm({ processos, contatos, categorias: todasCategoria
                   onChange={(e) => handleProcessoNumeroChange(e.target.value)}
                   className="flex-1"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-11 px-3 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer shrink-0"
-                  onClick={handleBuscarDatajud}
-                  disabled={loadingDatajud}
-                  title="Buscar no CNJ Datajud"
-                >
-                  {loadingDatajud ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                  <span className="hidden sm:inline ml-1.5">Buscar</span>
-                </Button>
               </div>
               <datalist id="processos-list">
                 {processos.map((p) => (

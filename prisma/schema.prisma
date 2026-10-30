@@ -31,7 +31,8 @@ model Categoria {
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")
 
-  transacoes Transacao[]
+  transacoes   Transacao[]
+  recorrencias DespesaRecorrente[]
 
   @@map("categorias")
 }
@@ -44,98 +45,103 @@ enum TipoContato {
 }
 
 model Contato {
-  id        String   @id @default(cuid())
-  nome      String
-  tipo      TipoContato
-  email     String?
-  telefone  String?
-  cpfCnpj   String?  @map("cpf_cnpj")
-  pixChave  String?  @map("pix_chave")
-  banco     String?
-  agencia   String?
-  conta     String?
+  id          String      @id @default(cuid())
+  nome        String
+  tipo        TipoContato
+  email       String?
+  telefone    String?
+  cpfCnpj     String?     @map("cpf_cnpj")
+  pixChave    String?     @map("pix_chave")
+  banco       String?
+  agencia     String?
+  conta       String?
   observacoes String?
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  ativo       Boolean     @default(true)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  processos    Processo[]
-  transacoes   Transacao[]
+  processos  Processo[]
+  transacoes Transacao[]
 
   @@map("contatos")
 }
 
 model Processo {
-  id            String   @id @default(cuid())
-  numeroPje     String   @unique @map("numero_pje")
-  nomeAcao      String   @map("nome_acao")
-  clienteId     String   @map("cliente_id")
-  cliente       Contato  @relation(fields: [clienteId], references: [id])
-  observacoes   String?
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  numeroPje   String   @unique @map("numero_pje")
+  nomeAcao    String   @map("nome_acao")
+  clienteId   String   @map("cliente_id")
+  cliente     Contato  @relation(fields: [clienteId], references: [id])
+  observacoes String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  transacoes    Transacao[]
-  repasses      Repasse[]
-  recebimentos  Recebimento[]
+  transacoes   Transacao[]
+  repasses     Repasse[]
+  recebimentos Recebimento[]
 
   @@index([clienteId])
   @@map("processos")
 }
 
 model Transacao {
-  id                String             @id @default(cuid())
-  tipo              TipoTransacao
-  valor             Decimal
-  dataCompetencia   DateTime           @map("data_competencia")
-  dataPagamento     DateTime?          @map("data_pagamento")
-  status            StatusTransacao    @default(PENDENTE)
-  descricao         String?
-  anexoUrl          String?            @map("anexo_url")
-  anexoNome         String?            @map("anexo_nome")
+  id              String          @id @default(cuid())
+  tipo            TipoTransacao
+  valor           Decimal
+  dataCompetencia DateTime        @map("data_competencia")
+  dataPagamento   DateTime?       @map("data_pagamento")
+  status          StatusTransacao @default(PENDENTE)
+  descricao       String?
+  anexoUrl        String?         @map("anexo_url")
+  anexoNome       String?         @map("anexo_nome")
 
   // Novos campos opcionais da Causa Jurídica
-  processoNumero    String?            @map("processo_numero")
-  clienteNome       String?            @map("cliente_nome")
-  reclamada         String?
+  processoNumero String? @map("processo_numero")
+  clienteNome    String? @map("cliente_nome")
+  reclamada      String?
 
-  categoriaId       String             @map("categoria_id")
-  categoria         Categoria          @relation(fields: [categoriaId], references: [id])
+  categoriaId String    @map("categoria_id")
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
 
-  processoId        String?            @map("processo_id")
-  processo          Processo?          @relation(fields: [processoId], references: [id])
-  contatoId         String?            @map("contato_id")
-  contato           Contato?           @relation(fields: [contatoId], references: [id])
+  processoId String?   @map("processo_id")
+  processo   Processo? @relation(fields: [processoId], references: [id])
+  contatoId  String?   @map("contato_id")
+  contato    Contato?  @relation(fields: [contatoId], references: [id])
 
-  repasseId         String?            @map("repasse_id")
-  repasse           Repasse?           @relation(fields: [repasseId], references: [id])
+  repasseId String?  @map("repasse_id")
+  repasse   Repasse? @relation(fields: [repasseId], references: [id])
 
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
+  /// Despesa recorrente que gerou este lançamento (custo fixo ou salário).
+  recorrenciaId String?            @map("recorrencia_id")
+  recorrencia   DespesaRecorrente? @relation(fields: [recorrenciaId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([tipo, status])
   @@index([categoriaId])
   @@index([dataCompetencia])
   @@index([processoId])
   @@index([contatoId])
+  @@index([recorrenciaId])
   @@map("transacoes")
 }
 
 /// Registro do fluxo de repasse jurídico (alvará → honorários escritório + repasse cliente)
 model Repasse {
-  id                    String    @id @default(cuid())
-  processoId            String    @map("processo_id")
-  processo              Processo  @relation(fields: [processoId], references: [id])
-  valorTotalRecebido    Decimal   @map("valor_total_recebido")
-  percentualEscritorio  Decimal   @map("percentual_escritorio")
-  valorEscritorio       Decimal   @map("valor_escritorio")
-  valorCliente          Decimal   @map("valor_cliente")
-  dataRecebimento       DateTime  @map("data_recebimento")
-  observacoes           String?
-  createdAt             DateTime  @default(now()) @map("created_at")
+  id                   String   @id @default(cuid())
+  processoId           String   @map("processo_id")
+  processo             Processo @relation(fields: [processoId], references: [id])
+  valorTotalRecebido   Decimal  @map("valor_total_recebido")
+  percentualEscritorio Decimal  @map("percentual_escritorio")
+  valorEscritorio      Decimal  @map("valor_escritorio")
+  valorCliente         Decimal  @map("valor_cliente")
+  dataRecebimento      DateTime @map("data_recebimento")
+  observacoes          String?
+  createdAt            DateTime @default(now()) @map("created_at")
 
-  transacoes            Transacao[]
+  transacoes Transacao[]
 
   @@index([processoId])
   @@map("repasses")
@@ -170,7 +176,7 @@ model Recebimento {
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
-  parcelas               Parcela[]
+  parcelas Parcela[]
 
   @@index([processoId])
   @@map("recebimentos")
@@ -211,7 +217,7 @@ enum StatusPagamento {
 model Audiencia {
   id              String          @id @default(cuid())
   data            DateTime        @db.Date
-  hora            String?         // "14:30"
+  hora            String? // "14:30"
   advogadoNome    String          @map("advogado_nome")
   clienteNome     String          @map("cliente_nome")
   reclamada       String?
@@ -280,4 +286,26 @@ model PushSubscription {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("push_subscriptions")
+}
+
+/// Despesa que se repete todo mês (custo operacional ou salário).
+/// O app cria sozinho o lançamento de cada mês depois de `ultimoMes`.
+model DespesaRecorrente {
+  id            String    @id @default(cuid())
+  nome          String
+  valor         Decimal   @db.Decimal(14, 2)
+  /// Dia do vencimento (1–31); em meses curtos vira o último dia.
+  diaVencimento Int       @map("dia_vencimento")
+  categoriaId   String    @map("categoria_id")
+  categoria     Categoria @relation(fields: [categoriaId], references: [id])
+  ativa         Boolean   @default(true)
+  /// Último mês já lançado, "AAAA-MM".
+  ultimoMes     String    @map("ultimo_mes")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  transacoes Transacao[]
+
+  @@index([ativa])
+  @@map("despesas_recorrentes")
 }

@@ -12,6 +12,7 @@ async function main() {
     { nome: "Audiência", slug: "AUDIENCIA", tipo: "SAIDA" },
     { nome: "Advogado / Colaborador", slug: "ADVOGADO_COLABORADOR", tipo: "SAIDA" },
     { nome: "Custo Operacional", slug: "CUSTO_OPERACIONAL", tipo: "SAIDA" },
+    { nome: "Salário", slug: "SALARIO", tipo: "SAIDA" },
   ];
 
   for (const cat of categoriasPadrao) {

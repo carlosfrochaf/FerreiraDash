@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resumirDespesas, tipoDaDespesa } from "./despesas";
+import { resumirDespesas, separarPorStatus, tipoDaDespesa } from "./despesas";
 import type { Movimento } from "./extrato";
 
 let seq = 0;
@@ -73,5 +73,22 @@ describe("resumirDespesas", () => {
     expect(r.porTipo.outras).toEqual({ total: 0, quantidade: 0 });
     expect(r.itens).toHaveLength(4);
     expect(r.itens.map((i) => i.tipoDespesa)).toEqual(["custos", "custos", "salarios", "advogados"]);
+  });
+});
+
+describe("separarPorStatus", () => {
+  it("pendentes do mais atrasado ao mais novo; pagos do pagamento mais recente ao mais antigo", () => {
+    const itens = [
+      mov({ key: "a", data: "2026-10-28", status: "PENDENTE" }),
+      mov({ key: "b", data: "2026-10-23", status: "PAGO" }),
+      mov({ key: "c", data: "2026-10-19", status: "NAO_PAGO" }),
+      mov({ key: "d", data: "2026-10-30", status: "PAGO" }),
+      mov({ key: "e", data: "2026-10-26", status: "PENDENTE" }),
+    ];
+    const r = separarPorStatus(itens);
+    expect(r.pendentes.map((i) => i.key)).toEqual(["c", "e", "a"]);
+    expect(r.pagos.map((i) => i.key)).toEqual(["d", "b"]);
+    expect(r.totalPendentes).toBe(300);
+    expect(r.totalPagos).toBe(200);
   });
 });

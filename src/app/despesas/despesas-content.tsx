@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
 import { diasAte, formatarDataCurta } from "@/lib/datas";
 import { proximoMes } from "@/lib/recorrencias";
-import { TIPOS_DESPESA, type ResumoDespesas, type TipoDespesa } from "@/lib/despesas";
+import { TIPOS_DESPESA, separarPorStatus, type ItemDespesa, type ResumoDespesas, type TipoDespesa } from "@/lib/despesas";
 
 function mesAnterior(mes: string) {
   const [ano, m] = mes.split("-").map(Number);
@@ -23,6 +23,7 @@ function nomeDoMes(mes: string) {
 export function DespesasContent({ mes, resumo }: { mes: string; resumo: ResumoDespesas }) {
   const [filtro, setFiltro] = useState<TipoDespesa | null>(null);
   const itens = filtro ? resumo.itens.filter((i) => i.tipoDespesa === filtro) : resumo.itens;
+  const blocos = separarPorStatus(itens);
 
   return (
     <div className="space-y-4">
@@ -100,53 +101,77 @@ export function DespesasContent({ mes, resumo }: { mes: string; resumo: ResumoDe
           <p className="font-semibold">Nenhuma despesa neste mês.</p>
         </div>
       ) : (
-        <div className="space-y-2 pb-6">
-          {itens.map((m) => {
-            const pendente = m.status !== "PAGO";
-            const atrasado = pendente && diasAte(m.data) < 0;
-            return (
-              <Card key={m.key} className="border-l-4 border-l-rose-500/70">
-                <CardContent className="flex gap-3 p-3 sm:p-4">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="min-w-0 truncate text-sm font-semibold">{m.nome}</p>
-                      <p className={cn("shrink-0 text-sm font-bold tabular-nums text-rose-400", pendente && "opacity-60")}>
-                        − {formatCurrency(m.valor)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                      <span className="rounded-md bg-muted px-1.5 py-0.5 font-medium">{m.categoria}</span>
-                      {m.recorrente && (
-                        <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary">Recorrente</span>
-                      )}
-                      <span
-                        className={cn(
-                          "rounded-md px-1.5 py-0.5 font-semibold",
-                          !pendente ? "bg-emerald-500/10 text-emerald-300" : atrasado ? "bg-rose-500/15 text-rose-300" : "bg-amber-500/10 text-amber-300"
-                        )}
-                      >
-                        {!pendente ? "Pago" : atrasado ? "Atrasado" : "Pendente"}
-                      </span>
-                      <span className="text-muted-foreground">{formatarDataCurta(m.data)}</span>
-                    </div>
-                    {m.descricao && m.descricao !== m.nome && (
-                      <p className="truncate text-xs text-muted-foreground">{m.descricao}</p>
-                    )}
-                  </div>
-                  <Link
-                    href={m.link}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center self-end rounded-lg text-muted-foreground hover:bg-accent"
-                    aria-label="Abrir"
-                    title="Abrir"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="space-y-6 pb-6">
+          {blocos.pendentes.length === 0 ? (
+            <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-center text-sm font-semibold text-emerald-300">
+              Tudo pago neste mês 🎉
+            </p>
+          ) : (
+            <Bloco titulo="Falta pagar" cor="text-amber-300" itens={blocos.pendentes} total={blocos.totalPendentes} />
+          )}
+          {blocos.pagos.length > 0 && (
+            <Bloco titulo="Pagos" cor="text-emerald-300" itens={blocos.pagos} total={blocos.totalPagos} />
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+/** Um bloco da lista ("Falta pagar" ou "Pagos"), com quantidade e total no título. */
+function Bloco({ titulo, cor, itens, total }: { titulo: string; cor: string; itens: ItemDespesa[]; total: number }) {
+  return (
+    <section className="space-y-2">
+      <h2 className="flex items-baseline justify-between gap-2 px-1">
+        <span className={cn("text-sm font-bold uppercase tracking-wide", cor)}>
+          {titulo} <span className="font-medium text-muted-foreground">· {itens.length}</span>
+        </span>
+        <span className={cn("text-sm font-bold tabular-nums", cor)}>{formatCurrency(total)}</span>
+      </h2>
+      {itens.map((m) => {
+        const pendente = m.status !== "PAGO";
+        const atrasado = pendente && diasAte(m.data) < 0;
+        return (
+          <Card key={m.key} className="border-l-4 border-l-rose-500/70">
+            <CardContent className="flex gap-3 p-3 sm:p-4">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold">{m.nome}</p>
+                  <p className={cn("shrink-0 text-sm font-bold tabular-nums text-rose-400", pendente && "opacity-60")}>
+                    − {formatCurrency(m.valor)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="rounded-md bg-muted px-1.5 py-0.5 font-medium">{m.categoria}</span>
+                  {m.recorrente && (
+                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-primary">Recorrente</span>
+                  )}
+                  <span
+                    className={cn(
+                      "rounded-md px-1.5 py-0.5 font-semibold",
+                      !pendente ? "bg-emerald-500/10 text-emerald-300" : atrasado ? "bg-rose-500/15 text-rose-300" : "bg-amber-500/10 text-amber-300"
+                    )}
+                  >
+                    {!pendente ? "Pago" : atrasado ? "Atrasado" : "Pendente"}
+                  </span>
+                  <span className="text-muted-foreground">{formatarDataCurta(m.data)}</span>
+                </div>
+                {m.descricao && m.descricao !== m.nome && (
+                  <p className="truncate text-xs text-muted-foreground">{m.descricao}</p>
+                )}
+              </div>
+              <Link
+                href={m.link}
+                className="flex h-8 w-8 shrink-0 items-center justify-center self-end rounded-lg text-muted-foreground hover:bg-accent"
+                aria-label="Abrir"
+                title="Abrir"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </section>
   );
 }

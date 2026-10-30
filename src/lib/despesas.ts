@@ -67,3 +67,18 @@ export function resumirDespesas(movimentos: Movimento[], mes: string): ResumoDes
     itens,
   };
 }
+
+/**
+ * Lista da tela em dois blocos: o que falta pagar (mais atrasado primeiro)
+ * e o que já foi pago (pagamento mais recente primeiro).
+ */
+export function separarPorStatus<T extends Movimento>(itens: T[]) {
+  const pendentes = itens
+    .filter((i) => i.status !== "PAGO")
+    .sort((a, b) => a.data.localeCompare(b.data) || a.key.localeCompare(b.key));
+  const pagos = itens
+    .filter((i) => i.status === "PAGO")
+    .sort((a, b) => b.data.localeCompare(a.data) || a.key.localeCompare(b.key));
+  const soma = (l: T[]) => reais(l.reduce((s, i) => s + paraCentavos(i.valor), BigInt(0)));
+  return { pendentes, pagos, totalPendentes: soma(pendentes), totalPagos: soma(pagos) };
+}

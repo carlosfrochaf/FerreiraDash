@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/utils";
 import { hojeSaoPaulo } from "@/lib/datas";
+import { mesAnterior, mesDe } from "@/lib/recorrencias";
 import { camposDaCausa, categoriasDoAvulso, usaFormularioSimples } from "@/lib/formulario-lancamento";
 import type { StatusTransacao, TipoTransacao } from "@prisma/client";
 
@@ -93,7 +94,18 @@ export function LancamentoForm({ processos, contatos, categorias: todasCategoria
 
   const slugCategoria = categorias.find((c) => c.id === categoriaId)?.slug;
   const simples = usaFormularioSimples(tipo, slugCategoria);
-  const rotuloNome = slugCategoria === "SALARIO" ? "Nome do funcionário" : "Nome do custo";
+  const salario = simples && slugCategoria === "SALARIO";
+  const rotuloNome = salario ? "Nome do funcionário" : "Nome do custo";
+
+  /** Salário usa mês de referência (gravado no dia 1); ao cadastrar, vem o mês anterior. */
+  function handleCategoriaChange(id: string) {
+    const eraSalario = salario;
+    const viraSalario = categorias.find((c) => c.id === id)?.slug === "SALARIO" && tipo === "SAIDA";
+    setCategoriaId(id);
+    if (transacaoEdicao) return;
+    if (viraSalario) setDataCompetencia(`${mesAnterior(mesDe(hojeSaoPaulo()))}-01`);
+    else if (eraSalario) setDataCompetencia(hojeSaoPaulo());
+  }
 
   const categoriasFiltradas = useMemo(() => {
     return categorias.filter((c) => c.tipo === tipo);
@@ -314,7 +326,7 @@ export function LancamentoForm({ processos, contatos, categorias: todasCategoria
 
           <div className="space-y-2">
             <Label>Categoria</Label>
-            <Select value={categoriaId} onValueChange={setCategoriaId}>
+            <Select value={categoriaId} onValueChange={handleCategoriaChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
@@ -330,14 +342,24 @@ export function LancamentoForm({ processos, contatos, categorias: todasCategoria
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="competencia">{simples ? "Vencimento" : "Data da Competência"}</Label>
-              <Input
-                id="competencia"
-                type="date"
-                value={dataCompetencia}
-                onChange={(e) => setDataCompetencia(e.target.value)}
-                required
-              />
+              <Label htmlFor="competencia">{salario ? "Mês de referência" : simples ? "Vencimento" : "Data da Competência"}</Label>
+              {salario ? (
+                <Input
+                  id="competencia"
+                  type="month"
+                  value={dataCompetencia.slice(0, 7)}
+                  onChange={(e) => setDataCompetencia(e.target.value ? `${e.target.value}-01` : "")}
+                  required
+                />
+              ) : (
+                <Input
+                  id="competencia"
+                  type="date"
+                  value={dataCompetencia}
+                  onChange={(e) => setDataCompetencia(e.target.value)}
+                  required
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="pagamento">Data do Pagamento</Label>
@@ -477,7 +499,9 @@ export function LancamentoForm({ processos, contatos, categorias: todasCategoria
               <span className="space-y-0.5">
                 <span className="block text-sm font-semibold">Repetir todo mês</span>
                 <span className="block text-xs text-muted-foreground">
-                  O app lança sozinho todo mês, no mesmo dia, como pendente.
+                  {salario
+                    ? "O app lança sozinho o salário de cada mês, como pendente."
+                    : "O app lança sozinho todo mês, no mesmo dia, como pendente."}
                 </span>
               </span>
             </label>

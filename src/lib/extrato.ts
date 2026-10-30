@@ -1,6 +1,7 @@
 import { StatusPagamento, StatusPeticao, StatusRecebimento, StatusRepasse } from "@prisma/client";
 import { prisma } from "./prisma";
 import { dataDoDb, formatarData } from "./datas";
+import { mesDe, rotuloSalario } from "./recorrencias";
 
 /** Uma linha do extrato, venha de onde vier o dinheiro. */
 export type Movimento = {
@@ -18,6 +19,8 @@ export type Movimento = {
   categoriaSlug: string | null;
   /** Lançamento criado por uma despesa recorrente. */
   recorrente: boolean;
+  /** Salário: mês de trabalho a que se refere, "AAAA-MM" (conta nesse mês). null nos demais. */
+  mesReferencia: string | null;
   descricao: string;
   reclamada: string;
   processoNumero: string;
@@ -59,6 +62,8 @@ export async function listarMovimentos(): Promise<Movimento[]> {
   const out: Movimento[] = [];
 
   for (const t of transacoes) {
+    const salario = t.categoria.slug === "SALARIO";
+    const competencia = t.dataCompetencia.toISOString().slice(0, 10);
     out.push({
       key: `l:${t.id}`,
       origem: "lancamento",
@@ -67,9 +72,10 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       data: (t.dataPagamento ?? t.dataCompetencia).toISOString().slice(0, 10),
       status: t.status,
       nome: t.clienteNome || t.processo?.cliente.nome || t.contato?.nome || t.descricao || "Sem nome",
-      categoria: t.categoria.nome,
+      categoria: salario ? rotuloSalario(mesDe(competencia)) : t.categoria.nome,
       categoriaSlug: t.categoria.slug,
       recorrente: t.recorrenciaId !== null,
+      mesReferencia: salario ? mesDe(competencia) : null,
       descricao: t.descricao ?? "",
       reclamada: t.reclamada ?? "",
       processoNumero: t.processoNumero || t.processo?.numeroPje || "",
@@ -91,6 +97,7 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       advogado: "",
       categoriaSlug: null,
       recorrente: false,
+      mesReferencia: null,
       valorEscritorio: Number(p.valorEscritorio),
       valorCliente: Number(p.valorCliente),
       lancamentoId: null,
@@ -140,6 +147,7 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       advogado: a.advogadoNome,
       categoriaSlug: null,
       recorrente: false,
+      mesReferencia: null,
       valorEscritorio: null,
       valorCliente: null,
       lancamentoId: null,
@@ -163,6 +171,7 @@ export async function listarMovimentos(): Promise<Movimento[]> {
       advogado: p.advogadoNome,
       categoriaSlug: null,
       recorrente: false,
+      mesReferencia: null,
       valorEscritorio: null,
       valorCliente: null,
       lancamentoId: null,

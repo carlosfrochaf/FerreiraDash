@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { cn, formatCurrency } from "@/lib/utils";
 import { diasAte, formatarData, formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
 import type { Movimento } from "@/lib/extrato";
+import { estaAtrasado } from "@/lib/despesas";
 
 type Periodo = "TODOS" | "HOJE" | "SEMANA" | "MES";
 type Tipo = "TODOS" | "ENTRADA" | "SAIDA";
@@ -242,7 +243,7 @@ export function HistoricoContent({ movimentos }: { movimentos: Movimento[] }) {
           {filtrados.map((m) => {
             const entrada = m.tipo === "ENTRADA";
             const pendente = m.status !== "PAGO";
-            const atrasado = pendente && diasAte(m.data) < 0;
+            const atrasado = estaAtrasado(m, hojeSaoPaulo());
             return (
               <Card key={m.key} className={cn("border-l-4", entrada ? "border-l-emerald-500/70" : "border-l-rose-500/70")}>
                 <CardContent className="flex gap-3 p-3 sm:p-4">
@@ -275,7 +276,7 @@ export function HistoricoContent({ movimentos }: { movimentos: Movimento[] }) {
                       >
                         {!pendente ? "Pago" : atrasado ? "Atrasado" : "Pendente"}
                       </span>
-                      <span className="text-muted-foreground">{formatarDataCurta(m.data)}</span>
+                      {!(pendente && m.mesReferencia) && <span className="text-muted-foreground">{formatarDataCurta(m.data)}</span>}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
                       {[m.descricao, m.reclamada && m.origem !== "parcela" ? m.reclamada : "", m.processoNumero ? `Proc. ${m.processoNumero}` : ""]

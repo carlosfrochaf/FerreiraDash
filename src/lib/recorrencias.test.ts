@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mesDe, mesesQueFaltam, proximoMes, vencimentoNoMes } from "./recorrencias";
+import { mesAnterior, mesDe, mesesQueFaltam, proximoMes, rotuloSalario, vencimentoNoMes } from "./recorrencias";
 
 describe("datas do mês", () => {
   it("mesDe e proximoMes", () => {
@@ -38,5 +38,17 @@ describe("mesesQueFaltam", () => {
 
   it("último mês no futuro não cria nada", () => {
     expect(mesesQueFaltam({ ...r, ultimoMes: "2026-12" }, "2026-11-15")).toEqual([]);
+  });
+});
+
+describe("mês de referência do salário", () => {
+  it("mesAnterior", () => {
+    expect(mesAnterior("2026-11")).toBe("2026-10");
+    expect(mesAnterior("2027-01")).toBe("2026-12");
+  });
+
+  it("rotuloSalario", () => {
+    expect(rotuloSalario("2026-10")).toBe("Salário de outubro/2026");
+    expect(rotuloSalario("2027-03")).toBe("Salário de março/2027");
   });
 });

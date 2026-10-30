@@ -35,3 +35,17 @@ export function mesesQueFaltam(
   }
   return out;
 }
+
+/** "2027-01" → "2026-12". */
+export function mesAnterior(mes: string): string {
+  const [ano, m] = mes.split("-").map(Number);
+  return m === 1 ? `${ano - 1}-12` : `${ano}-${String(m - 1).padStart(2, "0")}`;
+}
+
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+/** "2026-10" → "Salário de outubro/2026". */
+export function rotuloSalario(mes: string): string {
+  const [ano, m] = mes.split("-").map(Number);
+  return `Salário de ${MESES[m - 1]}/${ano}`;
+}

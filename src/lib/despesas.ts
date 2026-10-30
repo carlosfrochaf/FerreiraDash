@@ -24,6 +24,16 @@ export function tipoDaDespesa(m: Movimento): TipoDespesa | null {
 
 export type ItemDespesa = Movimento & { tipoDespesa: TipoDespesa };
 
+/** Mês em que a despesa conta: o de referência (salário) ou o da data. */
+export function mesDaDespesa(m: Movimento): string {
+  return m.mesReferencia ?? mesDe(m.data);
+}
+
+/** Pendente com a data já passada. Salário não tem vencimento: nunca fica atrasado. */
+export function estaAtrasado(m: Movimento, hoje: string): boolean {
+  return m.status !== "PAGO" && !m.mesReferencia && m.data < hoje;
+}
+
 export type ResumoDespesas = {
   total: number;
   pago: number;
@@ -46,7 +56,7 @@ export function resumirDespesas(movimentos: Movimento[], mes: string): ResumoDes
   const itens: ItemDespesa[] = [];
 
   for (const m of movimentos) {
-    if (mesDe(m.data) !== mes) continue;
+    if (mesDaDespesa(m) !== mes) continue;
     const tipoDespesa = tipoDaDespesa(m);
     if (!tipoDespesa) continue;
     const c = paraCentavos(m.valor);

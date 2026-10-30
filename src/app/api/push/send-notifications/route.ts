@@ -127,7 +127,12 @@ async function buscarDadosDoDia(hoje: string) {
     }),
     // Lançamentos avulsos guardam a data como meia-noite UTC do dia.
     prisma.transacao.findMany({
-      where: { status: StatusTransacao.PENDENTE, dataCompetencia: { gte: dia, lt: new Date(dia.getTime() + 86_400_000) } },
+      where: {
+        status: StatusTransacao.PENDENTE,
+        dataCompetencia: { gte: dia, lt: new Date(dia.getTime() + 86_400_000) },
+        // Salário não tem vencimento (a data é o dia 1 do mês de referência): fica fora do aviso.
+        OR: [{ categoria: { slug: null } }, { categoria: { slug: { not: "SALARIO" } } }],
+      },
       select: { descricao: true, valor: true, tipo: true, clienteNome: true, categoria: { select: { nome: true } } },
     }),
     prisma.audiencia.findMany({ where: { data: dia }, orderBy: { hora: "asc" } }),

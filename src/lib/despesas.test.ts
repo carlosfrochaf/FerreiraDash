@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resumirDespesas, separarPorStatus, tipoDaDespesa } from "./despesas";
+import { estaAtrasado, resumirDespesas, separarPorStatus, tipoDaDespesa } from "./despesas";
 import type { Movimento } from "./extrato";
 
 let seq = 0;
@@ -16,6 +16,7 @@ function mov(p: Partial<Movimento>): Movimento {
     categoria: "x",
     categoriaSlug: null,
     recorrente: false,
+    mesReferencia: null,
     descricao: "",
     reclamada: "",
     processoNumero: "",
@@ -90,5 +91,25 @@ describe("separarPorStatus", () => {
     expect(r.pagos.map((i) => i.key)).toEqual(["d", "b"]);
     expect(r.totalPendentes).toBe(300);
     expect(r.totalPagos).toBe(200);
+  });
+});
+
+describe("salário por mês de referência", () => {
+  it("conta no mês de referência, mesmo pago no mês seguinte", () => {
+    const r = resumirDespesas(
+      [
+        mov({ categoriaSlug: "SALARIO", mesReferencia: "2026-10", data: "2026-11-05", status: "PAGO", valor: 3000 }),
+        mov({ categoriaSlug: "SALARIO", mesReferencia: "2026-11", data: "2026-11-01", valor: 3000 }),
+      ],
+      "2026-10"
+    );
+    expect(r.porTipo.salarios).toEqual({ total: 3000, quantidade: 1 });
+  });
+
+  it("salário pendente nunca fica atrasado; os outros sim", () => {
+    expect(estaAtrasado(mov({ mesReferencia: "2026-09", data: "2026-09-01" }), "2026-10-30")).toBe(false);
+    expect(estaAtrasado(mov({ data: "2026-10-01" }), "2026-10-30")).toBe(true);
+    expect(estaAtrasado(mov({ data: "2026-10-01", status: "PAGO" }), "2026-10-30")).toBe(false);
+    expect(estaAtrasado(mov({ data: "2026-11-01" }), "2026-10-30")).toBe(false);
   });
 });

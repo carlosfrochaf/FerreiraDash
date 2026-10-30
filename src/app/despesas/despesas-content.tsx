@@ -5,14 +5,9 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, ExternalLink, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
-import { diasAte, formatarDataCurta } from "@/lib/datas";
-import { proximoMes } from "@/lib/recorrencias";
-import { TIPOS_DESPESA, separarPorStatus, type ItemDespesa, type ResumoDespesas, type TipoDespesa } from "@/lib/despesas";
-
-function mesAnterior(mes: string) {
-  const [ano, m] = mes.split("-").map(Number);
-  return m === 1 ? `${ano - 1}-12` : `${ano}-${String(m - 1).padStart(2, "0")}`;
-}
+import { formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
+import { mesAnterior, proximoMes } from "@/lib/recorrencias";
+import { TIPOS_DESPESA, estaAtrasado, separarPorStatus, type ItemDespesa, type ResumoDespesas, type TipoDespesa } from "@/lib/despesas";
 
 function nomeDoMes(mes: string) {
   const [ano, m] = mes.split("-").map(Number);
@@ -130,7 +125,7 @@ function Bloco({ titulo, cor, itens, total }: { titulo: string; cor: string; ite
       </h2>
       {itens.map((m) => {
         const pendente = m.status !== "PAGO";
-        const atrasado = pendente && diasAte(m.data) < 0;
+        const atrasado = estaAtrasado(m, hojeSaoPaulo());
         return (
           <Card key={m.key} className="border-l-4 border-l-rose-500/70">
             <CardContent className="flex gap-3 p-3 sm:p-4">
@@ -154,7 +149,8 @@ function Bloco({ titulo, cor, itens, total }: { titulo: string; cor: string; ite
                   >
                     {!pendente ? "Pago" : atrasado ? "Atrasado" : "Pendente"}
                   </span>
-                  <span className="text-muted-foreground">{formatarDataCurta(m.data)}</span>
+                  {/* Salário pendente não tem data: só o mês de referência, já no rótulo. */}
+                {!(pendente && m.mesReferencia) && <span className="text-muted-foreground">{formatarDataCurta(m.data)}</span>}
                 </div>
                 {m.descricao && m.descricao !== m.nome && (
                   <p className="truncate text-xs text-muted-foreground">{m.descricao}</p>

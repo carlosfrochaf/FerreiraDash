@@ -176,9 +176,13 @@ model Recebimento {
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
-  parcelas Parcela[]
+  parcelas   Parcela[]
+  clienteId  String?     @map("cliente_id")
+  cliente    Cliente?    @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  documentos Documento[]
 
   @@index([processoId])
+  @@index([clienteId])
   @@map("recebimentos")
 }
 
@@ -229,9 +233,12 @@ model Audiencia {
   observacoes     String?
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
+  clienteId       String?         @map("cliente_id")
+  cliente         Cliente?        @relation(fields: [clienteId], references: [id], onDelete: SetNull)
 
   @@index([data])
   @@index([statusPagamento, data])
+  @@index([clienteId])
   @@map("audiencias")
 }
 
@@ -259,9 +266,12 @@ model Peticao {
   observacoes    String?
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
+  clienteId      String?       @map("cliente_id")
+  cliente        Cliente?      @relation(fields: [clienteId], references: [id], onDelete: SetNull)
 
   @@index([status, dataEntrega])
   @@index([dataPagamento])
+  @@index([clienteId])
   @@map("peticoes")
 }
 
@@ -308,4 +318,60 @@ model DespesaRecorrente {
 
   @@index([ativa])
   @@map("despesas_recorrentes")
+}
+
+/// Cliente do escritório. O nome digitado em causas, audiências e petições continua guardado nelas.
+model Cliente {
+  id             String    @id @default(cuid())
+  nome           String
+  cpf            String?
+  telefone       String?
+  email          String?
+  endereco       String?
+  dataNascimento DateTime? @map("data_nascimento") @db.Date
+  pix            String?
+  observacoes    String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  recebimentos Recebimento[]
+  audiencias   Audiencia[]
+  peticoes     Peticao[]
+  documentos   Documento[]
+
+  @@map("clientes")
+}
+
+enum TipoDocumento {
+  RG_CNH
+  CPF
+  COMPROVANTE_ENDERECO
+  CTPS
+  PROCURACAO
+  CONTRATO_HONORARIOS
+  PETICAO
+  DECISAO
+  ACORDO_ATA
+  ALVARA
+  COMPROVANTE
+  OUTRO
+}
+
+/// Arquivo guardado no Supabase Storage (bucket privado "documentos").
+model Documento {
+  id            String        @id @default(cuid())
+  clienteId     String        @map("cliente_id")
+  cliente       Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  recebimentoId String?       @map("recebimento_id")
+  recebimento   Recebimento?  @relation(fields: [recebimentoId], references: [id], onDelete: SetNull)
+  tipo          TipoDocumento
+  nome          String
+  caminho       String
+  mime          String
+  tamanho       Int
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@index([clienteId])
+  @@index([recebimentoId])
+  @@map("documentos")
 }

@@ -46,3 +46,6 @@ next-env.d.ts
 
 # uploads locais
 /public/uploads
+
+# Planilhas com dados do escritório
+*.xlsx

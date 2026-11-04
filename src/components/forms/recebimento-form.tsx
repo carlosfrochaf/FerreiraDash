@@ -61,11 +61,13 @@ type Props = {
   processos: ProcessoOption[];
   /** Pix já usados por cliente (nome em minúsculas → chave). */
   pixConhecidos?: Record<string, string>;
+  /** Clientes cadastrados, para sugerir no campo Cliente. */
+  clientes?: string[];
   /** Causa existente: o formulário vira edição. */
   inicial?: RecebimentoSerializado;
 };
 
-export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Props) {
+export function RecebimentoForm({ processos, inicial, pixConhecidos = {}, clientes = [] }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const editando = !!inicial;
@@ -265,6 +267,7 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
                 </Label>
                 <Input
                   id="clienteNome"
+                  list="causa-clientes-list"
                   placeholder="Quem recebe o repasse"
                   value={clienteNome}
                   onChange={(e) => {
@@ -279,6 +282,11 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
                   aria-invalid={tentouEnviar && !clienteNome.trim()}
                   className={cn("h-11", tentouEnviar && !clienteNome.trim() && "border-rose-500/60")}
                 />
+                <datalist id="causa-clientes-list">
+                  {clientes.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reclamada">Empresa / reclamada</Label>

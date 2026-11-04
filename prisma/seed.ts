@@ -1,4 +1,5 @@
 import { PrismaClient, TipoTransacao } from "@prisma/client";
+import { carregarClientesIniciais } from "../src/lib/clientes-servico";
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,10 @@ async function main() {
       create: { ...cat, ativo: true },
     });
   }
+
+  // Clientes a partir dos nomes já usados em causas, audiências e petições (só os que faltam).
+  const ligados = await carregarClientesIniciais(prisma);
+  if (ligados) console.log(`Clientes: ${ligados} registro(s) ligados ao cadastro.`);
 
   console.log("Seed concluído.");
 }

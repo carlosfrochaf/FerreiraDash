@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { calcularParcelas, paraCentavos, validarParcelas, type ParcelaCalculada, type ResultadoParcelas } from "./parcelas";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import type { ParcelaAcao, RecebimentoInput } from "./validations";
+import { garantirCliente } from "./clientes-servico";
 
 /** Erro de regra de negócio: vira resposta 400/404/409 com a mensagem para o usuário. */
 export class ErroRecebimento extends Error {
@@ -81,8 +82,10 @@ export async function criarRecebimento(input: RecebimentoInput) {
     if (!existe) throw new ErroRecebimento("Processo não encontrado.", 404);
   }
 
+  const clienteId = await garantirCliente(prisma, input.clienteNome, { pix: input.clientePix });
   const criado = await prisma.recebimento.create({
     data: {
+      clienteId,
       processoId: input.processoId ?? null,
       processoNumero: input.processoNumero ?? null,
       clienteNome: input.clienteNome,
@@ -132,6 +135,7 @@ export async function atualizarRecebimento(id: string, input: RecebimentoInput) 
   if (!atual) throw new ErroRecebimento("Causa não encontrada.", 404);
 
   const textos = {
+    clienteId: await garantirCliente(prisma, input.clienteNome, { pix: input.clientePix }),
     clienteNome: input.clienteNome,
     clientePix: input.clientePix ?? null,
     reclamada: input.reclamada ?? null,
@@ -262,6 +266,7 @@ export function serializarRecebimento(r: RecebimentoDb) {
   return {
     id: r.id,
     processoId: r.processoId,
+    clienteId: r.clienteId,
     processoNumero: r.processoNumero,
     clienteNome: r.clienteNome,
     clientePix: r.clientePix,
@@ -282,13 +287,21 @@ export type ParcelaSerializada = ReturnType<typeof serializarParcela>;
 
 /** Pix já usados por cliente (nome em minúsculas → chave), para preencher sozinho em causas novas. */
 export async function pixConhecidos(): Promise<Record<string, string>> {
-  const lista = await prisma.recebimento.findMany({
-    where: { clientePix: { not: null } },
-    select: { clienteNome: true, clientePix: true },
-    orderBy: { updatedAt: "desc" },
-    take: 500,
-  });
+  const [lista, clientes] = await Promise.all([
+    prisma.recebimento.findMany({
+      where: { clientePix: { not: null } },
+      select: { clienteNome: true, clientePix: true },
+      orderBy: { updatedAt: "desc" },
+      take: 500,
+    }),
+    prisma.cliente.findMany({ where: { pix: { not: null } }, select: { nome: true, pix: true }, take: 1000 }),
+  ]);
   const out: Record<string, string> = {};
+  // O Pix do cadastro do cliente vale primeiro; depois o da causa mais recente.
+  for (const c of clientes) {
+    const k = c.nome.trim().toLowerCase();
+    if (!out[k] && c.pix) out[k] = c.pix;
+  }
   for (const r of lista) {
     const k = r.clienteNome.trim().toLowerCase();
     if (!out[k] && r.clientePix) out[k] = r.clientePix;

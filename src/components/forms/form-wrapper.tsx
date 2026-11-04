@@ -68,7 +68,7 @@ export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, 
       </div>
 
       {modo === "causa" ? (
-        <RecebimentoForm processos={processos} pixConhecidos={pixConhecidos} />
+        <RecebimentoForm processos={processos} pixConhecidos={pixConhecidos} clientes={sugestoesAudiencia.clientes} />
       ) : modo === "audiencia" ? (
         <AudienciaForm sugestoes={sugestoesAudiencia} />
       ) : modo === "peticao" ? (

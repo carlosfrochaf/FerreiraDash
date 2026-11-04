@@ -5,6 +5,7 @@ import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import type { PeticaoAcao, PeticaoInput } from "./validations";
 import { ErroRecebimento as ErroNegocio } from "./recebimentos";
 import { chaveAdvogado, pixDosAdvogados, salvarPixAdvogado } from "./advogados";
+import { garantirCliente } from "./clientes-servico";
 
 export { ErroNegocio };
 
@@ -77,7 +78,9 @@ function dadosDoInput(input: PeticaoInput, atual?: PeticaoDb) {
 }
 
 export async function criarPeticao(input: PeticaoInput) {
-  const criada = await prisma.peticao.create({ data: dadosDoInput(input) });
+  const criada = await prisma.peticao.create({
+    data: { ...dadosDoInput(input), clienteId: await garantirCliente(prisma, input.clienteNome) },
+  });
   await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
   return serializarPeticao(criada, await pixDosAdvogados());
 }
@@ -85,7 +88,10 @@ export async function criarPeticao(input: PeticaoInput) {
 export async function atualizarPeticao(id: string, input: PeticaoInput) {
   const atual = await prisma.peticao.findUnique({ where: { id } });
   if (!atual) throw new ErroNegocio("Petição não encontrada.", 404);
-  const salva = await prisma.peticao.update({ where: { id }, data: dadosDoInput(input, atual) });
+  const salva = await prisma.peticao.update({
+    where: { id },
+    data: { ...dadosDoInput(input, atual), clienteId: await garantirCliente(prisma, input.clienteNome) },
+  });
   await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
   return serializarPeticao(salva, await pixDosAdvogados());
 }

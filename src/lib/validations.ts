@@ -165,3 +165,24 @@ export const peticaoAcaoSchema = z.discriminatedUnion("acao", [
 ]);
 
 export type PeticaoAcao = z.infer<typeof peticaoAcaoSchema>;
+
+// ---------- Clientes ----------
+
+export const clienteSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome do cliente"),
+  cpf: textoOpcional.refine((v) => !v || v.replace(/\D/g, "").length === 11, "CPF deve ter 11 números"),
+  telefone: textoOpcional,
+  email: textoOpcional.refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "E-mail inválido"),
+  endereco: textoOpcional,
+  dataNascimento: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => !v || dataValida(v), "Data de nascimento inválida"),
+  pix: textoOpcional,
+  observacoes: textoOpcional,
+});
+
+export type ClienteInput = z.infer<typeof clienteSchema>;
+
+export const juntarClientesSchema = z.object({ origemId: z.string().min(1, "Escolha o cliente para juntar") });

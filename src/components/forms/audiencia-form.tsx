@@ -18,6 +18,8 @@ export type SugestoesAudiencia = {
   processos: { numero: string; clienteNome: string; reclamada: string | null }[];
   /** chave do advogado → Pix */
   pixAdvogados?: Record<string, string>;
+  /** Nomes dos clientes cadastrados, para sugerir no campo Cliente. */
+  clientes?: string[];
 };
 
 type Props = {
@@ -206,11 +208,17 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
               </Label>
               <Input
                 id="aud-cliente"
+                list="aud-clientes-list"
                 value={clienteNome}
                 onChange={(e) => setClienteNome(e.target.value)}
                 aria-invalid={invalido(clienteNome)}
                 className={cn("h-11", invalido(clienteNome) && "border-rose-500/60")}
               />
+              <datalist id="aud-clientes-list">
+                {(sugestoes.clientes ?? []).map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </div>
             <div className="space-y-2">
               <Label htmlFor="aud-empresa">Empresa</Label>

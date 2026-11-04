@@ -202,11 +202,17 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               </Label>
               <Input
                 id="pet-cliente"
+                list="pet-clientes-list"
                 value={clienteNome}
                 onChange={(e) => setClienteNome(e.target.value)}
                 aria-invalid={invalido(clienteNome)}
                 className={cn("h-11", invalido(clienteNome) && "border-rose-500/60")}
               />
+              <datalist id="pet-clientes-list">
+                {(sugestoes.clientes ?? []).map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </div>
             <div className="space-y-2">
               <Label htmlFor="pet-empresa">Empresa</Label>

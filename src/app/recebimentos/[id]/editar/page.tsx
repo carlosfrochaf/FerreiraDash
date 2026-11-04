@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ErroRecebimento, obterRecebimento, pixConhecidos } from "@/lib/recebimentos";
+import { nomesDosClientes } from "@/lib/clientes-servico";
 import { RecebimentoForm } from "@/components/forms/recebimento-form";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function EditarCausaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [causa, processos, pix] = await Promise.all([
+  const [causa, processos, pix, clientes] = await Promise.all([
     obterRecebimento(id).catch((e) => {
       if (e instanceof ErroRecebimento && e.status === 404) return null;
       throw e;
     }),
     prisma.processo.findMany({ where: { ativo: true }, include: { cliente: true }, orderBy: { updatedAt: "desc" }, take: 50 }),
     pixConhecidos(),
+    nomesDosClientes(),
   ]);
   if (!causa) notFound();
 
@@ -27,11 +29,22 @@ export default async function EditarCausaPage({ params }: { params: Promise<{ id
       </Link>
       <section>
         <h1 className="text-2xl font-bold tracking-tight">Editar causa</h1>
-        <p className="text-sm text-muted-foreground">{causa.clienteNome}</p>
+        <p className="text-sm text-muted-foreground">
+          {causa.clienteNome}
+          {causa.clienteId && (
+            <>
+              {" · "}
+              <Link href={`/clientes/${causa.clienteId}`} className="font-medium text-primary hover:underline">
+                Ficha e documentos do cliente
+              </Link>
+            </>
+          )}
+        </p>
       </section>
       <RecebimentoForm
         inicial={causa}
         pixConhecidos={pix}
+        clientes={clientes}
         processos={processos.map((p) => ({ id: p.id, numeroPje: p.numeroPje, nomeAcao: p.nomeAcao, clienteNome: p.cliente.nome }))}
       />
     </div>

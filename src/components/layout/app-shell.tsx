@@ -1,27 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, HandCoins, Scale, Settings2, History, LogOut, CalendarClock, Wallet } from "lucide-react";
+import { LogOut, Menu, Scale, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { NotificationBell } from "./notification-bell";
+import { BARRA_CELULAR, itemAtivo, SECOES, type ItemMenu } from "./menu";
 
-const navItems = [
-  { href: "/", label: "Início", icon: Home },
-  { href: "/lancamentos/novo", label: "Lançar", icon: PlusCircle },
-  { href: "/recebimentos", label: "Recebimentos", icon: HandCoins },
-  { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: "/peticoes" },
-  { href: "/despesas", label: "Despesas", icon: Wallet },
-];
-
-function ativo(pathname: string, href: string, tambem?: string) {
-  if (href === "/") return pathname === "/";
-  return pathname.startsWith(href) || (!!tambem && pathname.startsWith(tambem));
-}
+const TODOS: ItemMenu[] = SECOES.flatMap((s) => s.itens);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [maisAberto, setMaisAberto] = useState(false);
+
+  // Fecha o "Mais" ao trocar de tela.
+  useEffect(() => setMaisAberto(false), [pathname]);
 
   async function handleLogout() {
     await fetch("/api/login", { method: "DELETE" }).catch(() => {});
@@ -33,13 +28,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <div className="min-h-dvh bg-background text-foreground">{children}</div>;
   }
 
+  const barra = BARRA_CELULAR.map((h) => TODOS.find((i) => i.href === h)!).filter(Boolean);
+  const noMais = TODOS.filter((i) => !BARRA_CELULAR.includes(i.href));
+  const maisAtivo = noMais.some((i) => itemAtivo(pathname, i.href));
+
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">
         Pular para o conteúdo
       </a>
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-5">
           <Link href="/" className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
               <Scale className="h-5 w-5" />
@@ -49,48 +48,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-xs text-muted-foreground">Financeiro Jurídico</p>
             </div>
           </Link>
-
-          {/* Navegação no computador */}
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={ativo(pathname, item.href, "tambem" in item ? item.tambem : undefined) ? "page" : undefined}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  ativo(pathname, item.href, "tambem" in item ? item.tambem : undefined) ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
           <div className="flex shrink-0 items-center gap-1.5">
             <NotificationBell />
-            <Link
-              href="/historico"
-              aria-current={pathname.startsWith("/historico") ? "page" : undefined}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
-                pathname.startsWith("/historico")
-                  ? "border-primary/40 bg-primary/15 text-primary"
-                  : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}
-              title="Histórico"
-              aria-label="Histórico"
-            >
-              <History className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/categorias"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              title="Categorias e ajustes"
-              aria-label="Categorias e ajustes"
-            >
-              <Settings2 className="h-4 w-4" />
-            </Link>
             <button
               onClick={handleLogout}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -103,24 +62,89 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main id="conteudo" className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 pb-28 md:pb-10">
-        {children}
-      </main>
+      <div className="flex flex-1">
+        {/* Menu lateral (computador) */}
+        <nav aria-label="Principal" className="sticky top-[61px] hidden h-[calc(100dvh-61px)] w-56 shrink-0 overflow-y-auto border-r border-border/60 px-3 py-4 md:block">
+          {SECOES.map((s, i) => (
+            <div key={i} className="mb-3">
+              {s.titulo && <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{s.titulo}</p>}
+              {s.itens.map((item) => {
+                const Icon = item.icon;
+                const ativo = itemAtivo(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={ativo ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      ativo ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
 
-      {/* Navegação no celular */}
+        <main id="conteudo" className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 pb-28 md:px-6 md:pb-10">
+          {children}
+        </main>
+      </div>
+
+      {/* "Mais" no celular: painel que sobe por cima da barra */}
+      {maisAberto && (
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setMaisAberto(false)}>
+          <div
+            className="safe-area-pb absolute bottom-[64px] left-0 right-0 rounded-t-2xl border-t border-border bg-card p-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-sm font-semibold">Mais</p>
+              <button onClick={() => setMaisAberto(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent" aria-label="Fechar">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {noMais.map((item) => {
+                const Icon = item.icon;
+                const ativo = itemAtivo(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-xl border px-2 py-3 text-center text-xs font-medium",
+                      ativo ? "border-primary/40 bg-primary/15 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barra de baixo (celular) */}
       <nav className="safe-area-pb fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-card/95 backdrop-blur-md md:hidden" aria-label="Principal">
         <div className="mx-auto grid max-w-5xl grid-cols-5 gap-0.5 px-1.5 pt-2">
-          {navItems.map((item) => {
+          {barra.map((item) => {
             const Icon = item.icon;
-            const isAtivo = ativo(pathname, item.href, "tambem" in item ? item.tambem : undefined);
+            const ativo = itemAtivo(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={isAtivo ? "page" : undefined}
+                aria-current={ativo ? "page" : undefined}
                 className={cn(
                   "flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[10px] font-medium transition-colors",
-                  isAtivo ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+                  ativo ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -128,6 +152,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setMaisAberto((v) => !v)}
+            aria-expanded={maisAberto}
+            className={cn(
+              "flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[10px] font-medium transition-colors",
+              maisAberto || maisAtivo ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Menu className="h-5 w-5" />
+            <span>Mais</span>
+          </button>
         </div>
       </nav>
     </div>

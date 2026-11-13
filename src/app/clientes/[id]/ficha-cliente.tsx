@@ -26,6 +26,8 @@ export function FichaCliente({
   documentos,
   outrosClientes,
   storagePronto,
+  podeEditar = true,
+  mostrarValores = true,
 }: {
   cliente: ClienteSerializado;
   causas: RecebimentoSerializado[];
@@ -34,6 +36,8 @@ export function FichaCliente({
   documentos: DocumentoDaFicha[];
   outrosClientes: { id: string; nome: string }[];
   storagePronto: boolean;
+  podeEditar?: boolean;
+  mostrarValores?: boolean;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -41,7 +45,7 @@ export function FichaCliente({
   const [erro, setErro] = useState("");
   const [pending, startTransition] = useTransition();
   const whatsapp = cliente.telefone ? linkWhatsApp(cliente.telefone) : null;
-  const titulos = causas.map((c) => ({ id: c.id, titulo: c.reclamada ? `Causa × ${c.reclamada}` : `Causa de ${formatCurrency(Number(c.valorTotal))}` }));
+  const titulos = causas.map((c, i) => ({ id: c.id, titulo: c.reclamada ? `Causa × ${c.reclamada}` : mostrarValores ? `Causa de ${formatCurrency(Number(c.valorTotal))}` : `Causa ${i + 1}` }));
 
   function juntar() {
     const outro = outrosClientes.find((o) => o.id === origem);
@@ -85,9 +89,11 @@ export function FichaCliente({
               </a>
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setEditando((v) => !v)}>
-            <Pencil /> {editando ? "Fechar" : "Editar dados"}
-          </Button>
+          {podeEditar && (
+            <Button variant="outline" size="sm" onClick={() => setEditando((v) => !v)}>
+              <Pencil /> {editando ? "Fechar" : "Editar dados"}
+            </Button>
+          )}
         </div>
       </section>
 
@@ -106,7 +112,7 @@ export function FichaCliente({
         </Card>
       )}
 
-      <DocumentosCliente clienteId={cliente.id} documentos={documentos} causas={titulos} storagePronto={storagePronto} />
+      <DocumentosCliente clienteId={cliente.id} documentos={documentos} causas={titulos} storagePronto={storagePronto} podeEditar={podeEditar} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Causas</h2>
@@ -116,16 +122,23 @@ export function FichaCliente({
           causas.map((c) => {
             const r = resumoCausa(c.parcelas);
             return (
-              <Link key={c.id} href={`/recebimentos/${c.id}/editar`} className="block rounded-xl border border-border bg-card p-3 hover:bg-accent/40">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="min-w-0 truncate text-sm font-semibold">{c.reclamada || "Empresa não informada"}</p>
-                  <p className="shrink-0 text-sm font-bold tabular-nums">{formatCurrency(Number(c.valorTotal))}</p>
+              mostrarValores ? (
+                <Link key={c.id} href={`/recebimentos/${c.id}/editar`} className="block rounded-xl border border-border bg-card p-3 hover:bg-accent/40">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate text-sm font-semibold">{c.reclamada || "Empresa não informada"}</p>
+                    <p className="shrink-0 text-sm font-bold tabular-nums">{formatCurrency(Number(c.valorTotal))}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {c.numeroParcelas}x · escritório {formatCurrency(r.escritorio.recebido)} recebido, falta {formatCurrency(r.escritorio.falta)} ·
+                    cliente falta {formatCurrency(r.cliente.falta)}
+                  </p>
+                </Link>
+              ) : (
+                <div key={c.id} className="rounded-xl border border-border bg-card p-3">
+                  <p className="truncate text-sm font-semibold">{c.reclamada || "Empresa não informada"}</p>
+                  <p className="text-xs text-muted-foreground">{c.processoNumero ? `Proc. ${c.processoNumero}` : "Sem número de processo"}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {c.numeroParcelas}x · escritório {formatCurrency(r.escritorio.recebido)} recebido, falta {formatCurrency(r.escritorio.falta)} ·
-                  cliente falta {formatCurrency(r.cliente.falta)}
-                </p>
-              </Link>
+              )
             );
           })
         )}
@@ -143,7 +156,7 @@ export function FichaCliente({
                   {formatarDataCurta(a.data)}
                   {a.hora ? ` ${a.hora}` : ""} · {a.advogadoNome}
                 </span>
-                <span className={a.paga ? "text-emerald-400" : "text-amber-300"}>{a.valor ? formatCurrency(a.valor) : "sem valor"}</span>
+                {mostrarValores && <span className={a.paga ? "text-emerald-400" : "text-amber-300"}>{a.valor ? formatCurrency(a.valor) : "sem valor"}</span>}
               </Link>
             ))
           )}
@@ -158,14 +171,14 @@ export function FichaCliente({
                 <span className="min-w-0 truncate">
                   {p.descricao} · {p.advogadoNome}
                 </span>
-                <span className={p.paga ? "text-emerald-400" : "text-amber-300"}>{p.valor ? formatCurrency(p.valor) : "sem valor"}</span>
+                {mostrarValores && <span className={p.paga ? "text-emerald-400" : "text-amber-300"}>{p.valor ? formatCurrency(p.valor) : "sem valor"}</span>}
               </Link>
             ))
           )}
         </div>
       </section>
 
-      {outrosClientes.length > 0 && (
+      {podeEditar && outrosClientes.length > 0 && (
         <section className="space-y-2 rounded-xl border border-border p-3">
           <h2 className="flex items-center gap-1.5 text-sm font-semibold">
             <Users className="h-4 w-4" /> Juntar com outro cadastro

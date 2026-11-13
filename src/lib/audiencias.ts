@@ -6,6 +6,11 @@ import type { AudienciaAcao, AudienciaInput } from "./validations";
 import { ErroRecebimento as ErroNegocio } from "./recebimentos";
 import { chaveAdvogado, pixDosAdvogados, salvarPixAdvogado } from "./advogados";
 import { garantirCliente, nomesDosClientes } from "./clientes-servico";
+import { entradaSemValores, filtroDoUsuario, semValores } from "./acesso-dados";
+import type { UsuarioLogado } from "./usuario-atual";
+
+/** Quem não vê valores (secretária) não grava valor, pagamento nem Pix. */
+export type Opcoes = { semValores?: boolean };
 
 export { ErroNegocio };
 
@@ -76,7 +81,8 @@ export function pagamentoInicial(
   return input.pago ? { statusPagamento: StatusPagamento.PAGO, dataPagamento: input.dataPagamento ?? hoje } : {};
 }
 
-export async function criarAudiencia(input: AudienciaInput) {
+export async function criarAudiencia(entrada: AudienciaInput, op: Opcoes = {}) {
+  const input = op.semValores ? (entradaSemValores(entrada) as AudienciaInput) : entrada;
   const pagamento = pagamentoInicial(input);
   const criada = await prisma.audiencia.create({
     data: {
@@ -87,14 +93,15 @@ export async function criarAudiencia(input: AudienciaInput) {
         : {}),
     },
   });
-  await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
+  if (!op.semValores) await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
   return serializarAudiencia(criada, await pixDosAdvogados());
 }
 
-export async function atualizarAudiencia(id: string, input: AudienciaInput) {
+export async function atualizarAudiencia(id: string, input: AudienciaInput, op: Opcoes = {}) {
   const atual = await prisma.audiencia.findUnique({ where: { id } });
   if (!atual) throw new ErroNegocio("Audiência não encontrada.", 404);
-  const dados = dadosDoInput(input);
+  // Sem permissão de valores, mantém o valor que já estava.
+  const dados = { ...dadosDoInput(input), ...(op.semValores ? { valor: atual.valor } : {}) };
   if (atual.statusPagamento === StatusPagamento.PAGO && !dados.valor) {
     throw new ErroNegocio("Esta audiência já foi paga: o valor não pode ficar em branco.");
   }
@@ -102,7 +109,7 @@ export async function atualizarAudiencia(id: string, input: AudienciaInput) {
     where: { id },
     data: { ...dados, clienteId: await garantirCliente(prisma, input.clienteNome) },
   });
-  await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
+  if (!op.semValores) await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
   return serializarAudiencia(salva, await pixDosAdvogados());
 }
 
@@ -132,12 +139,12 @@ export async function aplicarAcaoAudiencia(id: string, acao: AudienciaAcao) {
   return serializarAudiencia(await prisma.audiencia.findUniqueOrThrow({ where: { id } }), await pixDosAdvogados());
 }
 
-export async function listarAudiencias() {
+export async function listarAudiencias(u?: UsuarioLogado) {
   const [lista, pix] = await Promise.all([
-    prisma.audiencia.findMany({ orderBy: [{ data: "desc" }, { hora: "desc" }], take: 300 }),
+    prisma.audiencia.findMany({ where: u ? filtroDoUsuario(u) : {}, orderBy: [{ data: "desc" }, { hora: "desc" }], take: 300 }),
     pixDosAdvogados(),
   ]);
-  return lista.map((a) => serializarAudiencia(a, pix));
+  return lista.map((a) => (u ? semValores(serializarAudiencia(a, pix), u.perfil) : serializarAudiencia(a, pix)));
 }
 
 /** Nomes já usados, para sugerir no formulário. */

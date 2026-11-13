@@ -4,11 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { documentosFaltando } from "@/lib/documentos";
 import { ClientesLista, type ClienteDaLista } from "./clientes-lista";
 import { usuarioAtual } from "@/lib/usuario-atual";
+import { editaClientes } from "@/lib/perfis";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
-  await usuarioAtual();
+  const eu = await usuarioAtual();
   const clientes = await prisma.cliente.findMany({
     orderBy: { nome: "asc" },
     include: {
@@ -40,12 +41,14 @@ export default async function ClientesPage() {
           <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
           <p className="text-sm text-muted-foreground">Dados, causas e documentos de cada cliente</p>
         </div>
+        {editaClientes(eu.perfil) && (
         <Link
           href="/clientes/novo"
           className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" /> Novo cliente
         </Link>
+        )}
       </section>
       <ClientesLista clientes={lista} />
     </div>

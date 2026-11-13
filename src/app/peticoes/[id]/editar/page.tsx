@@ -6,11 +6,13 @@ import { sugestoesAudiencia } from "@/lib/audiencias";
 import { serializarPeticao } from "@/lib/peticoes";
 import { PeticaoForm } from "@/components/forms/peticao-form";
 import { usuarioAtual } from "@/lib/usuario-atual";
+import { veValores } from "@/lib/perfis";
+import { semValores } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditarPeticaoPage({ params }: { params: Promise<{ id: string }> }) {
-  await usuarioAtual();
+  const eu = await usuarioAtual();
   const { id } = await params;
   const [p, sugestoes] = await Promise.all([prisma.peticao.findUnique({ where: { id } }), sugestoesAudiencia()]);
   if (!p) notFound();
@@ -20,7 +22,7 @@ export default async function EditarPeticaoPage({ params }: { params: Promise<{ 
         <ChevronLeft className="h-4 w-4" /> Petições
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Editar petição</h1>
-      <PeticaoForm sugestoes={sugestoes} inicial={serializarPeticao(p, sugestoes.pixAdvogados)} />
+      <PeticaoForm semValores={!veValores(eu.perfil)} sugestoes={sugestoes} inicial={semValores(serializarPeticao(p, sugestoes.pixAdvogados), eu.perfil)} />
     </div>
   );
 }

@@ -13,7 +13,7 @@ function quando(data: string) {
   return null;
 }
 
-export function AudienciaItem({ a, modo, onClick }: { a: AudienciaSerializada; modo: "proximas" | "apagar" | "todas"; onClick: () => void }) {
+export function AudienciaItem({ a, modo, onClick, mostrarValor = true }: { a: AudienciaSerializada; modo: "proximas" | "apagar" | "todas"; onClick: () => void; mostrarValor?: boolean }) {
   const selo = modo === "proximas" ? quando(a.data) : null;
   const paga = a.statusPagamento === "PAGO";
   return (
@@ -38,7 +38,7 @@ export function AudienciaItem({ a, modo, onClick }: { a: AudienciaSerializada; m
           </span>
         )}
       </div>
-      {modo !== "proximas" && (
+      {modo !== "proximas" && mostrarValor && (
         <p className={cn("shrink-0 text-sm font-semibold tabular-nums", paga ? "text-emerald-400" : a.valor ? "text-rose-300" : "text-muted-foreground")}>
           {a.valor ? formatCurrency(a.valor) : "Definir valor"}
         </p>

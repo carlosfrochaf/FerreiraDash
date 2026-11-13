@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { veValores, type Perfil } from "@/lib/perfis";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, formatCurrency, maskCurrencyInput } from "@/lib/utils";
@@ -19,7 +20,7 @@ export const STATUS_PETICAO: Record<PeticaoSerializada["status"], { label: strin
   PAGA: { label: "Pago", cor: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" },
 };
 
-export function PeticaoItem({ p, onClick }: { p: PeticaoSerializada; onClick: () => void }) {
+export function PeticaoItem({ p, onClick, mostrarValor = true }: { p: PeticaoSerializada; onClick: () => void; mostrarValor?: boolean }) {
   const st = STATUS_PETICAO[p.status];
   return (
     <button
@@ -35,14 +36,18 @@ export function PeticaoItem({ p, onClick }: { p: PeticaoSerializada; onClick: ()
         </p>
         <span className={cn("inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset", st.cor)}>{st.label}</span>
       </div>
-      <p className={cn("shrink-0 text-sm font-semibold tabular-nums", p.valor ? (p.status === "PAGA" ? "text-emerald-400" : "text-rose-300") : "text-muted-foreground")}>
-        {p.valor ? formatCurrency(p.valor) : "Definir valor"}
-      </p>
+      {mostrarValor && (
+        <p className={cn("shrink-0 text-sm font-semibold tabular-nums", p.valor ? (p.status === "PAGA" ? "text-emerald-400" : "text-rose-300") : "text-muted-foreground")}>
+          {p.valor ? formatCurrency(p.valor) : "Definir valor"}
+        </p>
+      )}
     </button>
   );
 }
 
-export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializada | null; onFechar: () => void }) {
+export function PeticaoModal({ peticao, onFechar, perfil = "DONO" }: { peticao: PeticaoSerializada | null; onFechar: () => void; perfil?: Perfil }) {
+  const podePagar = perfil === "DONO" || perfil === "FINANCEIRO";
+  const podeEditar = perfil !== "ADVOGADO";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [erro, setErro] = useState("");
@@ -137,7 +142,7 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
             </div>
           )}
           <div className="col-span-2 flex flex-wrap items-center gap-2">
-            <span className="font-semibold">{p.valor ? formatCurrency(p.valor) : "Valor não definido"}</span>
+            {veValores(perfil) && <span className="font-semibold">{p.valor ? formatCurrency(p.valor) : "Valor não definido"}</span>}
             <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset", st.cor)}>{st.label}</span>
             {p.dataPagamento && <span className="text-xs text-emerald-400">paga {formatarData(p.dataPagamento)}</span>}
           </div>
@@ -150,7 +155,7 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
           </p>
         )}
 
-        {p.status !== "PAGA" && (
+        {podePagar && p.status !== "PAGA" && (
           <div className="space-y-2 rounded-xl border border-border p-3">
             <PixCopiar rotulo={`Pix de ${p.advogadoNome}`} pix={p.advogadoPix} linkCadastro={`/peticoes/${p.id}/editar`} valor={p.valor} nome={p.advogadoNome} />
             {!p.valor && (
@@ -175,13 +180,13 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        {podeEditar && <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href={`/peticoes/${p.id}/editar`}>
               <Pencil /> Editar
             </Link>
           </Button>
-          {p.status === "PAGA" && (
+          {p.status === "PAGA" && podePagar && (
             <Button variant="ghost" size="sm" disabled={pending} onClick={() => executar(() => chamar(url, "PATCH", { acao: "desfazer_pagamento" }))}>
               <RotateCcw /> Desfazer pagamento
             </Button>
@@ -195,7 +200,7 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
               <Trash2 /> Excluir
             </Button>
           )}
-        </div>
+        </div>}
       </div>
     </Modal>
   );

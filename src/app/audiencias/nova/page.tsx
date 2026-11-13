@@ -3,11 +3,12 @@ import { ChevronLeft } from "lucide-react";
 import { sugestoesAudiencia } from "@/lib/audiencias";
 import { AudienciaForm } from "@/components/forms/audiencia-form";
 import { usuarioAtual } from "@/lib/usuario-atual";
+import { veValores } from "@/lib/perfis";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovaAudienciaPage() {
-  await usuarioAtual();
+  const eu = await usuarioAtual();
   const sugestoes = await sugestoesAudiencia();
   return (
     <div className="space-y-4">
@@ -15,7 +16,7 @@ export default async function NovaAudienciaPage() {
         <ChevronLeft className="h-4 w-4" /> Audiências
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Nova audiência</h1>
-      <AudienciaForm sugestoes={sugestoes} />
+      <AudienciaForm semValores={!veValores(eu.perfil)} sugestoes={sugestoes} />
     </div>
   );
 }

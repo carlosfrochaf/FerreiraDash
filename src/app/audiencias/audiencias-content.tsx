@@ -8,10 +8,12 @@ import { hojeSaoPaulo } from "@/lib/datas";
 import type { AudienciaSerializada } from "@/lib/audiencias";
 import { AudienciaItem } from "@/components/audiencias/audiencia-lista";
 import { AudienciaModal } from "@/components/audiencias/audiencia-modal";
+import { veValores, type Perfil } from "@/lib/perfis";
 
 type Aba = "proximas" | "apagar" | "pagas" | "todas";
 
-export function AudienciasContent({ audiencias }: { audiencias: AudienciaSerializada[] }) {
+export function AudienciasContent({ audiencias, perfil }: { audiencias: AudienciaSerializada[]; perfil: Perfil }) {
+  const paga = perfil === "DONO" || perfil === "FINANCEIRO";
   const [aba, setAba] = useState<Aba>("proximas");
   const [busca, setBusca] = useState("");
   const [sel, setSel] = useState<AudienciaSerializada | null>(null);
@@ -43,7 +45,7 @@ export function AudienciasContent({ audiencias }: { audiencias: AudienciaSeriali
 
   return (
     <div className="space-y-4">
-      {grupos.apagar.length > 0 && (
+      {paga && grupos.apagar.length > 0 && (
         <button
           onClick={() => setAba("apagar")}
           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-4 text-left"
@@ -85,12 +87,12 @@ export function AudienciasContent({ audiencias }: { audiencias: AudienciaSeriali
       ) : (
         <div className="space-y-2">
           {lista.map((a) => (
-            <AudienciaItem key={a.id} a={a} modo={aba === "proximas" ? "proximas" : "todas"} onClick={() => setSel(a)} />
+            <AudienciaItem key={a.id} a={a} modo={aba === "proximas" ? "proximas" : "todas"} mostrarValor={veValores(perfil)} onClick={() => setSel(a)} />
           ))}
         </div>
       )}
 
-      <AudienciaModal audiencia={sel} onFechar={() => setSel(null)} />
+      <AudienciaModal audiencia={sel} perfil={perfil} onFechar={() => setSel(null)} />
     </div>
   );
 }

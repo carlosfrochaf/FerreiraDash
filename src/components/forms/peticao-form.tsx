@@ -27,7 +27,7 @@ function mascara(decimal: string | null) {
   return decimal ? maskCurrencyInput(decimal.replace(".", "")) : "";
 }
 
-export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudiencia; inicial?: PeticaoSerializada }) {
+export function PeticaoForm({ sugestoes, inicial, semValores = false }: { sugestoes: SugestoesAudiencia; inicial?: PeticaoSerializada; semValores?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [advogadoNome, setAdvogadoNome] = useState(inicial?.advogadoNome ?? "");
@@ -136,6 +136,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
             </datalist>
           </div>
 
+          {!semValores && (
           <div className="space-y-2">
             <Label htmlFor="pet-pix">Pix do advogado</Label>
             <Input
@@ -153,6 +154,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               {pixAuto ? "Pix já cadastrado deste advogado. " : ""}Fica salvo para todas as audiências e petições dele.
             </p>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="pet-descricao">
@@ -227,6 +229,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               </Label>
               <Input id="pet-entrega" type="date" value={dataEntrega} max={hojeSaoPaulo()} onChange={(e) => setDataEntrega(e.target.value)} className="h-11" />
             </div>
+            {!semValores && (
             <div className="space-y-2">
               <Label htmlFor="pet-valor">Valor da petição</Label>
               <div className="relative">
@@ -241,8 +244,10 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
                 />
               </div>
             </div>
+            )}
           </div>
 
+          {!semValores && (
           <div className="space-y-2">
             <Label>Situação</Label>
             <div className="grid grid-cols-2 gap-1.5" role="radiogroup">
@@ -269,6 +274,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               </div>
             )}
           </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="pet-obs">Observações</Label>

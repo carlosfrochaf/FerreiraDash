@@ -8,11 +8,12 @@ import { dataDoDb } from "@/lib/datas";
 import { storageConfigurado } from "@/lib/storage";
 import { FichaCliente } from "./ficha-cliente";
 import { usuarioAtual } from "@/lib/usuario-atual";
+import { editaClientes, veValores } from "@/lib/perfis";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
-  await usuarioAtual();
+  const eu = await usuarioAtual();
   const { id } = await params;
   const c = await prisma.cliente.findUnique({
     where: { id },
@@ -61,6 +62,8 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
         }))}
         outrosClientes={outros}
         storagePronto={storageConfigurado()}
+        podeEditar={editaClientes(eu.perfil)}
+        mostrarValores={veValores(eu.perfil)}
       />
     </div>
   );

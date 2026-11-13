@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { PeticaoSerializada } from "@/lib/peticoes";
 import { PeticaoItem, PeticaoModal } from "@/components/peticoes/peticao-ui";
+import { veValores, type Perfil } from "@/lib/perfis";
 
 type Aba = "NAO_PAGO" | "PAGA" | "TODAS";
 
-export function PeticoesContent({ peticoes }: { peticoes: PeticaoSerializada[] }) {
+export function PeticoesContent({ peticoes, perfil }: { peticoes: PeticaoSerializada[]; perfil: Perfil }) {
+  const paga = perfil === "DONO" || perfil === "FINANCEIRO";
   const [aba, setAba] = useState<Aba>("NAO_PAGO");
   const [busca, setBusca] = useState("");
   const [sel, setSel] = useState<PeticaoSerializada | null>(null);
@@ -40,7 +42,7 @@ export function PeticoesContent({ peticoes }: { peticoes: PeticaoSerializada[] }
 
   return (
     <div className="space-y-4">
-      {aPagarTotal > 0 && (
+      {paga && aPagarTotal > 0 && (
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-4">
           <span className="text-sm">Ainda não pago aos advogados</span>
           <span className="font-bold tabular-nums text-rose-300">{formatCurrency(aPagarTotal)}</span>
@@ -77,12 +79,12 @@ export function PeticoesContent({ peticoes }: { peticoes: PeticaoSerializada[] }
       ) : (
         <div className="space-y-2">
           {lista.map((p) => (
-            <PeticaoItem key={p.id} p={p} onClick={() => setSel(p)} />
+            <PeticaoItem key={p.id} p={p} mostrarValor={veValores(perfil)} onClick={() => setSel(p)} />
           ))}
         </div>
       )}
 
-      <PeticaoModal peticao={sel} onFechar={() => setSel(null)} />
+      <PeticaoModal peticao={sel} perfil={perfil} onFechar={() => setSel(null)} />
     </div>
   );
 }

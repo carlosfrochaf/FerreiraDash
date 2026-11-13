@@ -29,11 +29,13 @@ export function DocumentosCliente({
   documentos,
   causas,
   storagePronto,
+  podeEditar = true,
 }: {
   clienteId: string;
   documentos: DocumentoDaFicha[];
   causas: Causa[];
   storagePronto: boolean;
+  podeEditar?: boolean;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -112,12 +114,12 @@ export function DocumentosCliente({
             <a href={`/api/documentos/${d.id}?baixar=1`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent" title="Baixar" aria-label="Baixar">
               <Download className="h-4 w-4" />
             </a>
-            <button type="button" onClick={() => renomear(d)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent" title="Renomear" aria-label="Renomear">
+            {podeEditar && <button type="button" onClick={() => renomear(d)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent" title="Renomear" aria-label="Renomear">
               <Pencil className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={() => apagar(d)} disabled={pending} className="rounded-lg p-1.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300" title="Apagar" aria-label="Apagar">
+            </button>}
+            {podeEditar && <button type="button" onClick={() => apagar(d)} disabled={pending} className="rounded-lg p-1.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300" title="Apagar" aria-label="Apagar">
               <Trash2 className="h-4 w-4" />
-            </button>
+            </button>}
           </li>
         ))}
       </ul>
@@ -142,7 +144,7 @@ export function DocumentosCliente({
         </div>
       )}
 
-      {storagePronto ? (
+      {!podeEditar ? null : storagePronto ? (
         <div className="space-y-2 rounded-xl border border-border bg-card p-3">
           <div className="grid gap-2 sm:grid-cols-2">
             <CampoEscolha value={tipo} onChange={(e) => setTipo(e.target.value as TipoDoc)} aria-label="Tipo do documento">

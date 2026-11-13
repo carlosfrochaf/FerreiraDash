@@ -5,11 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { serializarAudiencia, sugestoesAudiencia } from "@/lib/audiencias";
 import { AudienciaForm } from "@/components/forms/audiencia-form";
 import { usuarioAtual } from "@/lib/usuario-atual";
+import { veValores } from "@/lib/perfis";
+import { semValores } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditarAudienciaPage({ params }: { params: Promise<{ id: string }> }) {
-  await usuarioAtual();
+  const eu = await usuarioAtual();
   const { id } = await params;
   const [a, sugestoes] = await Promise.all([prisma.audiencia.findUnique({ where: { id } }), sugestoesAudiencia()]);
   if (!a) notFound();
@@ -20,7 +22,7 @@ export default async function EditarAudienciaPage({ params }: { params: Promise<
         <ChevronLeft className="h-4 w-4" /> Audiências
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Editar audiência</h1>
-      <AudienciaForm sugestoes={sugestoes} inicial={serializarAudiencia(a, sugestoes.pixAdvogados)} />
+      <AudienciaForm semValores={!veValores(eu.perfil)} sugestoes={sugestoes} inicial={semValores(serializarAudiencia(a, sugestoes.pixAdvogados), eu.perfil)} />
     </div>
   );
 }

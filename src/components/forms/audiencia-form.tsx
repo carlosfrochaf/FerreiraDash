@@ -31,7 +31,7 @@ function mascara(decimal: string | null) {
   return decimal ? maskCurrencyInput(decimal.replace(".", "")) : "";
 }
 
-export function AudienciaForm({ sugestoes, inicial }: Props) {
+export function AudienciaForm({ sugestoes, inicial, semValores = false }: Props & { semValores?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [data, setData] = useState(inicial?.data ?? hojeSaoPaulo());
@@ -162,6 +162,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
             </datalist>
           </div>
 
+          {!semValores && (
           <div className="space-y-2">
             <Label htmlFor="aud-pix">Pix do advogado</Label>
             <Input
@@ -179,6 +180,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
               {pixAuto ? "Pix já cadastrado deste advogado. " : ""}Fica salvo para todas as audiências e petições dele.
             </p>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="aud-processo">Número do processo</Label>
@@ -226,6 +228,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
             </div>
           </div>
 
+          {!semValores && (
           <div className="space-y-2">
             <Label htmlFor="aud-valor">Valor a pagar ao advogado</Label>
             <div className="relative">
@@ -241,8 +244,9 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
             </div>
             <p className="text-xs text-muted-foreground">Pode deixar em branco e definir depois da audiência.</p>
           </div>
+          )}
 
-          {!inicial && (
+          {!inicial && !semValores && (
             <div className="space-y-3 rounded-xl border border-border/80 bg-muted/20 p-4">
               <label className="flex cursor-pointer items-start gap-3">
                 <input

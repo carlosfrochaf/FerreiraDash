@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Check, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { veValores, type Perfil } from "@/lib/perfis";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, maskCurrencyInput } from "@/lib/utils";
 import { centavosParaString } from "@/lib/parcelas";
@@ -13,7 +14,9 @@ import { diasAte, formatarData, hojeSaoPaulo } from "@/lib/datas";
 import type { AudienciaSerializada } from "@/lib/audiencias";
 import { PixCopiar } from "@/components/ui/pix-copiar";
 
-export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSerializada | null; onFechar: () => void }) {
+export function AudienciaModal({ audiencia, onFechar, perfil = "DONO" }: { audiencia: AudienciaSerializada | null; onFechar: () => void; perfil?: Perfil }) {
+  const podePagar = perfil === "DONO" || perfil === "FINANCEIRO";
+  const podeEditar = perfil !== "ADVOGADO";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [erro, setErro] = useState("");
@@ -110,13 +113,13 @@ export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSe
               <dd className="font-mono text-xs">{a.processoNumero}</dd>
             </div>
           )}
-          <div className="col-span-2">
+          {veValores(perfil) && <div className="col-span-2">
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pagamento ao advogado</dt>
             <dd className="font-semibold">
               {a.valor ? formatCurrency(a.valor) : "Valor não definido"}
               {paga && <span className="ml-2 text-emerald-400">pago em {formatarData(a.dataPagamento!)}</span>}
             </dd>
-          </div>
+          </div>}
           {a.observacoes && <p className="col-span-2 text-xs text-muted-foreground">{a.observacoes}</p>}
         </dl>
 
@@ -126,7 +129,7 @@ export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSe
           </p>
         )}
 
-        {!paga && (
+        {podePagar && !paga && (
           <div className="space-y-2 rounded-xl border border-border p-3">
             <PixCopiar rotulo={`Pix de ${a.advogadoNome}`} pix={a.advogadoPix} linkCadastro={`/audiencias/${a.id}/editar`} valor={a.valor} nome={a.advogadoNome} />
             {!aconteceu && <p className="text-xs text-muted-foreground">A audiência ainda não aconteceu. Dá para pagar antes, se for o caso.</p>}
@@ -159,13 +162,13 @@ export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSe
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        {podeEditar && <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href={`/audiencias/${a.id}/editar`}>
               <Pencil /> Editar
             </Link>
           </Button>
-          {paga && (
+          {paga && podePagar && (
             <Button variant="ghost" size="sm" disabled={pending} onClick={() => executar(() => chamar(url, "PATCH", { acao: "desfazer_pagamento" }))}>
               <RotateCcw /> Desfazer pagamento
             </Button>
@@ -179,7 +182,7 @@ export function AudienciaModal({ audiencia, onFechar }: { audiencia: AudienciaSe
               <Trash2 /> Excluir
             </Button>
           )}
-        </div>
+        </div>}
       </div>
     </Modal>
   );

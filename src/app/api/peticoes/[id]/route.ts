@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { peticaoAcaoSchema, peticaoSchema } from "@/lib/validations";
 import { aplicarAcaoPeticao, atualizarPeticao, ErroNegocio, excluirPeticao } from "@/lib/peticoes";
 import { exigirPerfilApi } from "@/lib/usuario-atual";
+import { veValores } from "@/lib/perfis";
+import { semValores } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +25,7 @@ export async function PUT(request: Request, { params }: Ctx) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
     }
-    return NextResponse.json(await atualizarPeticao(id, parsed.data));
+    return NextResponse.json(semValores(await atualizarPeticao(id, parsed.data, { semValores: !veValores(quem.perfil) }), quem.perfil));
   } catch (error) {
     return erro(error, "[PUT /api/peticoes/:id]");
   }
@@ -37,6 +39,8 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const { id } = await params;
     const parsed = peticaoAcaoSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
+    // Pagar e desfazer pagamento: só quem vê valores.
+    if (!veValores(quem.perfil)) return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
     return NextResponse.json(await aplicarAcaoPeticao(id, parsed.data));
   } catch (error) {
     return erro(error, "[PATCH /api/peticoes/:id]");

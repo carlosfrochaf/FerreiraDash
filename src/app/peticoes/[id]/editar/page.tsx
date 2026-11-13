@@ -7,7 +7,7 @@ import { serializarPeticao } from "@/lib/peticoes";
 import { PeticaoForm } from "@/components/forms/peticao-form";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { veValores } from "@/lib/perfis";
-import { semValores } from "@/lib/acesso-dados";
+import { semValores, sugestoesSemPix } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export default async function EditarPeticaoPage({ params }: { params: Promise<{ 
         <ChevronLeft className="h-4 w-4" /> Petições
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Editar petição</h1>
-      <PeticaoForm semValores={!veValores(eu.perfil)} sugestoes={sugestoes} inicial={semValores(serializarPeticao(p, sugestoes.pixAdvogados), eu.perfil)} />
+      <PeticaoForm semValores={!veValores(eu.perfil)} sugestoes={sugestoesSemPix(sugestoes, eu.perfil)} inicial={semValores(serializarPeticao(p, sugestoes.pixAdvogados), eu.perfil)} />
     </div>
   );
 }

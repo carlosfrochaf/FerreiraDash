@@ -4,6 +4,7 @@ import { sugestoesAudiencia } from "@/lib/audiencias";
 import { AudienciaForm } from "@/components/forms/audiencia-form";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { veValores } from "@/lib/perfis";
+import { sugestoesSemPix } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function NovaAudienciaPage() {
         <ChevronLeft className="h-4 w-4" /> Audiências
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Nova audiência</h1>
-      <AudienciaForm semValores={!veValores(eu.perfil)} sugestoes={sugestoes} />
+      <AudienciaForm semValores={!veValores(eu.perfil)} sugestoes={sugestoesSemPix(sugestoes, eu.perfil)} />
     </div>
   );
 }

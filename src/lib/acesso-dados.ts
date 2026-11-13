@@ -21,3 +21,8 @@ export function entradaSemValores<T extends Record<string, unknown>>(input: T): 
   void _v; void _p; void _d; void _x;
   return resto;
 }
+
+/** Sugestões dos formulários sem os Pix dos advogados para quem não vê valores. */
+export function sugestoesSemPix<T extends { pixAdvogados?: Record<string, string> }>(s: T, perfil: Perfil): T {
+  return veValores(perfil) ? s : { ...s, pixAdvogados: {} };
+}

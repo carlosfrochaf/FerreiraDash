@@ -4,6 +4,7 @@ import { sugestoesAudiencia } from "@/lib/audiencias";
 import { PeticaoForm } from "@/components/forms/peticao-form";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { veValores } from "@/lib/perfis";
+import { sugestoesSemPix } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function NovaPeticaoPage() {
         <ChevronLeft className="h-4 w-4" /> Petições
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Nova petição</h1>
-      <PeticaoForm semValores={!veValores(eu.perfil)} sugestoes={sugestoes} />
+      <PeticaoForm semValores={!veValores(eu.perfil)} sugestoes={sugestoesSemPix(sugestoes, eu.perfil)} />
     </div>
   );
 }

@@ -35,3 +35,13 @@ describe("resumoPagamentos", () => {
     expect(r).toEqual({ recebido: 150, aReceber: 80, semValor: 1 });
   });
 });
+
+import { sugestoesSemPix } from "./acesso-dados";
+
+describe("sugestoesSemPix", () => {
+  it("tira os Pix das sugestões para a secretária", () => {
+    const s = { advogados: ["A"], pixAdvogados: { a: "pix" } };
+    expect(sugestoesSemPix(s, "SECRETARIA").pixAdvogados).toEqual({});
+    expect(sugestoesSemPix(s, "FINANCEIRO").pixAdvogados).toEqual({ a: "pix" });
+  });
+});

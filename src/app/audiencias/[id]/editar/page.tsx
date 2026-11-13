@@ -6,7 +6,7 @@ import { serializarAudiencia, sugestoesAudiencia } from "@/lib/audiencias";
 import { AudienciaForm } from "@/components/forms/audiencia-form";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { veValores } from "@/lib/perfis";
-import { semValores } from "@/lib/acesso-dados";
+import { semValores, sugestoesSemPix } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export default async function EditarAudienciaPage({ params }: { params: Promise<
         <ChevronLeft className="h-4 w-4" /> Audiências
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Editar audiência</h1>
-      <AudienciaForm semValores={!veValores(eu.perfil)} sugestoes={sugestoes} inicial={semValores(serializarAudiencia(a, sugestoes.pixAdvogados), eu.perfil)} />
+      <AudienciaForm semValores={!veValores(eu.perfil)} sugestoes={sugestoesSemPix(sugestoes, eu.perfil)} inicial={semValores(serializarAudiencia(a, sugestoes.pixAdvogados), eu.perfil)} />
     </div>
   );
 }

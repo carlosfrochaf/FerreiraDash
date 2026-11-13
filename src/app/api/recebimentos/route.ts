@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { recebimentoSchema } from "@/lib/validations";
 import { criarRecebimento, ErroRecebimento, listarRecebimentos } from "@/lib/recebimentos";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     return NextResponse.json(await listarRecebimentos());
   } catch (error) {
@@ -14,6 +17,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const body = await request.json().catch(() => null);
     const parsed = recebimentoSchema.safeParse(body);

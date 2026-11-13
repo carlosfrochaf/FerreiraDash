@@ -7,6 +7,7 @@ import { resumirDespesas } from "@/lib/despesas";
 import { hojeSaoPaulo } from "@/lib/datas";
 import { mesDe } from "@/lib/recorrencias";
 import { DespesasContent } from "./despesas-content";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ async function Despesas({ mes }: { mes: string }) {
 }
 
 export default async function DespesasPage(props: { searchParams: Promise<{ mes?: string | string[] }> }) {
+  await usuarioAtual();
   const { mes: param } = await props.searchParams;
   const mes = typeof param === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(param) ? param : mesDe(hojeSaoPaulo());
 

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const body = await request.json().catch(() => ({}));
     const { confirm } = body;

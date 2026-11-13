@@ -5,10 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { ErroRecebimento, obterRecebimento, pixConhecidos } from "@/lib/recebimentos";
 import { nomesDosClientes } from "@/lib/clientes-servico";
 import { RecebimentoForm } from "@/components/forms/recebimento-form";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditarCausaPage({ params }: { params: Promise<{ id: string }> }) {
+  await usuarioAtual();
   const { id } = await params;
 
   const [causa, processos, pix, clientes] = await Promise.all([

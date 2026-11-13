@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export async function POST(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const body = await request.json();
     const { endpoint, keys, unsubscribe } = body;
@@ -25,18 +28,12 @@ export async function POST(request: Request) {
     // Adiciona ou atualiza a assinatura no banco de dados
     const subscription = await prisma.pushSubscription.upsert({
       where: { endpoint },
-      update: {
-        p256dh: keys.p256dh,
-        auth: keys.auth,
-      },
-      create: {
-        endpoint,
-        p256dh: keys.p256dh,
-        auth: keys.auth,
-      },
+      // O aparelho passa a ser de quem ativou (recebe os avisos do perfil dessa pessoa).
+      update: { p256dh: keys.p256dh, auth: keys.auth, usuarioId: quem.id },
+      create: { endpoint, p256dh: keys.p256dh, auth: keys.auth, usuarioId: quem.id },
     });
 
-    return NextResponse.json({ success: true, subscription });
+    return NextResponse.json({ success: true, id: subscription.id });
   } catch (error) {
     console.error("[POST /api/push/subscribe]", error);
     return NextResponse.json({ error: "Erro interno no servidor de assinatura." }, { status: 500 });

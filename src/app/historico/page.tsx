@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { listarMovimentos } from "@/lib/extrato";
 import { HistoricoContent } from "./historico-content";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,8 @@ async function Extrato() {
   return <HistoricoContent movimentos={await listarMovimentos()} />;
 }
 
-export default function HistoricoPage() {
+export default async function HistoricoPage() {
+  await usuarioAtual();
   return (
     <div className="space-y-5">
       <section>

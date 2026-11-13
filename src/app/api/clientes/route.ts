@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { clienteSchema } from "@/lib/validations";
 import { dadosCliente, serializarCliente } from "@/lib/clientes-servico";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export async function POST(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const parsed = clienteSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });

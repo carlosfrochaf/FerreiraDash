@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { categoriaSchema } from "@/lib/validations";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const categorias = await prisma.categoria.findMany({
       orderBy: [
@@ -18,6 +21,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const body = await request.json();
     const parsed = categoriaSchema.safeParse(body);

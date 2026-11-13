@@ -3,9 +3,12 @@ import { TipoDocumento } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { arquivoAceito, TODOS_OS_TIPOS, type TipoDoc } from "@/lib/documentos";
 import { apagarArquivo, enviarArquivo, storageConfigurado } from "@/lib/storage";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 /** Envia um arquivo (multipart: arquivo, clienteId, tipo, recebimentoId opcional). */
 export async function POST(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   if (!storageConfigurado()) return NextResponse.json({ error: "Documentos ainda não configurados." }, { status: 503 });
   try {
     const form = await request.formData();

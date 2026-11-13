@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { CategoriasContent } from "./categorias-content";
 import { ZonaDeRisco } from "./zona-de-risco";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export default async function CategoriasPage() {
+  await usuarioAtual();
   const categorias = await prisma.categoria.findMany({
     orderBy: { nome: "asc" },
   });

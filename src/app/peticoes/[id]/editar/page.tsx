@@ -5,10 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { sugestoesAudiencia } from "@/lib/audiencias";
 import { serializarPeticao } from "@/lib/peticoes";
 import { PeticaoForm } from "@/components/forms/peticao-form";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditarPeticaoPage({ params }: { params: Promise<{ id: string }> }) {
+  await usuarioAtual();
   const { id } = await params;
   const [p, sugestoes] = await Promise.all([prisma.peticao.findUnique({ where: { id } }), sugestoesAudiencia()]);
   if (!p) notFound();

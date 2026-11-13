@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { atualizarRecebimento, ErroRecebimento, excluirRecebimento, obterRecebimento } from "@/lib/recebimentos";
 import { recebimentoSchema } from "@/lib/validations";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,9 @@ function erro(error: unknown, rota: string) {
   return NextResponse.json({ error: "Erro interno." }, { status: 500 });
 }
 
-export async function GET(_req: Request, { params }: Ctx) {
+export async function GET(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     return NextResponse.json(await obterRecebimento(id));
@@ -25,6 +28,8 @@ export async function GET(_req: Request, { params }: Ctx) {
 
 /** Edita a causa (mesmo corpo do POST /api/recebimentos). */
 export async function PUT(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const parsed = recebimentoSchema.safeParse(await request.json().catch(() => null));
@@ -38,7 +43,9 @@ export async function PUT(request: Request, { params }: Ctx) {
 }
 
 /** Exclui o recebimento e todas as suas parcelas (para corrigir um lançamento errado). */
-export async function DELETE(_req: Request, { params }: Ctx) {
+export async function DELETE(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     await excluirRecebimento(id);

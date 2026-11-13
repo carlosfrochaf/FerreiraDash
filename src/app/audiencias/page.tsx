@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { listarAudiencias } from "@/lib/audiencias";
 import { AudienciasContent } from "./audiencias-content";
 import { AdvogadosTabs } from "@/components/layout/advogados-tabs";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,8 @@ async function Lista() {
   return <AudienciasContent audiencias={await listarAudiencias()} />;
 }
 
-export default function AudienciasPage() {
+export default async function AudienciasPage() {
+  await usuarioAtual();
   return (
     <div className="space-y-5">
       <AdvogadosTabs />

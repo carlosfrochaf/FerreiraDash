@@ -4,11 +4,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { TODOS_OS_TIPOS } from "@/lib/documentos";
 import { apagarArquivo, linkAssinado } from "@/lib/storage";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 /** Abre o documento (?baixar=1 baixa): redireciona para um link que vale 5 minutos. */
 export async function GET(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   const { id } = await params;
   const doc = await prisma.documento.findUnique({ where: { id } });
   if (!doc) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
@@ -28,6 +31,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   const { id } = await params;
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
@@ -46,7 +51,9 @@ export async function PATCH(request: Request, { params }: Ctx) {
 }
 
 /** Apaga o arquivo e depois o registro; se o arquivo não sair, o registro fica. */
-export async function DELETE(_: Request, { params }: Ctx) {
+export async function DELETE(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   const { id } = await params;
   const doc = await prisma.documento.findUnique({ where: { id } });
   if (!doc) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });

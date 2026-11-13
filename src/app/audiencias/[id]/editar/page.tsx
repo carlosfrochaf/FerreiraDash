@@ -4,10 +4,12 @@ import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { serializarAudiencia, sugestoesAudiencia } from "@/lib/audiencias";
 import { AudienciaForm } from "@/components/forms/audiencia-form";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditarAudienciaPage({ params }: { params: Promise<{ id: string }> }) {
+  await usuarioAtual();
   const { id } = await params;
   const [a, sugestoes] = await Promise.all([prisma.audiencia.findUnique({ where: { id } }), sugestoesAudiencia()]);
   if (!a) notFound();

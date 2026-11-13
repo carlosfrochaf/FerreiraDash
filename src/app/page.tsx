@@ -4,6 +4,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Pendencias } from "@/components/dashboard/pendencias";
 import { CashFlowChartLazy } from "@/components/dashboard/cash-flow-chart-lazy";
 import { getDashboardResumo } from "@/lib/finance";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,8 @@ function Carregando() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  await usuarioAtual();
   const { ola, data } = saudacao();
   return (
     <div className="mx-auto max-w-3xl space-y-5">

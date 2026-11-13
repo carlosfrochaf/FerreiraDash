@@ -7,11 +7,10 @@ import { LogOut, Menu, Scale, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { NotificationBell } from "./notification-bell";
-import { BARRA_CELULAR, itemAtivo, SECOES, type ItemMenu } from "./menu";
+import { barraDoPerfil, itemAtivo, secoesDoPerfil, type ItemMenu } from "./menu";
+import { rotuloPerfil, type Perfil } from "@/lib/perfis";
 
-const TODOS: ItemMenu[] = SECOES.flatMap((s) => s.itens);
-
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, usuario }: { children: React.ReactNode; usuario: { nome: string; perfil: Perfil } | null }) {
   const pathname = usePathname();
   const [maisAberto, setMaisAberto] = useState(false);
 
@@ -24,12 +23,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   // A tela de login aparece sem cabeçalho e sem menu.
-  if (pathname === "/login") {
+  if (pathname === "/login" || !usuario) {
     return <div className="min-h-dvh bg-background text-foreground">{children}</div>;
   }
 
-  const barra = BARRA_CELULAR.map((h) => TODOS.find((i) => i.href === h)!).filter(Boolean);
-  const noMais = TODOS.filter((i) => !BARRA_CELULAR.includes(i.href));
+  const secoes = secoesDoPerfil(usuario.perfil);
+  const todos: ItemMenu[] = secoes.flatMap((s) => s.itens);
+  const hrefsBarra = barraDoPerfil(usuario.perfil);
+  const barra = hrefsBarra.map((h) => todos.find((i) => i.href === h)).filter((i): i is ItemMenu => !!i);
+  const noMais = todos.filter((i) => !hrefsBarra.includes(i.href));
   const maisAtivo = noMais.some((i) => itemAtivo(pathname, i.href));
 
   return (
@@ -49,6 +51,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
+            <div className="mr-1 hidden text-right sm:block">
+              <p className="max-w-40 truncate text-xs font-semibold leading-tight">{usuario.nome}</p>
+              <p className="text-[11px] text-muted-foreground">{rotuloPerfil(usuario.perfil)}</p>
+            </div>
             <NotificationBell />
             <button
               onClick={handleLogout}
@@ -65,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1">
         {/* Menu lateral (computador) */}
         <nav aria-label="Principal" className="sticky top-[61px] hidden h-[calc(100dvh-61px)] w-56 shrink-0 overflow-y-auto border-r border-border/60 px-3 py-4 md:block">
-          {SECOES.map((s, i) => (
+          {secoes.map((s, i) => (
             <div key={i} className="mb-3">
               {s.titulo && <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{s.titulo}</p>}
               {s.itens.map((item) => {

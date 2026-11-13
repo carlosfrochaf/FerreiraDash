@@ -3,8 +3,11 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { transacaoSchema } from "@/lib/validations";
 import { SLUGS_RECORRENTES, criarDespesaRecorrente } from "@/lib/despesas-recorrentes";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export async function POST(request: Request) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const formData = await request.formData();
 

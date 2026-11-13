@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { categoriaSchema } from "@/lib/validations";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 const updateSchema = categoriaSchema.partial();
 
@@ -8,6 +9,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -78,6 +81,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
 

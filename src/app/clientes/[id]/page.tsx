@@ -7,10 +7,12 @@ import { serializarRecebimento } from "@/lib/recebimentos";
 import { dataDoDb } from "@/lib/datas";
 import { storageConfigurado } from "@/lib/storage";
 import { FichaCliente } from "./ficha-cliente";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
+  await usuarioAtual();
   const { id } = await params;
   const c = await prisma.cliente.findUnique({
     where: { id },

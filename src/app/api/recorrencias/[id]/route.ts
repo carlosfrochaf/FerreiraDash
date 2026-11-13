@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recorrenciaPatchSchema } from "@/lib/validations";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 /** { valor } muda o valor dos próximos meses; { ativa: false } para de repetir. */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const parsed = recorrenciaPatchSchema.safeParse(await request.json().catch(() => null));

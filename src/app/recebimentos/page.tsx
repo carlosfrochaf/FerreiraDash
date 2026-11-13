@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { listarRecebimentos } from "@/lib/recebimentos";
 import { RecebimentosContent } from "./recebimentos-content";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,8 @@ async function Lista() {
   return <RecebimentosContent recebimentos={recebimentos} />;
 }
 
-export default function RecebimentosPage() {
+export default async function RecebimentosPage() {
+  await usuarioAtual();
   return (
     <div className="space-y-5">
       <section className="flex items-end justify-between gap-3">

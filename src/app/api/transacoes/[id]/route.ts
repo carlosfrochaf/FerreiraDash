@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { transacaoSchema } from "@/lib/validations";
 import { dataParaDb, hojeSaoPaulo } from "@/lib/datas";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 const updateSchema = transacaoSchema.partial();
 
@@ -11,6 +12,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const contentType = request.headers.get("content-type") || "";
@@ -99,6 +102,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const transacao = await prisma.transacao.findUnique({ where: { id } });

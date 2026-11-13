@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parcelaAcaoSchema } from "@/lib/validations";
 import { aplicarAcaoParcela, ErroRecebimento } from "@/lib/recebimentos";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
  *   { acao: "alterar_vencimento", vencimento }
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const parsed = parcelaAcaoSchema.safeParse(await request.json().catch(() => null));

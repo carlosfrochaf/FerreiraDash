@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { listarPeticoes } from "@/lib/peticoes";
 import { AdvogadosTabs } from "@/components/layout/advogados-tabs";
 import { PeticoesContent } from "./peticoes-content";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,8 @@ async function Lista() {
   return <PeticoesContent peticoes={await listarPeticoes()} />;
 }
 
-export default function PeticoesPage() {
+export default async function PeticoesPage() {
+  await usuarioAtual();
   return (
     <div className="space-y-5">
       <AdvogadosTabs />

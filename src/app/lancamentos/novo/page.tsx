@@ -5,6 +5,7 @@ import { FormWrapper } from "@/components/forms/form-wrapper";
 import { prisma } from "@/lib/prisma";
 import { sugestoesAudiencia } from "@/lib/audiencias";
 import { pixConhecidos } from "@/lib/recebimentos";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 async function getFormData() {
   const [processos, contatos, categorias] = await Promise.all([
@@ -107,6 +108,7 @@ function FormFallback() {
 export default async function NovoLancamentoPage(props: {
   searchParams: SearchParams;
 }) {
+  await usuarioAtual();
   const searchParams = await props.searchParams;
   const editId = typeof searchParams.edit === "string" ? searchParams.edit : undefined;
   const modo =

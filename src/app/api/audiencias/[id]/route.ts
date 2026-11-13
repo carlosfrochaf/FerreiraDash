@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { audienciaAcaoSchema, audienciaSchema } from "@/lib/validations";
 import { aplicarAcaoAudiencia, atualizarAudiencia, ErroNegocio, excluirAudiencia } from "@/lib/audiencias";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ function erro(error: unknown, rota: string) {
 
 /** Edita todos os dados da audiência. */
 export async function PUT(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const parsed = audienciaSchema.safeParse(await request.json().catch(() => null));
@@ -28,6 +31,8 @@ export async function PUT(request: Request, { params }: Ctx) {
 
 /** Ações: { acao: "pagar", data? } ou { acao: "desfazer_pagamento" }. */
 export async function PATCH(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const parsed = audienciaAcaoSchema.safeParse(await request.json().catch(() => null));
@@ -38,7 +43,9 @@ export async function PATCH(request: Request, { params }: Ctx) {
   }
 }
 
-export async function DELETE(_req: Request, { params }: Ctx) {
+export async function DELETE(request: Request, { params }: Ctx) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     await excluirAudiencia(id);

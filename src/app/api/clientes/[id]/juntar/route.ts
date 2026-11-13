@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { juntarClientesSchema } from "@/lib/validations";
 import { juntarClientes } from "@/lib/clientes-servico";
 import { ErroRecebimento } from "@/lib/recebimentos";
+import { exigirPerfilApi } from "@/lib/usuario-atual";
 
 /** Junta o cliente `origemId` (duplicado) neste cliente: tudo passa para cá e o duplicado some. */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const quem = await exigirPerfilApi(request);
+  if (quem instanceof NextResponse) return quem;
   try {
     const { id } = await params;
     const parsed = juntarClientesSchema.safeParse(await request.json().catch(() => null));

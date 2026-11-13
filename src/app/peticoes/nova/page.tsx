@@ -2,10 +2,12 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { sugestoesAudiencia } from "@/lib/audiencias";
 import { PeticaoForm } from "@/components/forms/peticao-form";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovaPeticaoPage() {
+  await usuarioAtual();
   const sugestoes = await sugestoesAudiencia();
   return (
     <div className="space-y-4">

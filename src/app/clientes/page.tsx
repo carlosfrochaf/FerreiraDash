@@ -3,10 +3,12 @@ import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { documentosFaltando } from "@/lib/documentos";
 import { ClientesLista, type ClienteDaLista } from "./clientes-lista";
+import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
+  await usuarioAtual();
   const clientes = await prisma.cliente.findMany({
     orderBy: { nome: "asc" },
     include: {

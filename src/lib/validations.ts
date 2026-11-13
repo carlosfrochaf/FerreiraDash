@@ -186,3 +186,29 @@ export const clienteSchema = z.object({
 export type ClienteInput = z.infer<typeof clienteSchema>;
 
 export const juntarClientesSchema = z.object({ origemId: z.string().min(1, "Escolha o cliente para juntar") });
+
+const PERFIS_ENUM = z.enum(["DONO", "FINANCEIRO", "SECRETARIA", "ADVOGADO"]);
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "E-mail inválido.");
+const senhaSchema = z.string().min(8, "A senha precisa ter pelo menos 8 caracteres.").max(200);
+
+export const loginSchema = z.object({ email: emailSchema, senha: z.string().min(1).max(200) });
+
+export const usuarioNovoSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome.").max(120),
+  email: emailSchema,
+  senha: senhaSchema,
+  perfil: PERFIS_ENUM,
+  advogadoChave: z.string().trim().max(200).optional().nullable(),
+});
+
+export const usuarioPatchSchema = z.object({
+  nome: z.string().trim().min(1).max(120).optional(),
+  perfil: PERFIS_ENUM.optional(),
+  advogadoChave: z.string().trim().max(200).optional().nullable(),
+  ativo: z.boolean().optional(),
+  senha: senhaSchema.optional(),
+});

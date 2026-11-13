@@ -475,3 +475,23 @@ model Integracao {
 
   @@map("integracoes")
 }
+
+enum MomentoMensagem {
+  ANTES_CONTRATO
+  DEPOIS_CONTRATO
+  AUDIENCIA
+  SEMPRE
+}
+
+/// Modelos de mensagem de WhatsApp do escritório (editáveis pelo dono e pela secretária).
+model ModeloMensagem {
+  id        String          @id @default(cuid())
+  nome      String
+  momento   MomentoMensagem
+  texto     String
+  ordem     Int             @default(0)
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  @@map("modelos_mensagem")
+}

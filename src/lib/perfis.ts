@@ -38,6 +38,7 @@ const TELAS: [string, Perfil[]][] = [
   ["/peticoes", TODOS],
   ["/meus-pagamentos", ["ADVOGADO"]],
   ["/usuarios", ["DONO"]],
+  ["/mensagens", CADASTRO],
 ];
 
 /** Rotas da API: [prefixo, quem lê (GET), quem escreve]. */
@@ -55,6 +56,7 @@ const APIS: [string, Perfil[], Perfil[]][] = [
   ["/api/peticoes", TODOS, ESCRITORIO],
   ["/api/usuarios", ["DONO"], ["DONO"]],
   ["/api/integracoes", ["DONO"], ["DONO"]],
+  ["/api/mensagens", CADASTRO, CADASTRO],
   ["/api/push/subscribe", TODOS, TODOS],
   ["/api/login", TODOS, TODOS],
 ];

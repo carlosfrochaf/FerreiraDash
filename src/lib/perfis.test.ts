@@ -72,3 +72,12 @@ describe("integrações", () => {
     expect(podeVerTela("DONO", "/integracoes")).toBe(true);
   });
 });
+
+describe("mensagens", () => {
+  it("dono e secretária ajustam; advogado e financeiro não", () => {
+    expect(podeVerTela("SECRETARIA", "/mensagens")).toBe(true);
+    expect(podeUsarApi("SECRETARIA", "PATCH", "/api/mensagens/x")).toBe(true);
+    expect(podeVerTela("ADVOGADO", "/mensagens")).toBe(false);
+    expect(podeUsarApi("FINANCEIRO", "GET", "/api/mensagens")).toBe(false);
+  });
+});

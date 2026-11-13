@@ -8,6 +8,7 @@ import {
   Settings2,
   UserCog,
   Plug,
+  MessageSquareText,
   Users,
   Wallet,
   WalletCards,
@@ -44,6 +45,7 @@ export const SECOES: SecaoMenu[] = [
     itens: [
       { href: "/categorias", label: "Categorias e ajustes", icon: Settings2 },
       { href: "/usuarios", label: "Usuários", icon: UserCog },
+      { href: "/mensagens", label: "Mensagens", icon: MessageSquareText },
       { href: "/integracoes", label: "Integrações", icon: Plug },
     ],
   },

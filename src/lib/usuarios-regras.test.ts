@@ -16,3 +16,21 @@ describe("usuários", () => {
     expect(usuarioNovoSchema.safeParse({ nome: "A", email: "a@b.co", senha: "12345678", perfil: "CHEFE" }).success).toBe(false);
   });
 });
+
+import { mudancaPermitida } from "./usuarios-regras";
+
+describe("mudancaPermitida", () => {
+  const um = [
+    { id: "d", perfil: "DONO" as const, ativo: true },
+    { id: "s", perfil: "SECRETARIA" as const, ativo: true },
+  ];
+  it("não deixa o escritório sem dono ativo", () => {
+    expect(mudancaPermitida(um, "d", { ativo: false })).toMatch(/Dono/);
+    expect(mudancaPermitida(um, "d", { perfil: "FINANCEIRO" })).toMatch(/Dono/);
+  });
+  it("com dois donos pode", () => {
+    const dois = [...um, { id: "d2", perfil: "DONO" as const, ativo: true }];
+    expect(mudancaPermitida(dois, "d", { ativo: false })).toBeNull();
+    expect(mudancaPermitida(um, "s", { ativo: false })).toBeNull();
+  });
+});

@@ -6,7 +6,7 @@ import { usuarioAtual } from "@/lib/usuario-atual";
 export const dynamic = "force-dynamic";
 
 export default async function CategoriasPage() {
-  await usuarioAtual();
+  const eu = await usuarioAtual();
   const categorias = await prisma.categoria.findMany({
     orderBy: { nome: "asc" },
   });
@@ -26,7 +26,7 @@ export default async function CategoriasPage() {
         tipo: c.tipo,
         ativo: c.ativo,
       }))} />
-      <ZonaDeRisco />
+      {eu.perfil === "DONO" && <ZonaDeRisco />}
     </div>
   );
 }

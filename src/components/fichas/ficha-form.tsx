@@ -479,6 +479,12 @@ export function FichaForm({
         <p className="text-xs text-muted-foreground">
           Os que já foram enviados ao app aparecem marcados sozinhos.
         </p>
+        {(dados.provasPedidas?.length ?? 0) > 0 && (
+          <p className="text-xs text-amber-200">
+            Provas pedidas ao cliente pelo WhatsApp:{" "}
+            {dados.provasPedidas!.join(", ")}.
+          </p>
+        )}
         <Marcar
           itens={O.documentosChecklist}
           marcados={lista.filter((d) => d.marcado).map((d) => d.item)}

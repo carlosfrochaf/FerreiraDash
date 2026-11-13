@@ -10,12 +10,15 @@ import { FichaCliente } from "./ficha-cliente";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { editaClientes, veValores } from "@/lib/perfis";
 import { advogadosConhecidos } from "@/lib/usuarios";
+import { listarModelos } from "@/lib/mensagens-servico";
+import { contextoWhatsapp } from "@/lib/mensagens-cliente";
+import { APP_NAME } from "@/lib/constants";
 import { filtroClientesDoUsuario } from "@/lib/acesso-clientes";
 import { filtroDoUsuario } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ avisar?: string }> }) {
   const eu = await usuarioAtual();
   const { id } = await params;
   const advogado = eu.perfil === "ADVOGADO";
@@ -33,6 +36,9 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
   });
   if (!c) notFound();
   const advogados = new Map((await advogadosConhecidos()).map((a) => [a.chave, a.nome]));
+  const mensagens = editaClientes(eu.perfil)
+    ? { modelos: await listarModelos(), ctx: contextoWhatsapp(c), escritorio: APP_NAME, abrir: (await searchParams).avisar === "1" }
+    : undefined;
   const outros = editaClientes(eu.perfil)
     ? await prisma.cliente.findMany({ where: { id: { not: id } }, select: { id: true, nome: true }, orderBy: { nome: "asc" } })
     : [];
@@ -86,6 +92,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
         podeEnviarDocs={editaClientes(eu.perfil) || advogado}
         apagaSoOsMeus={advogado ? eu.id : undefined}
         mostrarCausas={!advogado}
+        mensagens={mensagens}
       />
     </div>
   );

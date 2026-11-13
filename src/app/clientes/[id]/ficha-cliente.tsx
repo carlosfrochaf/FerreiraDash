@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  WhatsappCliente,
+  type ContextoWhatsapp,
+} from "@/components/clientes/whatsapp-cliente";
+import type { ModeloSerializado } from "@/lib/mensagens-servico";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,6 +56,7 @@ export function FichaCliente({
   podeEnviarDocs = podeEditar,
   apagaSoOsMeus,
   mostrarCausas = true,
+  mensagens,
 }: {
   cliente: ClienteSerializado;
   causas: RecebimentoSerializado[];
@@ -66,6 +72,13 @@ export function FichaCliente({
   podeEnviarDocs?: boolean;
   apagaSoOsMeus?: string;
   mostrarCausas?: boolean;
+  /** Mensagens prontas (dono e secretária). Sem isso, o botão só abre o WhatsApp. */
+  mensagens?: {
+    modelos: ModeloSerializado[];
+    ctx: ContextoWhatsapp;
+    escritorio: string;
+    abrir: boolean;
+  };
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -131,12 +144,23 @@ export function FichaCliente({
       <section className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
         <div className="flex gap-2">
-          {whatsapp && (
-            <Button asChild variant="outline" size="sm">
-              <a href={whatsapp} target="_blank" rel="noreferrer">
-                <MessageCircle /> WhatsApp
-              </a>
-            </Button>
+          {whatsapp && mensagens && cliente.telefone ? (
+            <WhatsappCliente
+              telefone={cliente.telefone}
+              nome={cliente.nome}
+              escritorio={mensagens.escritorio}
+              modelos={mensagens.modelos}
+              ctx={mensagens.ctx}
+              abrirAoCarregar={mensagens.abrir}
+            />
+          ) : (
+            whatsapp && (
+              <Button asChild variant="outline" size="sm">
+                <a href={whatsapp} target="_blank" rel="noreferrer">
+                  <MessageCircle /> WhatsApp
+                </a>
+              </Button>
+            )
           )}
           {podeEditar && (
             <Button
@@ -155,16 +179,20 @@ export function FichaCliente({
       ) : (
         <Card>
           <CardContent className="grid gap-x-4 gap-y-2 p-4 text-sm sm:grid-cols-2">
-            {dados.filter(([r]) => mostrarCausas || r !== "Pix").map(([rotulo, valor]) => (
-              <div key={rotulo} className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {rotulo}
-                </p>
-                <p className={valor ? "break-words" : "text-muted-foreground"}>
-                  {valor || "—"}
-                </p>
-              </div>
-            ))}
+            {dados
+              .filter(([r]) => mostrarCausas || r !== "Pix")
+              .map(([rotulo, valor]) => (
+                <div key={rotulo} className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {rotulo}
+                  </p>
+                  <p
+                    className={valor ? "break-words" : "text-muted-foreground"}
+                  >
+                    {valor || "—"}
+                  </p>
+                </div>
+              ))}
           </CardContent>
         </Card>
       )}

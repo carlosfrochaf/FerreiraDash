@@ -44,6 +44,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           empresa,
           recebimentoId,
           ...(b.dados && { dados: b.dados as Prisma.InputJsonValue }),
+          ...(!b.dados && b.provasPedidas && { dados: { ...(atual.dados as object), provasPedidas: b.provasPedidas } as Prisma.InputJsonValue }),
           ...(enviar && { situacao: "ENVIADA", enviadaEm: new Date() }),
         },
       }),

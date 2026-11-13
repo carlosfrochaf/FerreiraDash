@@ -48,3 +48,24 @@ describe("textoAudiencia e link", () => {
     expect(MODELOS_PADRAO[1].texto).toContain("{provas}");
   });
 });
+
+describe("contextoWhatsapp", async () => {
+  const { contextoWhatsapp } = await import("./mensagens-cliente");
+  it("junta contrato, próxima audiência, o que falta e as provas da ficha mais nova", () => {
+    const ctx = contextoWhatsapp(
+      {
+        documentos: [{ tipo: "RG_CNH" }, { tipo: "CONTRATO_HONORARIOS" }],
+        audiencias: [
+          { data: new Date("2026-11-01T00:00:00Z"), hora: "10:00" },
+          { data: new Date("2026-11-20T00:00:00Z"), hora: "14:30" },
+        ],
+        fichas: [
+          { id: "velha", empresa: null, dados: {}, createdAt: new Date("2026-01-01") },
+          { id: "nova", empresa: "Mercado X", dados: { provasPedidas: ["Áudios"] }, createdAt: new Date("2026-11-10") },
+        ],
+      },
+      "2026-11-13",
+    );
+    expect(ctx).toEqual({ temContrato: true, audiencia: "20/11 (sexta-feira) às 14:30", faltam: ["Comprovante de endereço"], fichaId: "nova", provasPedidas: ["Áudios"] });
+  });
+});

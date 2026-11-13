@@ -54,7 +54,10 @@ export function secoesDaFicha(f: {
     { titulo: ambiente.titulo, linhas: linhas(ambiente.campos, d.ambiente) },
     { titulo: verbas.titulo, linhas: linhas(verbas.campos, d.verbas) },
     { titulo: "Principais reclamações e relato do cliente", linhas: d.relato?.trim() ? [["", d.relato.trim()]] : [] },
-    { titulo: "Documentos apresentados / solicitados", linhas: lista(docs) },
+    {
+      titulo: "Documentos apresentados / solicitados",
+      linhas: [...lista(docs), ...(d.provasPedidas?.length ? [["Provas pedidas ao cliente", d.provasPedidas.join(", ")] as [string, string]] : [])],
+    },
     { titulo: "Direitos pleiteados (tese)", linhas: lista(d.teses) },
     { titulo: outras.titulo, linhas: linhas(outras.campos, d.outras) },
   ];

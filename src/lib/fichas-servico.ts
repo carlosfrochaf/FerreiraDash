@@ -35,6 +35,8 @@ export const fichaPatchSchema = z.object({
   dados: fichaDadosSchema.optional(),
   cliente: fichaClienteSchema.optional(),
   acao: z.literal("enviar").optional(),
+  /** Só atualiza as provas pedidas, sem mexer no resto da ficha. */
+  provasPedidas: z.array(z.string().max(100)).max(50).optional(),
 });
 
 /** Só os campos que vieram, prontos para o `update` do cliente. */

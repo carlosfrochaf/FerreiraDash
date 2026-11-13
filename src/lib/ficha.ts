@@ -142,6 +142,8 @@ export const fichaDadosSchema = z.object({
   relato: z.string().max(50000).optional(),
   documentos: z.array(z.string().max(100)).max(50).optional(),
   teses: z.array(z.string().max(100)).max(50).optional(),
+  /** Provas pedidas ao cliente pelo WhatsApp. */
+  provasPedidas: z.array(z.string().max(100)).max(50).optional(),
   outras: z
     .object({ testemunhas: simNao, quantasTestemunhas: texto, acaoAnterior: simNao, outrasAcoes: simNao, observacoes: z.string().max(20000).optional() })
     .partial()

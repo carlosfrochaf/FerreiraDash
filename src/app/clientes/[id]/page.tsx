@@ -10,25 +10,32 @@ import { FichaCliente } from "./ficha-cliente";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { editaClientes, veValores } from "@/lib/perfis";
 import { advogadosConhecidos } from "@/lib/usuarios";
+import { filtroClientesDoUsuario } from "@/lib/acesso-clientes";
+import { filtroDoUsuario } from "@/lib/acesso-dados";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
   const eu = await usuarioAtual();
   const { id } = await params;
-  const c = await prisma.cliente.findUnique({
-    where: { id },
+  const advogado = eu.perfil === "ADVOGADO";
+  const so = filtroDoUsuario(eu);
+  // Cliente que a pessoa não pode ver é tratado como inexistente.
+  const c = await prisma.cliente.findFirst({
+    where: { id, ...filtroClientesDoUsuario(eu) },
     include: {
       recebimentos: { include: { parcelas: { orderBy: { numero: "asc" } } }, orderBy: { createdAt: "desc" } },
-      audiencias: { orderBy: { data: "desc" } },
-      peticoes: { orderBy: { dataEntrega: "desc" } },
+      audiencias: { where: so, orderBy: { data: "desc" } },
+      peticoes: { where: so, orderBy: { dataEntrega: "desc" } },
       documentos: { orderBy: { createdAt: "desc" } },
       fichas: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!c) notFound();
   const advogados = new Map((await advogadosConhecidos()).map((a) => [a.chave, a.nome]));
-  const outros = await prisma.cliente.findMany({ where: { id: { not: id } }, select: { id: true, nome: true }, orderBy: { nome: "asc" } });
+  const outros = editaClientes(eu.perfil)
+    ? await prisma.cliente.findMany({ where: { id: { not: id } }, select: { id: true, nome: true }, orderBy: { nome: "asc" } })
+    : [];
 
   return (
     <div className="space-y-4">
@@ -37,7 +44,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
       </Link>
       <FichaCliente
         cliente={serializarCliente(c)}
-        causas={c.recebimentos.map(serializarRecebimento)}
+        causas={advogado ? [] : c.recebimentos.map(serializarRecebimento)}
         audiencias={c.audiencias.map((a) => ({
           id: a.id,
           data: dataDoDb(a.data),
@@ -62,11 +69,12 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
           tamanho: d.tamanho,
           recebimentoId: d.recebimentoId,
           enviadoEm: d.createdAt.toISOString(),
+          enviadoPorId: d.enviadoPorId,
         }))}
         outrosClientes={outros}
         storagePronto={storageConfigurado()}
         podeEditar={editaClientes(eu.perfil)}
-        mostrarValores={veValores(eu.perfil)}
+        mostrarValores={veValores(eu.perfil) && !advogado}
         fichas={c.fichas.map((f) => ({
           id: f.id,
           empresa: f.empresa,
@@ -75,6 +83,9 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
           criadaEm: dataDoDb(f.createdAt),
         }))}
         podeCriarFicha={editaClientes(eu.perfil)}
+        podeEnviarDocs={editaClientes(eu.perfil) || advogado}
+        apagaSoOsMeus={advogado ? eu.id : undefined}
+        mostrarCausas={!advogado}
       />
     </div>
   );

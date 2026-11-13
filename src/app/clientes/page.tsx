@@ -5,12 +5,15 @@ import { documentosFaltando } from "@/lib/documentos";
 import { ClientesLista, type ClienteDaLista } from "./clientes-lista";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { editaClientes } from "@/lib/perfis";
+import { filtroClientesDoUsuario } from "@/lib/acesso-clientes";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
   const eu = await usuarioAtual();
+  const advogado = eu.perfil === "ADVOGADO";
   const clientes = await prisma.cliente.findMany({
+    where: filtroClientesDoUsuario(eu),
     orderBy: { nome: "asc" },
     include: {
       _count: { select: { recebimentos: true, audiencias: true, peticoes: true } },
@@ -20,14 +23,15 @@ export default async function ClientesPage() {
   });
 
   const lista: ClienteDaLista[] = clientes.map((c) => {
-    const f = documentosFaltando(c.documentos, c.recebimentos, c.cpf);
+    // O advogado não vê causas: conta só os documentos pessoais.
+    const f = documentosFaltando(c.documentos, advogado ? [] : c.recebimentos, c.cpf);
     const falta = (f.cpf ? 1 : 0) + f.pessoais.length + Object.values(f.porCausa).reduce((s, l) => s + l.length, 0);
     return {
       id: c.id,
       nome: c.nome,
       cpf: c.cpf,
       telefone: c.telefone,
-      causas: c._count.recebimentos,
+      causas: advogado ? 0 : c._count.recebimentos,
       audiencias: c._count.audiencias,
       peticoes: c._count.peticoes,
       documentosFaltando: falta,

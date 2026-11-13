@@ -16,6 +16,7 @@ export type DocumentoDaFicha = {
   tamanho: number;
   recebimentoId: string | null;
   enviadoEm: string;
+  enviadoPorId?: string | null;
 };
 
 type Causa = { id: string; titulo: string };
@@ -30,6 +31,7 @@ export function DocumentosCliente({
   causas,
   storagePronto,
   podeEditar = true,
+  apagaSoOsMeus,
   cpf,
 }: {
   clienteId: string;
@@ -37,6 +39,8 @@ export function DocumentosCliente({
   causas: Causa[];
   storagePronto: boolean;
   podeEditar?: boolean;
+  /** Id de quem está usando: se vier, só renomeia/apaga os que ele mesmo enviou (advogado). */
+  apagaSoOsMeus?: string;
   /** Número do CPF do cadastro (o CPF é digitado, não é foto). */
   cpf?: string | null;
 }) {
@@ -50,6 +54,7 @@ export function DocumentosCliente({
 
   const faltando = documentosFaltando(documentos, causas, cpf ?? null);
   const pessoais = documentos.filter((d) => !d.recebimentoId);
+  const podeMexer = (d: DocumentoDaFicha) => podeEditar && (!apagaSoOsMeus || d.enviadoPorId === apagaSoOsMeus);
 
   async function enviar(arquivos: FileList | null) {
     if (!arquivos?.length) return;
@@ -117,10 +122,10 @@ export function DocumentosCliente({
             <a href={`/api/documentos/${d.id}?baixar=1`} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent" title="Baixar" aria-label="Baixar">
               <Download className="h-4 w-4" />
             </a>
-            {podeEditar && <button type="button" onClick={() => renomear(d)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent" title="Renomear" aria-label="Renomear">
+            {podeMexer(d) && <button type="button" onClick={() => renomear(d)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent" title="Renomear" aria-label="Renomear">
               <Pencil className="h-4 w-4" />
             </button>}
-            {podeEditar && <button type="button" onClick={() => apagar(d)} disabled={pending} className="rounded-lg p-1.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300" title="Apagar" aria-label="Apagar">
+            {podeMexer(d) && <button type="button" onClick={() => apagar(d)} disabled={pending} className="rounded-lg p-1.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300" title="Apagar" aria-label="Apagar">
               <Trash2 className="h-4 w-4" />
             </button>}
           </li>

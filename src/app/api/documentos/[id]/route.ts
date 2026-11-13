@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { TODOS_OS_TIPOS } from "@/lib/documentos";
 import { apagarArquivo, linkAssinado } from "@/lib/storage";
 import { exigirPerfilApi } from "@/lib/usuario-atual";
+import { filtroClientesDoUsuario, podeApagarDocumento } from "@/lib/acesso-clientes";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -13,7 +14,8 @@ export async function GET(request: Request, { params }: Ctx) {
   const quem = await exigirPerfilApi(request);
   if (quem instanceof NextResponse) return quem;
   const { id } = await params;
-  const doc = await prisma.documento.findUnique({ where: { id } });
+  // Documento de cliente que a pessoa não vê é tratado como inexistente.
+  const doc = await prisma.documento.findFirst({ where: { id, cliente: filtroClientesDoUsuario(quem) } });
   if (!doc) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
   try {
     const baixar = new URL(request.url).searchParams.has("baixar");
@@ -36,9 +38,12 @@ export async function PATCH(request: Request, { params }: Ctx) {
   const { id } = await params;
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
-  const doc = await prisma.documento.findUnique({ where: { id } });
+  // Documento de cliente que a pessoa não vê é tratado como inexistente.
+  const doc = await prisma.documento.findFirst({ where: { id, cliente: filtroClientesDoUsuario(quem) } });
   if (!doc) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
-  const { nome, tipo, recebimentoId } = parsed.data;
+  if (!podeApagarDocumento(quem, doc)) return NextResponse.json({ error: "Só quem enviou pode mudar este documento." }, { status: 403 });
+  const { nome, tipo } = parsed.data;
+  const recebimentoId = quem.perfil === "ADVOGADO" ? undefined : parsed.data.recebimentoId;
   if (recebimentoId) {
     const causa = await prisma.recebimento.findFirst({ where: { id: recebimentoId, clienteId: doc.clienteId }, select: { id: true } });
     if (!causa) return NextResponse.json({ error: "Essa causa não é deste cliente." }, { status: 400 });
@@ -55,8 +60,10 @@ export async function DELETE(request: Request, { params }: Ctx) {
   const quem = await exigirPerfilApi(request);
   if (quem instanceof NextResponse) return quem;
   const { id } = await params;
-  const doc = await prisma.documento.findUnique({ where: { id } });
+  // Documento de cliente que a pessoa não vê é tratado como inexistente.
+  const doc = await prisma.documento.findFirst({ where: { id, cliente: filtroClientesDoUsuario(quem) } });
   if (!doc) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
+  if (!podeApagarDocumento(quem, doc)) return NextResponse.json({ error: "Só quem enviou pode apagar este documento." }, { status: 403 });
   try {
     await apagarArquivo(doc.caminho);
   } catch (error) {

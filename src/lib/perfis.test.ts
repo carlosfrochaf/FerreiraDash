@@ -12,9 +12,9 @@ describe("podeVerTela", () => {
     expect(podeVerTela("FINANCEIRO", "/usuarios")).toBe(false);
     expect(podeVerTela("FINANCEIRO", "/clientes")).toBe(true);
   });
-  it("advogado vê meus pagamentos e não vê clientes", () => {
+  it("advogado vê meus pagamentos e não cadastra clientes", () => {
     expect(podeVerTela("ADVOGADO", "/meus-pagamentos")).toBe(true);
-    expect(podeVerTela("ADVOGADO", "/clientes")).toBe(false);
+    expect(podeVerTela("ADVOGADO", "/clientes/novo")).toBe(false);
     expect(podeVerTela("ADVOGADO", "/audiencias/nova")).toBe(false);
     expect(podeVerTela("ADVOGADO", "/audiencias/x/editar")).toBe(false);
     expect(podeVerTela("ADVOGADO", "/audiencias")).toBe(true);
@@ -46,7 +46,7 @@ describe("menu por perfil", () => {
   it("advogado sem despesas, com meus pagamentos", () => {
     expect(hrefs("ADVOGADO")).not.toContain("/despesas");
     expect(hrefs("ADVOGADO")).toContain("/meus-pagamentos");
-    expect(barraDoPerfil("ADVOGADO")).toEqual(["/", "/audiencias", "/peticoes", "/meus-pagamentos"]);
+    expect(barraDoPerfil("ADVOGADO")).toEqual(["/", "/clientes", "/peticoes", "/meus-pagamentos"]);
   });
   it("dono vê usuários; secretária não", () => {
     expect(hrefs("DONO")).toContain("/usuarios");

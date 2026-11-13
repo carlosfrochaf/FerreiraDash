@@ -27,7 +27,7 @@ const CADASTRO: Perfil[] = ["DONO", "SECRETARIA"];
 /** Telas por prefixo. Vale o prefixo mais longo que casar; o que não estiver aqui é só do dono. */
 const TELAS: [string, Perfil[]][] = [
   ["/", TODOS],
-  ["/clientes", ESCRITORIO],
+  ["/clientes", TODOS],
   ["/clientes/novo", CADASTRO],
   ["/lancamentos", FIN],
   ["/despesas", FIN],
@@ -42,8 +42,9 @@ const TELAS: [string, Perfil[]][] = [
 
 /** Rotas da API: [prefixo, quem lê (GET), quem escreve]. */
 const APIS: [string, Perfil[], Perfil[]][] = [
-  ["/api/clientes", ESCRITORIO, CADASTRO],
-  ["/api/documentos", ESCRITORIO, CADASTRO],
+  // O advogado só alcança os clientes dele: as rotas conferem com `filtroClientesDoUsuario`.
+  ["/api/clientes", TODOS, CADASTRO],
+  ["/api/documentos", TODOS, ["DONO", "SECRETARIA", "ADVOGADO"]],
   ["/api/fichas", TODOS, ["DONO", "SECRETARIA", "ADVOGADO"]],
   ["/api/transacoes", FIN, FIN],
   ["/api/recebimentos", FIN, FIN],

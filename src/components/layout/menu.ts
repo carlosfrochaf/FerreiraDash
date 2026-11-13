@@ -59,7 +59,7 @@ const BARRAS: Record<Perfil, string[]> = {
   DONO: ["/", "/clientes", "/lancamentos/novo", "/recebimentos"],
   FINANCEIRO: ["/", "/clientes", "/lancamentos/novo", "/recebimentos"],
   SECRETARIA: ["/", "/clientes", "/audiencias", "/peticoes"],
-  ADVOGADO: ["/", "/audiencias", "/peticoes", "/meus-pagamentos"],
+  ADVOGADO: ["/", "/clientes", "/peticoes", "/meus-pagamentos"],
 };
 
 /** Barra de baixo (celular); o resto fica no "Mais". */

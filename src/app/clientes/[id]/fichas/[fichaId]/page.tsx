@@ -7,6 +7,7 @@ import { advogadosConhecidos } from "@/lib/usuarios";
 import { serializarCliente } from "@/lib/clientes-servico";
 import { serializarFicha } from "@/lib/fichas-servico";
 import { podeEditarFicha } from "@/lib/ficha";
+import { filtroClientesDoUsuario } from "@/lib/acesso-clientes";
 import { FichaForm } from "@/components/fichas/ficha-form";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function FichaPage({ params }: { params: Promise<{ id: stri
   const eu = await usuarioAtual();
   const { id, fichaId } = await params;
   const f = await prisma.ficha.findFirst({
-    where: { id: fichaId, clienteId: id },
+    where: { id: fichaId, clienteId: id, cliente: filtroClientesDoUsuario(eu) },
     include: { cliente: { include: { documentos: { select: { tipo: true } }, recebimentos: { select: { id: true, reclamada: true } } } } },
   });
   if (!f) notFound();

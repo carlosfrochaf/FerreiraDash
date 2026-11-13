@@ -294,8 +294,37 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now()) @map("created_at")
+  usuarioId String   @map("usuario_id")
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
+  @@index([usuarioId])
   @@map("push_subscriptions")
+}
+
+enum Perfil {
+  DONO
+  FINANCEIRO
+  SECRETARIA
+  ADVOGADO
+}
+
+/// Pessoa que entra no app. O perfil decide o que ela vê.
+model Usuario {
+  id            String             @id @default(cuid())
+  nome          String
+  email         String             @unique
+  senhaHash     String             @map("senha_hash")
+  perfil        Perfil
+  /// Para perfil ADVOGADO: liga às audiências/petições pelo nome (mesma chave da tabela advogados).
+  advogadoChave String?            @map("advogado_chave")
+  ativo         Boolean            @default(true)
+  /// Sobe ao trocar senha/perfil ou desativar: derruba as sessões antigas.
+  versaoSessao  Int                @default(1) @map("versao_sessao")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  aparelhos     PushSubscription[]
+
+  @@map("usuarios")
 }
 
 /// Despesa que se repete todo mês (custo operacional ou salário).

@@ -77,16 +77,15 @@ export function serializarFicha(f: Prisma.FichaGetPayload<object>): FichaSeriali
   };
 }
 
-/** Aviso na hora para os aparelhos dos logins do advogado. Falha no envio não impede salvar. */
-export async function avisarAdvogado(chave: string, n: { title: string; body: string; url: string; tag: string }): Promise<number> {
+type Aviso = { title: string; body: string; url: string; tag: string };
+
+/** Aviso na hora para os aparelhos dos usuários escolhidos. Falha no envio não impede o resto. */
+export async function avisarUsuarios(quem: Prisma.UsuarioWhereInput, n: Aviso): Promise<number> {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   if (!publicKey || !privateKey) return 0;
   webpush.setVapidDetails("mailto:carlos@ferreirarocha.adv.br", publicKey, privateKey);
-  const alvo = chaveAdvogado(chave);
-  const aparelhos = await prisma.pushSubscription.findMany({
-    where: { usuario: { ativo: true, perfil: "ADVOGADO", advogadoChave: { equals: alvo, mode: "insensitive" } } },
-  });
+  const aparelhos = await prisma.pushSubscription.findMany({ where: { usuario: { ativo: true, ...quem } } });
   let enviados = 0;
   const expirados: string[] = [];
   await Promise.all(
@@ -97,10 +96,15 @@ export async function avisarAdvogado(chave: string, n: { title: string; body: st
       } catch (err) {
         const status = (err as { statusCode?: number }).statusCode;
         if (status === 404 || status === 410) expirados.push(a.id);
-        else console.error("[push ficha] falha", status, err);
+        else console.error("[push] falha", status, err);
       }
     }),
   );
   if (expirados.length) await prisma.pushSubscription.deleteMany({ where: { id: { in: expirados } } });
   return enviados;
+}
+
+/** Aviso para os logins do advogado (pela chave do nome). */
+export function avisarAdvogado(chave: string, n: Aviso): Promise<number> {
+  return avisarUsuarios({ perfil: "ADVOGADO", advogadoChave: { equals: chaveAdvogado(chave), mode: "insensitive" } }, n);
 }

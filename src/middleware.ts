@@ -3,7 +3,7 @@ import { AUTH_COOKIE, lerSessao, segredoSessao } from "@/lib/sessao";
 import { podeUsarApi, podeVerTela } from "@/lib/perfis";
 
 // Rotas liberadas sem login. O cron de notificações tem proteção própria (CRON_SECRET).
-const ROTAS_PUBLICAS = ["/login", "/api/login", "/api/login/primeiro-acesso", "/api/login/sair", "/api/push/send-notifications"];
+const ROTAS_PUBLICAS = ["/login", "/api/login", "/api/login/primeiro-acesso", "/api/login/sair", "/api/push/send-notifications", "/api/integracoes/zapsign/aviso"];
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

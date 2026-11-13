@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { avisosDoPerfil, dadosDoAdvogado } from "@/lib/avisos-perfil";
 import webpush from "web-push";
 import { StatusPagamento, StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     let notificacoes: Notificacao[];
     let turno: Turno | "teste";
     let despesasCriadas = 0;
+    let dados: DadosDoDia | null = null;
 
     if (param === "teste") {
       turno = "teste";
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
           console.error("[recorrencias]", err);
         }
       }
-      const dados: DadosDoDia = await buscarDadosDoDia(hoje);
+      dados = await buscarDadosDoDia(hoje);
       if (turno === "manha" && ehSexta(hoje)) dados.advogadosAPagar = await buscarAdvogadosAPagar(hoje);
       notificacoes = montarNotificacoes(turno, dados);
     }
@@ -60,13 +62,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, turno, hoje, despesasCriadas, mensagem: "Nada para avisar." });
     }
 
-    const aparelhos = await prisma.pushSubscription.findMany();
+    const aparelhos = await prisma.pushSubscription.findMany({ include: { usuario: { select: { perfil: true, advogadoChave: true, ativo: true } } } });
+    // Cada aparelho recebe só os avisos do perfil de quem o ativou.
+    const avisosDe = (u: (typeof aparelhos)[number]["usuario"]): Notificacao[] => {
+      if (!u.ativo) return [];
+      if (turno === "teste" || !dados) return notificacoes;
+      if (u.perfil === "ADVOGADO") return avisosDoPerfil("ADVOGADO", montarNotificacoes(turno, dadosDoAdvogado(dados, u.advogadoChave ?? "")));
+      return avisosDoPerfil(u.perfil, notificacoes);
+    };
     let enviados = 0;
     const expirados: string[] = [];
 
     await Promise.all(
       aparelhos.flatMap((a) =>
-        notificacoes.map(async (n) => {
+        avisosDe(a.usuario).map(async (n) => {
           try {
             await webpush.sendNotification({ endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } }, JSON.stringify(n), {
               TTL: 6 * 60 * 60, // se o aparelho estiver offline, ainda entrega por 6h

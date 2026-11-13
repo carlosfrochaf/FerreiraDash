@@ -424,6 +424,8 @@ model Documento {
   /// Arquivo de uma petição (enviado pelo advogado).
   peticaoId     String?       @map("peticao_id")
   peticao       Peticao?      @relation(fields: [peticaoId], references: [id], onDelete: SetNull)
+  /// Arquivo vindo de outro sistema (ex.: "zapsign:<token>"); impede entrar duas vezes.
+  origemExterna String?       @unique @map("origem_externa")
 
   @@index([clienteId])
   @@index([recebimentoId])
@@ -457,4 +459,19 @@ model Ficha {
   @@index([clienteId])
   @@index([advogadoChave])
   @@map("fichas")
+}
+
+/// Integrações opcionais do escritório (ex.: ZapSign). Uma linha por integração.
+model Integracao {
+  /// Nome da integração: "zapsign".
+  id             String   @id
+  /// Token da API, cifrado (AES-256-GCM).
+  tokenCifrado   String   @map("token_cifrado")
+  /// Segredo que o serviço manda no cabeçalho do aviso.
+  segredoAviso   String   @map("segredo_aviso")
+  conectadoPorId String?  @map("conectado_por_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("integracoes")
 }

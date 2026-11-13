@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { CalendarClock, FileSignature, FileWarning, MessageCircle } from "lucide-react";
+import { CalendarClock, FileSignature, FileWarning, MessageCircle, Send } from "lucide-react";
+import { quemAvisarHoje } from "@/lib/mensagens-cliente";
 import { prisma } from "@/lib/prisma";
 import { filtroDoUsuario } from "@/lib/acesso-dados";
 import { resumoPagamentos } from "@/lib/meus-pagamentos";
 import { documentosFaltando } from "@/lib/documentos";
-import { linkWhatsApp } from "@/lib/clientes";
 import { dataDoDb, dataParaDb, formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
 import { formatCurrency } from "@/lib/utils";
 import type { UsuarioLogado } from "@/lib/usuario-atual";
@@ -50,7 +50,16 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
       ? null
       : prisma.cliente.findMany({
           orderBy: { nome: "asc" },
-          select: { id: true, nome: true, cpf: true, recebimentos: { select: { id: true } }, documentos: { select: { tipo: true, recebimentoId: true } } },
+          select: {
+            id: true,
+            nome: true,
+            cpf: true,
+            telefone: true,
+            createdAt: true,
+            recebimentos: { select: { id: true } },
+            documentos: { select: { tipo: true, recebimentoId: true, createdAt: true } },
+            fichas: { select: { empresa: true, dados: true } },
+          },
         }),
   ]);
 
@@ -58,6 +67,7 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
     const f = documentosFaltando(c.documentos, c.recebimentos, c.cpf);
     return f.cpf || f.pessoais.length > 0 || Object.keys(f.porCausa).length > 0;
   });
+  const avisar = advogado ? [] : quemAvisarHoje(clientes ?? []).slice(0, 5);
   const resumo = meus
     ? resumoPagamentos([
         ...meus[0].map((a) => ({ valor: a.valor ? Number(a.valor) : null, pago: a.statusPagamento === "PAGO" })),
@@ -80,13 +90,32 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
         </Link>
       )}
 
+      {avisar.length > 0 && (
+        <Bloco titulo="Avisar hoje" icone={Send}>
+          <ul className="divide-y divide-border/60">
+            {avisar.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-2 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{c.nome}</p>
+                  <p className="truncate text-xs text-muted-foreground">{c.motivo}</p>
+                </div>
+                <Link href={`/clientes/${c.id}?avisar=1`} className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-accent">
+                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Bloco>
+      )}
+
       <Bloco titulo="Audiências de hoje e amanhã" icone={CalendarClock}>
         {audiencias.length === 0 ? (
           <p className="text-xs text-muted-foreground">Nenhuma audiência hoje nem amanhã.</p>
         ) : (
           <ul className="divide-y divide-border/60">
             {audiencias.map((a) => {
-              const zap = !advogado && a.cliente?.telefone ? linkWhatsApp(a.cliente.telefone) : null;
+              // Abre o cliente já com o WhatsApp e a mensagem de audiência.
+              const zap = !advogado && a.clienteId && a.cliente?.telefone ? `/clientes/${a.clienteId}?avisar=1` : null;
               const dia = dataDoDb(a.data) === hoje ? "Hoje" : "Amanhã";
               return (
                 <li key={a.id} className="flex items-center justify-between gap-2 py-2">
@@ -101,9 +130,9 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
                     </p>
                   </div>
                   {zap && (
-                    <a href={zap} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-accent">
+                    <Link href={zap} className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-accent">
                       <MessageCircle className="h-3.5 w-3.5" /> Avisar cliente
-                    </a>
+                    </Link>
                   )}
                 </li>
               );

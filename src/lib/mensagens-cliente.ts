@@ -26,3 +26,40 @@ export function contextoWhatsapp(c: ClienteComTudo, hoje = hojeSaoPaulo()): Cont
     provasPedidas: dados?.success ? (dados.data.provasPedidas ?? []) : [],
   };
 }
+
+type ClienteDoDia = {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  createdAt: Date;
+  documentos: { tipo: string; createdAt: Date }[];
+  fichas: { empresa: string | null; dados: unknown }[];
+};
+
+function diasEntre(de: string, ate: string): number {
+  return Math.round((Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 86400000);
+}
+
+/**
+ * Quem vale avisar hoje (fora audiências, que já têm bloco próprio):
+ * cliente dos últimos 30 dias sem contrato e com documento faltando; contrato dos últimos 7 dias sem provas pedidas.
+ */
+export function quemAvisarHoje(clientes: ClienteDoDia[], hoje = hojeSaoPaulo()): { id: string; nome: string; motivo: string }[] {
+  const out: { id: string; nome: string; motivo: string }[] = [];
+  for (const c of clientes) {
+    if (!c.telefone) continue;
+    const contrato = c.documentos.find((d) => d.tipo === "CONTRATO_HONORARIOS");
+    if (!contrato) {
+      const tipos = new Set(c.documentos.map((d) => d.tipo));
+      const faltam = faltamParaContrato({ temRg: tipos.has("RG_CNH"), temComprovante: tipos.has("COMPROVANTE_ENDERECO"), empresa: c.fichas.find((f) => f.empresa)?.empresa });
+      if (faltam.length && diasEntre(dataDoDb(c.createdAt), hoje) <= 30) out.push({ id: c.id, nome: c.nome, motivo: "Documentos para o contrato" });
+      continue;
+    }
+    const pedidas = c.fichas.some((f) => {
+      const d = fichaDadosSchema.safeParse(f.dados);
+      return d.success && (d.data.provasPedidas?.length ?? 0) > 0;
+    });
+    if (!pedidas && diasEntre(dataDoDb(contrato.createdAt), hoje) <= 7) out.push({ id: c.id, nome: c.nome, motivo: "Pedir as provas" });
+  }
+  return out;
+}

@@ -69,3 +69,24 @@ describe("contextoWhatsapp", async () => {
     expect(ctx).toEqual({ temContrato: true, audiencia: "20/11 (sexta-feira) às 14:30", faltam: ["Comprovante de endereço"], fichaId: "nova", provasPedidas: ["Áudios"] });
   });
 });
+
+describe("quemAvisarHoje", async () => {
+  const { quemAvisarHoje } = await import("./mensagens-cliente");
+  const dia = (s: string) => new Date(`${s}T12:00:00Z`);
+  it("documentos do contrato para cliente novo e provas para contrato recente", () => {
+    const l = quemAvisarHoje(
+      [
+        { id: "a", nome: "Ana", telefone: "11988887777", createdAt: dia("2026-11-10"), documentos: [], fichas: [] },
+        { id: "b", nome: "Bia", telefone: "11988887777", createdAt: dia("2026-10-01"), documentos: [{ tipo: "CONTRATO_HONORARIOS", createdAt: dia("2026-11-12") }], fichas: [{ empresa: "X", dados: {} }] },
+        { id: "c", nome: "Caio", telefone: "11988887777", createdAt: dia("2026-11-01"), documentos: [{ tipo: "CONTRATO_HONORARIOS", createdAt: dia("2026-11-12") }], fichas: [{ empresa: "X", dados: { provasPedidas: ["Áudios"] } }] },
+        { id: "d", nome: "Dani", telefone: null, createdAt: dia("2026-11-10"), documentos: [], fichas: [] },
+        { id: "e", nome: "Edu", telefone: "11988887777", createdAt: dia("2026-08-01"), documentos: [], fichas: [] },
+      ],
+      "2026-11-13",
+    );
+    expect(l).toEqual([
+      { id: "a", nome: "Ana", motivo: "Documentos para o contrato" },
+      { id: "b", nome: "Bia", motivo: "Pedir as provas" },
+    ]);
+  });
+});

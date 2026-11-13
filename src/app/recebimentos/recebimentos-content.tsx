@@ -3,12 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Loader2, Search, Send, Trash2, Gavel, Pencil } from "lucide-react";
+import { Check, ChevronDown, Loader2, Search, Send, Trash2, Gavel, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
 import { resumoCausa } from "@/lib/resumo-causa";
+import type { ResultadoCausa } from "@/lib/resultado-causa";
 import { formatarDataCurta } from "@/lib/datas";
 import type { RecebimentoSerializado } from "@/lib/recebimentos";
 import type { ParcelaResumo } from "@/types";
@@ -29,7 +30,7 @@ function paraResumo(r: RecebimentoSerializado, p: RecebimentoSerializado["parcel
   };
 }
 
-export function RecebimentosContent({ recebimentos }: { recebimentos: RecebimentoSerializado[] }) {
+export function RecebimentosContent({ recebimentos, resultados }: { recebimentos: RecebimentoSerializado[]; resultados: Record<string, ResultadoCausa> }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("abertas");
   const [selecionada, setSelecionada] = useState<ParcelaResumo | null>(null);
@@ -95,7 +96,7 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
           Nada encontrado com esses filtros.
         </p>
       ) : (
-        lista.map((r) => <CausaCard key={r.id} r={r} onParcela={(p) => setSelecionada(paraResumo(r, p))} />)
+        lista.map((r) => <CausaCard key={r.id} r={r} resultado={resultados[r.id]} onParcela={(p) => setSelecionada(paraResumo(r, p))} />)
       )}
 
       <ParcelaModal parcela={selecionada} onFechar={() => setSelecionada(null)} />
@@ -105,9 +106,11 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
 
 function CausaCard({
   r,
+  resultado,
   onParcela,
 }: {
   r: RecebimentoSerializado;
+  resultado?: ResultadoCausa;
   onParcela: (p: RecebimentoSerializado["parcelas"][number]) => void;
 }) {
   const router = useRouter();
@@ -162,6 +165,8 @@ function CausaCard({
             <Andamento feito={resumo.cliente.repassado} falta={resumo.cliente.falta} verbo="repassado" />
           </div>
         </div>
+
+        {resultado && <ResultadoDaCausa res={resultado} />}
 
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -260,5 +265,70 @@ function Andamento({ feito, falta, verbo }: { feito: number; falta: number; verb
       )}
       <span className="text-muted-foreground">falta {formatCurrency(falta)}</span>
     </p>
+  );
+}
+
+const ORIGEM = { AUDIENCIA: "Audiência", PETICAO: "Petição", LANCAMENTO: "Lançamento" } as const;
+
+/** Entrou − gastou da causa, com a lista do que entrou nela (fora as parcelas). */
+function ResultadoDaCausa({ res }: { res: ResultadoCausa }) {
+  const [aberto, setAberto] = useState(false);
+  const lucro = res.resultado >= 0;
+  return (
+    <div className="rounded-xl border border-border/70">
+      <button
+        type="button"
+        onClick={() => setAberto((a) => !a)}
+        aria-expanded={aberto}
+        className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-xs transition-colors hover:bg-accent/40"
+      >
+        <span className="flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-0.5">
+          <span>
+            <span className="text-muted-foreground">Entrou </span>
+            <span className="font-semibold tabular-nums">{formatCurrency(res.entrou)}</span>
+          </span>
+          <span>
+            <span className="text-muted-foreground">Gastou </span>
+            <span className="font-semibold tabular-nums">{formatCurrency(res.gastou)}</span>
+          </span>
+        </span>
+        <span className="shrink-0 text-right">
+          <span className="block text-[11px] text-muted-foreground">{lucro ? "Lucro" : "Prejuízo"}</span>
+          <span className={cn("block text-sm font-bold tabular-nums", lucro ? "text-emerald-400" : "text-rose-400")}>{formatCurrency(res.resultado)}</span>
+        </span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", aberto && "rotate-180")} />
+      </button>
+      {aberto && (
+        <div className="space-y-2 border-t border-border/60 px-3 py-2.5 text-xs">
+          {(res.vaiEntrar > 0 || res.aPagar > 0) && (
+            <p className="text-muted-foreground">
+              {res.vaiEntrar > 0 && <>Ainda vai entrar <span className="font-medium text-foreground tabular-nums">{formatCurrency(res.vaiEntrar)}</span></>}
+              {res.vaiEntrar > 0 && res.aPagar > 0 && " · "}
+              {res.aPagar > 0 && <>A pagar <span className="font-medium text-foreground tabular-nums">{formatCurrency(res.aPagar)}</span></>}
+            </p>
+          )}
+          {res.itens.length === 0 ? (
+            <p className="text-muted-foreground">Nenhum gasto ligado a esta causa. Lance despesas com o número do processo para entrarem aqui.</p>
+          ) : (
+            <ul className="space-y-1">
+              {res.itens.map((i, n) => (
+                <li key={n} className="flex items-baseline gap-2">
+                  <span className="shrink-0 whitespace-nowrap tabular-nums text-muted-foreground">{formatarDataCurta(i.data)}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="text-muted-foreground">{ORIGEM[i.origem]}: </span>
+                    {i.descricao}
+                    {!i.pago && <span className="text-amber-300/80"> ({i.tipo === "ENTRADA" ? "a receber" : "a pagar"})</span>}
+                  </span>
+                  <span className={cn("shrink-0 font-medium tabular-nums", i.tipo === "ENTRADA" ? "text-emerald-400" : "text-rose-300")}>
+                    {i.tipo === "ENTRADA" ? "+" : "−"}
+                    {formatCurrency(Number(i.valor))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

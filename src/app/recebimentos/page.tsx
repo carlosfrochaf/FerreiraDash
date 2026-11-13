@@ -3,13 +3,15 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { listarRecebimentos } from "@/lib/recebimentos";
 import { RecebimentosContent } from "./recebimentos-content";
+import { resultadosDasCausas } from "@/lib/resultado-causa-servico";
 import { usuarioAtual } from "@/lib/usuario-atual";
 
 export const dynamic = "force-dynamic";
 
 async function Lista() {
   const recebimentos = await listarRecebimentos(200);
-  return <RecebimentosContent recebimentos={recebimentos} />;
+  const resultados = await resultadosDasCausas(recebimentos);
+  return <RecebimentosContent recebimentos={recebimentos} resultados={resultados} />;
 }
 
 export default async function RecebimentosPage() {

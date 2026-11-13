@@ -112,7 +112,7 @@ export function FichaCliente({
         </Card>
       )}
 
-      <DocumentosCliente clienteId={cliente.id} documentos={documentos} causas={titulos} storagePronto={storagePronto} podeEditar={podeEditar} />
+      <DocumentosCliente clienteId={cliente.id} documentos={documentos} causas={titulos} storagePronto={storagePronto} podeEditar={podeEditar} cpf={cliente.cpf} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Causas</h2>

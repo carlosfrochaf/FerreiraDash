@@ -30,12 +30,15 @@ export function DocumentosCliente({
   causas,
   storagePronto,
   podeEditar = true,
+  cpf,
 }: {
   clienteId: string;
   documentos: DocumentoDaFicha[];
   causas: Causa[];
   storagePronto: boolean;
   podeEditar?: boolean;
+  /** Número do CPF do cadastro (o CPF é digitado, não é foto). */
+  cpf?: string | null;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -45,7 +48,7 @@ export function DocumentosCliente({
   const [erro, setErro] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const faltando = documentosFaltando(documentos, causas);
+  const faltando = documentosFaltando(documentos, causas, cpf ?? null);
   const pessoais = documentos.filter((d) => !d.recebimentoId);
 
   async function enviar(arquivos: FileList | null) {
@@ -131,9 +134,10 @@ export function DocumentosCliente({
     <section className="space-y-3">
       <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Documentos</h2>
 
-      {(faltando.pessoais.length > 0 || Object.keys(faltando.porCausa).length > 0) && (
+      {(faltando.cpf || faltando.pessoais.length > 0 || Object.keys(faltando.porCausa).length > 0) && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
-          {faltando.pessoais.length > 0 && <p>Falta: {textoFalta(faltando.pessoais)}.</p>}
+          {faltando.cpf && <p>Falta o número do CPF: digite em &quot;Editar dados&quot;.</p>}
+          {faltando.pessoais.length > 0 && <p>Falta foto: {textoFalta(faltando.pessoais)}.</p>}
           {causas
             .filter((c) => faltando.porCausa[c.id])
             .map((c) => (

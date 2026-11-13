@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { arquivoAceito, documentosFaltando, rotuloTipo } from "./documentos";
 
 describe("documentos", () => {
-  it("cliente sem nada: faltam 3 pessoais e 3 por causa", () => {
+  it("cliente sem nada: faltam 2 fotos pessoais e 3 por causa", () => {
     const f = documentosFaltando([], [{ id: "A" }]);
-    expect(f.pessoais).toEqual(["RG_CNH", "CPF", "COMPROVANTE_ENDERECO"]);
+    expect(f.pessoais).toEqual(["RG_CNH", "COMPROVANTE_ENDERECO"]);
     expect(f.porCausa).toEqual({ A: ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"] });
   });
 
@@ -16,13 +16,13 @@ describe("documentos", () => {
       ],
       [{ id: "A" }, { id: "B" }]
     );
-    expect(f.pessoais).toEqual(["CPF", "COMPROVANTE_ENDERECO"]);
+    expect(f.pessoais).toEqual(["COMPROVANTE_ENDERECO"]);
     expect(f.porCausa).toEqual({ A: ["CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"], B: ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"] });
   });
 
   it("documento pessoal enviado dentro de uma causa também conta", () => {
-    const f = documentosFaltando([{ tipo: "CPF", recebimentoId: "A" }], [{ id: "A" }]);
-    expect(f.pessoais).toEqual(["RG_CNH", "COMPROVANTE_ENDERECO"]);
+    const f = documentosFaltando([{ tipo: "RG_CNH", recebimentoId: "A" }], [{ id: "A" }]);
+    expect(f.pessoais).toEqual(["COMPROVANTE_ENDERECO"]);
   });
 
   it("arquivoAceito", () => {
@@ -36,5 +36,12 @@ describe("documentos", () => {
   it("rotuloTipo", () => {
     expect(rotuloTipo("COMPROVANTE_ENDERECO")).toBe("Comprovante de endereço");
     expect(rotuloTipo("RG_CNH")).toBe("RG / CNH");
+  });
+
+  it("CPF é número do cadastro, não foto", () => {
+    expect(documentosFaltando([], [], null).cpf).toBe(true);
+    expect(documentosFaltando([], [], "12345678909").cpf).toBe(false);
+    expect(documentosFaltando([], []).cpf).toBe(false);
+    expect(documentosFaltando([{ tipo: "CPF", recebimentoId: null }], [], null).cpf).toBe(true);
   });
 });

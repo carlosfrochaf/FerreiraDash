@@ -35,18 +35,23 @@ export const TIPOS_PESSOAIS: TipoDoc[] = ["RG_CNH", "CPF", "COMPROVANTE_ENDERECO
 export const TIPOS_DA_CAUSA: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA", "PETICAO", "DECISAO", "ACORDO_ATA", "ALVARA", "COMPROVANTE"];
 export const TODOS_OS_TIPOS: TipoDoc[] = [...TIPOS_PESSOAIS, ...TIPOS_DA_CAUSA, "OUTRO"];
 
-const PESSOAIS_OBRIGATORIOS: TipoDoc[] = ["RG_CNH", "CPF", "COMPROVANTE_ENDERECO"];
+// CPF não é foto: é o número digitado no cadastro (conferido à parte).
+const PESSOAIS_OBRIGATORIOS: TipoDoc[] = ["RG_CNH", "COMPROVANTE_ENDERECO"];
 const DA_CAUSA_OBRIGATORIOS: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"];
 
 export function rotuloTipo(tipo: TipoDoc): string {
   return ROTULOS[tipo] ?? tipo;
 }
 
-/** O que falta: pessoais (em qualquer lugar) e, para cada causa, procuração, contrato e declaração de hipossuficiência dela. */
+/**
+ * O que falta: fotos pessoais (em qualquer lugar), para cada causa procuração, contrato e declaração de
+ * hipossuficiência dela, e o número do CPF no cadastro (`cpf`: true quando falta; só confere se for informado).
+ */
 export function documentosFaltando(
   docs: { tipo: string; recebimentoId: string | null }[],
-  causas: { id: string }[]
-): { pessoais: TipoDoc[]; porCausa: Record<string, TipoDoc[]> } {
+  causas: { id: string }[],
+  cpfDoCadastro?: string | null
+): { pessoais: TipoDoc[]; porCausa: Record<string, TipoDoc[]>; cpf: boolean } {
   const tem = new Set(docs.map((d) => d.tipo));
   const pessoais = PESSOAIS_OBRIGATORIOS.filter((t) => !tem.has(t));
   const porCausa: Record<string, TipoDoc[]> = {};
@@ -55,7 +60,7 @@ export function documentosFaltando(
     const falta = DA_CAUSA_OBRIGATORIOS.filter((t) => !daCausa.has(t));
     if (falta.length) porCausa[c.id] = falta;
   }
-  return { pessoais, porCausa };
+  return { pessoais, porCausa, cpf: cpfDoCadastro !== undefined && !cpfDoCadastro?.trim() };
 }
 
 export const TAMANHO_MAXIMO = 10 * 1024 * 1024;

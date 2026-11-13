@@ -50,13 +50,13 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
       ? null
       : prisma.cliente.findMany({
           orderBy: { nome: "asc" },
-          select: { id: true, nome: true, recebimentos: { select: { id: true } }, documentos: { select: { tipo: true, recebimentoId: true } } },
+          select: { id: true, nome: true, cpf: true, recebimentos: { select: { id: true } }, documentos: { select: { tipo: true, recebimentoId: true } } },
         }),
   ]);
 
   const faltando = (clientes ?? []).filter((c) => {
-    const f = documentosFaltando(c.documentos, c.recebimentos);
-    return f.pessoais.length > 0 || Object.keys(f.porCausa).length > 0;
+    const f = documentosFaltando(c.documentos, c.recebimentos, c.cpf);
+    return f.cpf || f.pessoais.length > 0 || Object.keys(f.porCausa).length > 0;
   });
   const resumo = meus
     ? resumoPagamentos([

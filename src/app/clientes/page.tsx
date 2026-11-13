@@ -20,8 +20,8 @@ export default async function ClientesPage() {
   });
 
   const lista: ClienteDaLista[] = clientes.map((c) => {
-    const f = documentosFaltando(c.documentos, c.recebimentos);
-    const falta = f.pessoais.length + Object.values(f.porCausa).reduce((s, l) => s + l.length, 0);
+    const f = documentosFaltando(c.documentos, c.recebimentos, c.cpf);
+    const falta = (f.cpf ? 1 : 0) + f.pessoais.length + Object.values(f.porCausa).reduce((s, l) => s + l.length, 0);
     return {
       id: c.id,
       nome: c.nome,

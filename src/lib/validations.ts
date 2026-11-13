@@ -181,6 +181,10 @@ export const clienteSchema = z.object({
     .refine((v) => !v || dataValida(v), "Data de nascimento inválida"),
   pix: textoOpcional,
   observacoes: textoOpcional,
+  estadoCivil: textoOpcional,
+  cep: textoOpcional,
+  cidadeUf: textoOpcional,
+  origem: textoOpcional,
 });
 
 export type ClienteInput = z.infer<typeof clienteSchema>;

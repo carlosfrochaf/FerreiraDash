@@ -44,6 +44,7 @@ const TELAS: [string, Perfil[]][] = [
 const APIS: [string, Perfil[], Perfil[]][] = [
   ["/api/clientes", ESCRITORIO, CADASTRO],
   ["/api/documentos", ESCRITORIO, CADASTRO],
+  ["/api/fichas", TODOS, ["DONO", "SECRETARIA", "ADVOGADO"]],
   ["/api/transacoes", FIN, FIN],
   ["/api/recebimentos", FIN, FIN],
   ["/api/parcelas", FIN, FIN],

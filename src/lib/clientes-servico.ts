@@ -85,6 +85,11 @@ export function dadosCliente(input: ClienteInput): Prisma.ClienteUncheckedCreate
     dataNascimento: input.dataNascimento ? dataParaDb(input.dataNascimento) : null,
     pix: input.pix ?? null,
     observacoes: input.observacoes ?? null,
+    // Campos da ficha: só mexe se vierem (o formulário de cadastro não manda).
+    ...(input.estadoCivil !== undefined && { estadoCivil: input.estadoCivil }),
+    ...(input.cep !== undefined && { cep: input.cep }),
+    ...(input.cidadeUf !== undefined && { cidadeUf: input.cidadeUf }),
+    ...(input.origem !== undefined && { origem: input.origem }),
   };
 }
 
@@ -98,6 +103,10 @@ export type ClienteSerializado = {
   dataNascimento: string | null;
   pix: string | null;
   observacoes: string | null;
+  estadoCivil: string | null;
+  cep: string | null;
+  cidadeUf: string | null;
+  origem: string | null;
 };
 
 export function serializarCliente(c: Prisma.ClienteGetPayload<object>): ClienteSerializado {
@@ -111,6 +120,10 @@ export function serializarCliente(c: Prisma.ClienteGetPayload<object>): ClienteS
     dataNascimento: c.dataNascimento ? dataDoDb(c.dataNascimento) : null,
     pix: c.pix,
     observacoes: c.observacoes,
+    estadoCivil: c.estadoCivil,
+    cep: c.cep,
+    cidadeUf: c.cidadeUf,
+    origem: c.origem,
   };
 }
 

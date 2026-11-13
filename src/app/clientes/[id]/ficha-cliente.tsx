@@ -9,6 +9,7 @@ import { CampoEscolha } from "@/components/ui/campo-escolha";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClienteForm } from "@/components/clientes/cliente-form";
 import { DocumentosCliente, type DocumentoDaFicha } from "@/components/documentos/documentos-cliente";
+import { FichasDoCliente, type FichaResumo } from "@/components/fichas/fichas-do-cliente";
 import { formatCurrency } from "@/lib/utils";
 import { formatarData, formatarDataCurta } from "@/lib/datas";
 import { linkWhatsApp } from "@/lib/clientes";
@@ -28,6 +29,8 @@ export function FichaCliente({
   storagePronto,
   podeEditar = true,
   mostrarValores = true,
+  fichas = [],
+  podeCriarFicha = false,
 }: {
   cliente: ClienteSerializado;
   causas: RecebimentoSerializado[];
@@ -38,6 +41,8 @@ export function FichaCliente({
   storagePronto: boolean;
   podeEditar?: boolean;
   mostrarValores?: boolean;
+  fichas?: FichaResumo[];
+  podeCriarFicha?: boolean;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -72,7 +77,11 @@ export function FichaCliente({
     ["Telefone", cliente.telefone],
     ["E-mail", cliente.email],
     ["Nascimento", cliente.dataNascimento ? formatarData(cliente.dataNascimento) : null],
+    ["Estado civil", cliente.estadoCivil],
     ["Endereço", cliente.endereco],
+    ["CEP", cliente.cep],
+    ["Cidade/UF", cliente.cidadeUf],
+    ["Como chegou", cliente.origem],
     ["Pix", cliente.pix],
     ["Observações", cliente.observacoes],
   ];
@@ -113,6 +122,8 @@ export function FichaCliente({
       )}
 
       <DocumentosCliente clienteId={cliente.id} documentos={documentos} causas={titulos} storagePronto={storagePronto} podeEditar={podeEditar} cpf={cliente.cpf} />
+
+      <FichasDoCliente clienteId={cliente.id} fichas={fichas} podeCriar={podeCriarFicha} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Causas</h2>

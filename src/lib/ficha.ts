@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { Perfil } from "./perfis";
+import { chaveAdvogado } from "./advogado-chave";
 import type { TipoDoc } from "./documentos";
 
 /** Opções fixas da ficha, com os mesmos textos da ficha antiga do escritório. */
@@ -165,4 +167,14 @@ export function podeEnviarFicha(f: { empresa?: string | null; advogadoChave?: st
   if (!f.empresa?.trim()) return "Informe a empresa.";
   if (!f.advogadoChave?.trim()) return "Escolha o advogado responsável.";
   return null;
+}
+
+/** Dono e secretária editam qualquer ficha; o advogado só aquela em que é o responsável. */
+export function podeEditarFicha(
+  u: { perfil: Perfil; advogadoChave: string | null },
+  ficha: { advogadoChave: string | null },
+): boolean {
+  if (u.perfil === "DONO" || u.perfil === "SECRETARIA") return true;
+  if (u.perfil !== "ADVOGADO" || !u.advogadoChave || !ficha.advogadoChave) return false;
+  return chaveAdvogado(u.advogadoChave) === chaveAdvogado(ficha.advogadoChave);
 }

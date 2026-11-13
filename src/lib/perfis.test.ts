@@ -55,3 +55,12 @@ describe("menu por perfil", () => {
     expect(veValores("FINANCEIRO")).toBe(true);
   });
 });
+
+describe("fichas de atendimento", () => {
+  it("financeiro só lê; secretária e advogado escrevem", () => {
+    expect(podeUsarApi("FINANCEIRO", "GET", "/api/fichas/x")).toBe(true);
+    expect(podeUsarApi("FINANCEIRO", "PATCH", "/api/fichas/x")).toBe(false);
+    expect(podeUsarApi("ADVOGADO", "PATCH", "/api/fichas/x")).toBe(true);
+    expect(podeUsarApi("SECRETARIA", "POST", "/api/fichas")).toBe(true);
+  });
+});

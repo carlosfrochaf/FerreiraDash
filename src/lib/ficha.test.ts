@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { documentosMarcados, fichaDadosSchema, OPCOES_FICHA, podeEnviarFicha } from "./ficha";
+import { documentosMarcados, fichaDadosSchema, OPCOES_FICHA, podeEditarFicha, podeEnviarFicha } from "./ficha";
 
 describe("fichaDadosSchema", () => {
   it("aceita ficha vazia (rascunho)", () => {
@@ -40,5 +40,19 @@ describe("podeEnviarFicha", () => {
   });
   it("libera com os dois", () => {
     expect(podeEnviarFicha({ empresa: "X", advogadoChave: "joao" })).toBeNull();
+  });
+});
+
+describe("podeEditarFicha", () => {
+  const ficha = { advogadoChave: "joao silva" };
+  it("advogado só a dele", () => {
+    expect(podeEditarFicha({ perfil: "ADVOGADO", advogadoChave: "joao silva" }, ficha)).toBe(true);
+    expect(podeEditarFicha({ perfil: "ADVOGADO", advogadoChave: "maria" }, ficha)).toBe(false);
+    expect(podeEditarFicha({ perfil: "ADVOGADO", advogadoChave: null }, { advogadoChave: null })).toBe(false);
+  });
+  it("financeiro não edita; secretária e dono editam", () => {
+    expect(podeEditarFicha({ perfil: "FINANCEIRO", advogadoChave: null }, ficha)).toBe(false);
+    expect(podeEditarFicha({ perfil: "SECRETARIA", advogadoChave: null }, ficha)).toBe(true);
+    expect(podeEditarFicha({ perfil: "DONO", advogadoChave: null }, ficha)).toBe(true);
   });
 });

@@ -9,6 +9,7 @@ import { storageConfigurado } from "@/lib/storage";
 import { FichaCliente } from "./ficha-cliente";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { editaClientes, veValores } from "@/lib/perfis";
+import { advogadosConhecidos } from "@/lib/usuarios";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +23,11 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
       audiencias: { orderBy: { data: "desc" } },
       peticoes: { orderBy: { dataEntrega: "desc" } },
       documentos: { orderBy: { createdAt: "desc" } },
+      fichas: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!c) notFound();
+  const advogados = new Map((await advogadosConhecidos()).map((a) => [a.chave, a.nome]));
   const outros = await prisma.cliente.findMany({ where: { id: { not: id } }, select: { id: true, nome: true }, orderBy: { nome: "asc" } });
 
   return (
@@ -64,6 +67,14 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
         storagePronto={storageConfigurado()}
         podeEditar={editaClientes(eu.perfil)}
         mostrarValores={veValores(eu.perfil)}
+        fichas={c.fichas.map((f) => ({
+          id: f.id,
+          empresa: f.empresa,
+          advogadoNome: f.advogadoChave ? (advogados.get(f.advogadoChave) ?? f.advogadoChave) : null,
+          situacao: f.situacao,
+          criadaEm: dataDoDb(f.createdAt),
+        }))}
+        podeCriarFicha={editaClientes(eu.perfil)}
       />
     </div>
   );

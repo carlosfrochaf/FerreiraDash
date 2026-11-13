@@ -7,6 +7,7 @@ export type TipoDoc =
   | "CTPS"
   | "PROCURACAO"
   | "CONTRATO_HONORARIOS"
+  | "DECLARACAO_HIPOSSUFICIENCIA"
   | "PETICAO"
   | "DECISAO"
   | "ACORDO_ATA"
@@ -21,6 +22,7 @@ const ROTULOS: Record<TipoDoc, string> = {
   CTPS: "CTPS",
   PROCURACAO: "Procuração",
   CONTRATO_HONORARIOS: "Contrato de honorários",
+  DECLARACAO_HIPOSSUFICIENCIA: "Declaração de hipossuficiência",
   PETICAO: "Petição",
   DECISAO: "Decisão / Sentença",
   ACORDO_ATA: "Acordo / Ata",
@@ -30,17 +32,17 @@ const ROTULOS: Record<TipoDoc, string> = {
 };
 
 export const TIPOS_PESSOAIS: TipoDoc[] = ["RG_CNH", "CPF", "COMPROVANTE_ENDERECO", "CTPS"];
-export const TIPOS_DA_CAUSA: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "PETICAO", "DECISAO", "ACORDO_ATA", "ALVARA", "COMPROVANTE"];
+export const TIPOS_DA_CAUSA: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA", "PETICAO", "DECISAO", "ACORDO_ATA", "ALVARA", "COMPROVANTE"];
 export const TODOS_OS_TIPOS: TipoDoc[] = [...TIPOS_PESSOAIS, ...TIPOS_DA_CAUSA, "OUTRO"];
 
 const PESSOAIS_OBRIGATORIOS: TipoDoc[] = ["RG_CNH", "CPF", "COMPROVANTE_ENDERECO"];
-const DA_CAUSA_OBRIGATORIOS: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS"];
+const DA_CAUSA_OBRIGATORIOS: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"];
 
 export function rotuloTipo(tipo: TipoDoc): string {
   return ROTULOS[tipo] ?? tipo;
 }
 
-/** O que falta: pessoais (em qualquer lugar) e, para cada causa, procuração e contrato dela. */
+/** O que falta: pessoais (em qualquer lugar) e, para cada causa, procuração, contrato e declaração de hipossuficiência dela. */
 export function documentosFaltando(
   docs: { tipo: string; recebimentoId: string | null }[],
   causas: { id: string }[]

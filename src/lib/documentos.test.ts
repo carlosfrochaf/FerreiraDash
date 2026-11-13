@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { arquivoAceito, documentosFaltando, rotuloTipo } from "./documentos";
 
 describe("documentos", () => {
-  it("cliente sem nada: faltam 3 pessoais e 2 por causa", () => {
+  it("cliente sem nada: faltam 3 pessoais e 3 por causa", () => {
     const f = documentosFaltando([], [{ id: "A" }]);
     expect(f.pessoais).toEqual(["RG_CNH", "CPF", "COMPROVANTE_ENDERECO"]);
-    expect(f.porCausa).toEqual({ A: ["PROCURACAO", "CONTRATO_HONORARIOS"] });
+    expect(f.porCausa).toEqual({ A: ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"] });
   });
 
   it("com RG e a procuração da causa A", () => {
@@ -17,7 +17,7 @@ describe("documentos", () => {
       [{ id: "A" }, { id: "B" }]
     );
     expect(f.pessoais).toEqual(["CPF", "COMPROVANTE_ENDERECO"]);
-    expect(f.porCausa).toEqual({ A: ["CONTRATO_HONORARIOS"], B: ["PROCURACAO", "CONTRATO_HONORARIOS"] });
+    expect(f.porCausa).toEqual({ A: ["CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"], B: ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA"] });
   });
 
   it("documento pessoal enviado dentro de uma causa também conta", () => {

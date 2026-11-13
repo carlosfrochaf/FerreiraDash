@@ -26,9 +26,15 @@ export type PeticaoSerializada = {
   dataValidacao: string | null;
   dataPagamento: string | null;
   observacoes: string | null;
+  clienteId: string | null;
+  /** Arquivos da petição enviados ao app (documentos ligados a ela). */
+  arquivos: { id: string; nome: string }[];
 };
 
-type PeticaoDb = Prisma.PeticaoGetPayload<object>;
+type PeticaoDb = Prisma.PeticaoGetPayload<object> & { documentos?: { id: string; nome: string }[] };
+
+/** Inclua nas buscas para trazer os arquivos da petição. */
+export const COM_ARQUIVOS = { documentos: { select: { id: true, nome: true }, orderBy: { createdAt: "desc" as const } } };
 
 export function serializarPeticao(p: PeticaoDb, pix: Record<string, string> = {}): PeticaoSerializada {
   return {
@@ -45,6 +51,8 @@ export function serializarPeticao(p: PeticaoDb, pix: Record<string, string> = {}
     dataValidacao: p.dataValidacao ? dataDoDb(p.dataValidacao) : null,
     dataPagamento: p.dataPagamento ? dataDoDb(p.dataPagamento) : null,
     observacoes: p.observacoes,
+    clienteId: p.clienteId,
+    arquivos: p.documentos ?? [],
   };
 }
 
@@ -144,7 +152,7 @@ export async function aplicarAcaoPeticao(id: string, acao: PeticaoAcao) {
 
 export async function listarPeticoes(u?: UsuarioLogado) {
   const [lista, pix] = await Promise.all([
-    prisma.peticao.findMany({ where: u ? filtroDoUsuario(u) : {}, orderBy: [{ dataEntrega: "desc" }, { createdAt: "desc" }], take: 500 }),
+    prisma.peticao.findMany({ where: u ? filtroDoUsuario(u) : {}, include: COM_ARQUIVOS, orderBy: [{ dataEntrega: "desc" }, { createdAt: "desc" }], take: 500 }),
     pixDosAdvogados(),
   ]);
   return lista.map((p) => (u ? semValores(serializarPeticao(p, pix), u.perfil) : serializarPeticao(p, pix)));

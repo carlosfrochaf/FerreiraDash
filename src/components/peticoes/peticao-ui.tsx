@@ -13,6 +13,7 @@ import { centavosParaString } from "@/lib/parcelas";
 import { formatarData, formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
 import type { PeticaoSerializada } from "@/lib/peticoes";
 import { PixCopiar } from "@/components/ui/pix-copiar";
+import { ArquivoPeticao } from "./arquivo-peticao";
 
 export const STATUS_PETICAO: Record<PeticaoSerializada["status"], { label: string; cor: string }> = {
   A_VALIDAR: { label: "Não pago", cor: "bg-rose-500/15 text-rose-300 ring-rose-500/30" },
@@ -148,6 +149,8 @@ export function PeticaoModal({ peticao, onFechar, perfil = "DONO" }: { peticao: 
           </div>
           {p.observacoes && <p className="col-span-2 text-xs text-muted-foreground">{p.observacoes}</p>}
         </dl>
+
+        <ArquivoPeticao key={p.id} peticaoId={p.id} clienteId={p.clienteId} arquivos={p.arquivos ?? []} podeEnviar={perfil !== "FINANCEIRO"} />
 
         {erro && (
           <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-rose-300">

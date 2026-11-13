@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2, MessageCircle, Pencil, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CampoEscolha } from "@/components/ui/campo-escolha";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClienteForm } from "@/components/clientes/cliente-form";
 import { DocumentosCliente, type DocumentoDaFicha } from "@/components/documentos/documentos-cliente";
@@ -171,14 +172,14 @@ export function FichaCliente({
           </h2>
           <p className="text-xs text-muted-foreground">Use quando o mesmo cliente foi cadastrado duas vezes (ex.: nome escrito diferente).</p>
           <div className="flex gap-2">
-            <select value={origem} onChange={(e) => setOrigem(e.target.value)} className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-2 text-sm" aria-label="Cliente duplicado">
+            <CampoEscolha value={origem} onChange={(e) => setOrigem(e.target.value)} className="flex-1" aria-label="Cliente duplicado">
               <option value="">Escolha o cadastro duplicado…</option>
               {outrosClientes.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.nome}
                 </option>
               ))}
-            </select>
+            </CampoEscolha>
             <Button type="button" variant="outline" disabled={!origem || pending} onClick={juntar}>
               {pending ? <Loader2 className="animate-spin" /> : <ExternalLink className="rotate-90" />} Juntar
             </Button>

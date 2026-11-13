@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Eye, FileText, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CampoEscolha } from "@/components/ui/campo-escolha";
 import { formatarDataCurta } from "@/lib/datas";
 import { arquivoAceito, documentosFaltando, rotuloTipo, TIPOS_DA_CAUSA, TIPOS_PESSOAIS, type TipoDoc } from "@/lib/documentos";
 
@@ -144,7 +145,7 @@ export function DocumentosCliente({
       {storagePronto ? (
         <div className="space-y-2 rounded-xl border border-border bg-card p-3">
           <div className="grid gap-2 sm:grid-cols-2">
-            <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoDoc)} className="h-10 rounded-lg border border-border bg-background px-2 text-sm" aria-label="Tipo do documento">
+            <CampoEscolha value={tipo} onChange={(e) => setTipo(e.target.value as TipoDoc)} aria-label="Tipo do documento">
               <optgroup label="Pessoais">
                 {TIPOS_PESSOAIS.map((t) => (
                   <option key={t} value={t}>
@@ -160,15 +161,15 @@ export function DocumentosCliente({
                 ))}
               </optgroup>
               <option value="OUTRO">Outro</option>
-            </select>
-            <select value={causa} onChange={(e) => setCausa(e.target.value)} className="h-10 rounded-lg border border-border bg-background px-2 text-sm" aria-label="Causa">
+            </CampoEscolha>
+            <CampoEscolha value={causa} onChange={(e) => setCausa(e.target.value)} aria-label="Causa">
               <option value="">Sem causa (documento pessoal)</option>
               {causas.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.titulo}
                 </option>
               ))}
-            </select>
+            </CampoEscolha>
           </div>
           <input
             ref={input}

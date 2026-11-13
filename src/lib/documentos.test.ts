@@ -27,13 +27,14 @@ describe("documentos", () => {
 
   it("arquivoAceito", () => {
     expect(arquivoAceito("application/pdf", 1000)).toBeNull();
-    expect(arquivoAceito("image/jpeg", 1000)).toBeNull();
-    expect(arquivoAceito("application/zip", 10)).toBe("Tipo de arquivo não aceito.");
+    expect(arquivoAceito("image/jpeg", 1000)).toBe("Envie em PDF (fotos viram PDF sozinhas).");
+    expect(arquivoAceito("application/zip", 10)).toBe("Envie em PDF (fotos viram PDF sozinhas).");
     expect(arquivoAceito("application/pdf", 11 * 1024 * 1024)).toBe("Arquivo maior que 10 MB.");
     expect(arquivoAceito("application/pdf", 0)).toBe("Arquivo vazio.");
   });
 
   it("rotuloTipo", () => {
+    expect(rotuloTipo("EXTRATO_FGTS")).toBe("Extrato do FGTS");
     expect(rotuloTipo("COMPROVANTE_ENDERECO")).toBe("Comprovante de endereço");
     expect(rotuloTipo("RG_CNH")).toBe("RG / CNH");
   });

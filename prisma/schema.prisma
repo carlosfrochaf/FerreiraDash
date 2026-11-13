@@ -181,6 +181,8 @@ model Recebimento {
   cliente    Cliente?    @relation(fields: [clienteId], references: [id], onDelete: SetNull)
   documentos Documento[]
 
+  fichas Ficha[]
+
   @@index([processoId])
   @@index([clienteId])
   @@map("recebimentos")
@@ -268,6 +270,8 @@ model Peticao {
   updatedAt      DateTime      @updatedAt @map("updated_at")
   clienteId      String?       @map("cliente_id")
   cliente        Cliente?      @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+
+  documentos Documento[]
 
   @@index([status, dataEntrega])
   @@index([dataPagamento])
@@ -360,9 +364,15 @@ model Cliente {
   dataNascimento DateTime? @map("data_nascimento") @db.Date
   pix            String?
   observacoes    String?
+  estadoCivil    String?   @map("estado_civil")
+  cep            String?
+  cidadeUf       String?   @map("cidade_uf")
+  /// Como chegou ao escritório (Meta Ads, Indicação, Google, Instagram, Outro).
+  origem         String?
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
+  fichas       Ficha[]
   recebimentos Recebimento[]
   audiencias   Audiencia[]
   peticoes     Peticao[]
@@ -384,6 +394,15 @@ enum TipoDocumento {
   ACORDO_ATA
   ALVARA
   COMPROVANTE
+  TRCT
+  HOLERITE
+  EXTRATO_FGTS
+  CARTAO_PONTO
+  CONTRATO_TRABALHO
+  AVISO_PREVIO
+  ATESTADO
+  CAT
+  PRINTS
   OUTRO
 }
 
@@ -400,8 +419,42 @@ model Documento {
   mime          String
   tamanho       Int
   createdAt     DateTime      @default(now()) @map("created_at")
+  /// Quem enviou (o advogado só apaga o que ele mesmo enviou).
+  enviadoPorId  String?       @map("enviado_por_id")
+  /// Arquivo de uma petição (enviado pelo advogado).
+  peticaoId     String?       @map("peticao_id")
+  peticao       Peticao?      @relation(fields: [peticaoId], references: [id], onDelete: SetNull)
 
   @@index([clienteId])
   @@index([recebimentoId])
+  @@index([peticaoId])
   @@map("documentos")
+}
+
+enum SituacaoFicha {
+  RASCUNHO
+  ENVIADA
+}
+
+/// Ficha de atendimento: feita quando o cliente assina o contrato e enviada ao advogado responsável.
+model Ficha {
+  id            String        @id @default(cuid())
+  clienteId     String        @map("cliente_id")
+  cliente       Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  /// Liga ao advogado pelo nome (mesma chave de `advogados`).
+  advogadoChave String?       @map("advogado_chave")
+  empresa       String?
+  situacao      SituacaoFicha @default(RASCUNHO)
+  /// Blocos da ficha (empresa, contrato, jornada...), conferidos por `fichaDadosSchema`.
+  dados         Json          @default("{}")
+  recebimentoId String?       @map("recebimento_id")
+  recebimento   Recebimento?  @relation(fields: [recebimentoId], references: [id], onDelete: SetNull)
+  criadaPorId   String?       @map("criada_por_id")
+  enviadaEm     DateTime?     @map("enviada_em")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([clienteId])
+  @@index([advogadoChave])
+  @@map("fichas")
 }

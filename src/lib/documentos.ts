@@ -13,6 +13,15 @@ export type TipoDoc =
   | "ACORDO_ATA"
   | "ALVARA"
   | "COMPROVANTE"
+  | "TRCT"
+  | "HOLERITE"
+  | "EXTRATO_FGTS"
+  | "CARTAO_PONTO"
+  | "CONTRATO_TRABALHO"
+  | "AVISO_PREVIO"
+  | "ATESTADO"
+  | "CAT"
+  | "PRINTS"
   | "OUTRO";
 
 const ROTULOS: Record<TipoDoc, string> = {
@@ -28,11 +37,20 @@ const ROTULOS: Record<TipoDoc, string> = {
   ACORDO_ATA: "Acordo / Ata",
   ALVARA: "Alvará",
   COMPROVANTE: "Comprovante",
+  TRCT: "TRCT",
+  HOLERITE: "Holerite",
+  EXTRATO_FGTS: "Extrato do FGTS",
+  CARTAO_PONTO: "Cartão de ponto",
+  CONTRATO_TRABALHO: "Contrato de trabalho",
+  AVISO_PREVIO: "Aviso prévio",
+  ATESTADO: "Atestado / laudo",
+  CAT: "CAT",
+  PRINTS: "Prints / mensagens",
   OUTRO: "Outro",
 };
 
 export const TIPOS_PESSOAIS: TipoDoc[] = ["RG_CNH", "CPF", "COMPROVANTE_ENDERECO", "CTPS"];
-export const TIPOS_DA_CAUSA: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA", "PETICAO", "DECISAO", "ACORDO_ATA", "ALVARA", "COMPROVANTE"];
+export const TIPOS_DA_CAUSA: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA", "PETICAO", "DECISAO", "ACORDO_ATA", "ALVARA", "COMPROVANTE", "TRCT", "HOLERITE", "EXTRATO_FGTS", "CARTAO_PONTO", "CONTRATO_TRABALHO", "AVISO_PREVIO", "ATESTADO", "CAT", "PRINTS"];
 export const TODOS_OS_TIPOS: TipoDoc[] = [...TIPOS_PESSOAIS, ...TIPOS_DA_CAUSA, "OUTRO"];
 
 // CPF não é foto: é o número digitado no cadastro (conferido à parte).
@@ -64,11 +82,12 @@ export function documentosFaltando(
 }
 
 export const TAMANHO_MAXIMO = 10 * 1024 * 1024;
-const MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
+// O PJe só aceita PDF: as fotos são convertidas no navegador antes de enviar.
+const MIMES = ["application/pdf"];
 
 /** Mensagem de erro se o arquivo não puder ser enviado; null se estiver tudo certo. */
 export function arquivoAceito(mime: string, tamanho: number): string | null {
-  if (!MIMES.includes(mime)) return "Tipo de arquivo não aceito.";
+  if (!MIMES.includes(mime)) return "Envie em PDF (fotos viram PDF sozinhas).";
   if (tamanho <= 0) return "Arquivo vazio.";
   if (tamanho > TAMANHO_MAXIMO) return "Arquivo maior que 10 MB.";
   return null;

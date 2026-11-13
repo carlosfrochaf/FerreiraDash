@@ -5,6 +5,7 @@ import { Pendencias } from "@/components/dashboard/pendencias";
 import { CashFlowChartLazy } from "@/components/dashboard/cash-flow-chart-lazy";
 import { getDashboardResumo } from "@/lib/finance";
 import { usuarioAtual } from "@/lib/usuario-atual";
+import { Hoje } from "@/components/dashboard/hoje";
 
 export const dynamic = "force-dynamic";
 
@@ -59,16 +60,19 @@ function Carregando() {
 }
 
 export default async function HomePage() {
-  await usuarioAtual();
+  const eu = await usuarioAtual();
+  const completo = eu.perfil === "DONO" || eu.perfil === "FINANCEIRO";
   const { ola, data } = saudacao();
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">{ola}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {ola}, {eu.nome.split(" ")[0]}
+        </h1>
         <p className="text-sm text-muted-foreground">{data}</p>
       </header>
       <Suspense fallback={<Carregando />}>
-        <Conteudo />
+        {completo ? <Conteudo /> : <Hoje eu={eu} />}
       </Suspense>
     </div>
   );

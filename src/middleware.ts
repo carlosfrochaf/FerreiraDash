@@ -30,6 +30,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Roda no Node para ler o SESSION_SECRET do servidor na hora (e não só no build).
+  runtime: "nodejs",
   // Tudo, menos arquivos estáticos do Next e os arquivos do PWA (ícones, manifest, service worker).
   matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|apple-touch-icon.png|manifest.json|sw.js).*)"],
 };

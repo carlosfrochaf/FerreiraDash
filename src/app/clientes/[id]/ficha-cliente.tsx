@@ -122,7 +122,7 @@ export function FichaCliente({
     ["CEP", cliente.cep],
     ["Cidade/UF", cliente.cidadeUf],
     ["Como chegou", cliente.origem],
-    ["Pix", cliente.pix],
+    ["Pix", mostrarCausas ? cliente.pix : null], // advogado não vê o Pix do cliente
     ["Observações", cliente.observacoes],
   ];
 
@@ -155,7 +155,7 @@ export function FichaCliente({
       ) : (
         <Card>
           <CardContent className="grid gap-x-4 gap-y-2 p-4 text-sm sm:grid-cols-2">
-            {dados.map(([rotulo, valor]) => (
+            {dados.filter(([r]) => mostrarCausas || r !== "Pix").map(([rotulo, valor]) => (
               <div key={rotulo} className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {rotulo}

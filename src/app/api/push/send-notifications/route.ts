@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { avisosDoPerfil, dadosDoAdvogado } from "@/lib/avisos-perfil";
+import { avisosDaManha } from "@/lib/avisos-da-manha";
 import webpush from "web-push";
 import { StatusPagamento, StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -58,8 +59,11 @@ export async function POST(request: Request) {
       notificacoes = montarNotificacoes(turno, dados);
     }
 
+    // Ficha parada (todo dia) e resumo da semana do dono (segunda), enviados direto a quem interessa.
+    const extras = turno === "manha" ? await avisosDaManha(hoje) : 0;
+
     if (notificacoes.length === 0) {
-      return NextResponse.json({ success: true, turno, hoje, despesasCriadas, mensagem: "Nada para avisar." });
+      return NextResponse.json({ success: true, turno, hoje, despesasCriadas, extras, mensagem: "Nada para avisar." });
     }
 
     const aparelhos = await prisma.pushSubscription.findMany({ include: { usuario: { select: { perfil: true, advogadoChave: true, ativo: true } } } });
@@ -100,6 +104,7 @@ export async function POST(request: Request) {
       turno,
       hoje,
       despesasCriadas,
+      extras,
       notificacoes: notificacoes.map((n) => n.title),
       aparelhos: aparelhos.length,
       enviados,

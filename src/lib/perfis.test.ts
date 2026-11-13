@@ -64,3 +64,11 @@ describe("fichas de atendimento", () => {
     expect(podeUsarApi("SECRETARIA", "POST", "/api/fichas")).toBe(true);
   });
 });
+
+describe("integrações", () => {
+  it("só o dono", () => {
+    expect(podeUsarApi("SECRETARIA", "POST", "/api/integracoes/zapsign")).toBe(false);
+    expect(podeVerTela("FINANCEIRO", "/integracoes")).toBe(false);
+    expect(podeVerTela("DONO", "/integracoes")).toBe(true);
+  });
+});

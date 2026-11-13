@@ -54,6 +54,7 @@ const APIS: [string, Perfil[], Perfil[]][] = [
   ["/api/audiencias", TODOS, ESCRITORIO],
   ["/api/peticoes", TODOS, ESCRITORIO],
   ["/api/usuarios", ["DONO"], ["DONO"]],
+  ["/api/integracoes", ["DONO"], ["DONO"]],
   ["/api/push/subscribe", TODOS, TODOS],
   ["/api/login", TODOS, TODOS],
 ];

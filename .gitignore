@@ -49,3 +49,4 @@ next-env.d.ts
 
 # Planilhas com dados do escritório
 *.xlsx
+.env*

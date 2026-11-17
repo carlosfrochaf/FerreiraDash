@@ -122,3 +122,46 @@ export function lerOab(texto: string): { numero: string; uf: string } | null {
 }
 
 const UFS = new Set("AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" "));
+
+// Partes como aparecem no cabeçalho do texto: "AUTOR: FULANO RÉU: EMPRESA LTDA INTIMAÇÃO ...".
+const ATIVO = ["AUTOR", "AUTORA", "RECLAMANTE", "EXEQUENTE", "REQUERENTE", "IMPETRANTE"];
+const AMBIGUO = ["RECORRENTE", "RECORRIDO", "RECORRIDA", "AGRAVANTE", "AGRAVADO", "AGRAVADA", "EMBARGANTE", "EMBARGADO", "EMBARGADA"];
+const PASSIVO = ["RÉU", "REU", "RÉ", "RECLAMADO", "RECLAMADA", "EXECUTADO", "EXECUTADA", "REQUERIDO", "REQUERIDA", "IMPETRADO"];
+const ROTULO = new RegExp(String.raw`(?:^|\s)(${[...ATIVO, ...AMBIGUO, ...PASSIVO].join("|")})(?:\(A\))?\s*:\s*`, "g");
+const FIM = /\s(?:INTIMA[ÇC][ÃA]O|Fica\s|PODER\s|DESPACHO|SENTEN[ÇC]A|DECIS[ÃA]O|EDITAL|NOTIFICA[ÇC][ÃA]O|CERTID[ÃA]O|Relator)/;
+const EMPRESA =
+  /\b(LTDA|S\.?\s?A\.?|S\/A|EIRELI|EPP|MEI|CIA|COMPANHIA|COM[EÉ]RCIO|SERVI[ÇC]OS|IND[ÚU]STRIA|ASSOCIA[ÇC][ÃA]O|MUNIC[ÍI]PIO|ESTADO|UNI[ÃA]O|BANCO|CONDOM[ÍI]NIO|COOPERATIVA|INSTITUTO|FUNDA[ÇC][ÃA]O|EMPRESA|HOSPITAL|LOCA[ÇC][ÃA]O|TRANSPORTES?|INCORPORA[ÇC]|CONSTRU)\b/;
+const MINUSCULAS = new Set(["de", "da", "do", "das", "dos", "e"]);
+
+function nomeBonito(s: string): string {
+  return s
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p, i) => (i > 0 && MINUSCULAS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+    .join(" ");
+}
+
+/** Nome do cliente pelo cabeçalho do texto: a parte autora (ou, em recurso, a pessoa e não a empresa). */
+export function clienteDoTexto(texto: string | null | undefined): string | null {
+  const t = (texto ?? "").replace(/\s+/g, " ").slice(0, 1500);
+  const achados = [...t.matchAll(ROTULO)];
+  const partes: { lado: number; nome: string }[] = [];
+  for (const [i, m] of achados.entries()) {
+    const ini = m.index! + m[0].length;
+    const fimRotulo = achados[i + 1]?.index ?? t.length;
+    let bruto = t.slice(ini, fimRotulo);
+    const corte = FIM.exec(bruto);
+    if (corte) bruto = bruto.slice(0, corte.index);
+    const nome = bruto
+      .replace(/\s+E OUTROS\s*\(\d+\).*$/i, "")
+      .replace(/^[\d.\-/\s]+/, "")
+      .trim();
+    if (!nome) continue;
+    const rotulo = m[1].toUpperCase();
+    const lado = ATIVO.includes(rotulo) ? 0 : AMBIGUO.includes(rotulo) ? 1 : 2;
+    partes.push({ lado, nome });
+  }
+  const pessoa = partes.sort((a, b) => a.lado - b.lado).find((p) => !EMPRESA.test(p.nome.toUpperCase()));
+  return pessoa ? nomeBonito(pessoa.nome) : null;
+}

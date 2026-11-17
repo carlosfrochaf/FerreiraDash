@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ExternalLink, Loader2, RefreshCw, Scale, Undo2 } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Loader2, Pencil, RefreshCw, Scale, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -106,6 +106,19 @@ function CartaoIntimacao({ i }: { i: IntimacaoTela }) {
     });
   }
 
+  function editarCliente() {
+    const nome = prompt("Nome do cliente (vale para todas as intimações deste processo):", i.cliente ?? "")?.trim();
+    if (!nome || nome === i.cliente) return;
+    start(async () => {
+      await fetch(`/api/intimacoes/${i.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clienteNome: nome }),
+      }).catch(() => null);
+      router.refresh();
+    });
+  }
+
   return (
     <Card className={cn(i.lida && "opacity-70")}>
       <CardContent className="space-y-2 p-4">
@@ -115,9 +128,18 @@ function CartaoIntimacao({ i }: { i: IntimacaoTela }) {
               <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", COR[i.tipo])}>{ROTULO_TIPO[i.tipo]}</span>
               <span className="text-xs text-muted-foreground">{formatarDataCurta(i.data)}</span>
             </div>
-            <p className="truncate font-semibold">
-              {i.cliente ?? <span className="text-muted-foreground">Processo sem cliente no app</span>}
-            </p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="truncate font-semibold">{i.cliente ?? <span className="text-muted-foreground">Cliente não identificado</span>}</p>
+              <button
+                type="button"
+                onClick={editarCliente}
+                disabled={pending}
+                aria-label={i.cliente ? `Editar o nome do cliente ${i.cliente}` : "Colocar o nome do cliente"}
+                className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <p className="truncate text-xs text-muted-foreground">{[i.processo, i.orgao].filter(Boolean).join(" · ")}</p>
           </div>
           <Button type="button" size="sm" variant={i.lida ? "ghost" : "outline"} disabled={pending} onClick={() => marcar(!i.lida)} className="shrink-0">

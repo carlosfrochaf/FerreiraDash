@@ -1,7 +1,7 @@
 // Busca as intimações no Diário de Justiça Eletrônico Nacional e grava as novas. Só no servidor.
 import { prisma } from "./prisma";
 import { dataParaDb } from "./datas";
-import { ROTULO_TIPO, resumoDoDia, semRepetidas, tipoDaIntimacao, vincularProcesso, type ComunicacaoCnj, type TipoIntimacao } from "./intimacoes";
+import { ROTULO_TIPO, clienteDoTexto, resumoDoDia, semRepetidas, tipoDaIntimacao, vincularProcesso, type ComunicacaoCnj, type TipoIntimacao } from "./intimacoes";
 
 const API = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
 const POR_PAGINA = 100;
@@ -39,6 +39,27 @@ async function buscarDaOab(oab: { numero: string; uf: string }, de: string, ate:
   return todas;
 }
 
+async function carregarProcessos() {
+  const [causas, audiencias, peticoes] = await Promise.all([
+    prisma.recebimento.findMany({ where: { processoNumero: { not: null } }, select: { id: true, processoNumero: true, clienteNome: true } }),
+    prisma.audiencia.findMany({ where: { processoNumero: { not: null } }, select: { processoNumero: true, clienteNome: true } }),
+    prisma.peticao.findMany({ where: { processoNumero: { not: null } }, select: { processoNumero: true, clienteNome: true } }),
+  ]);
+  return { causas, outros: [...audiencias, ...peticoes] };
+}
+
+/** Intimações já gravadas sem cliente: tenta de novo pelo app (causa cadastrada depois) e pelo texto. */
+async function completarClientes() {
+  const sem = await prisma.intimacao.findMany({ where: { clienteNome: null }, select: { id: true, numeroProcesso: true, texto: true }, take: 300 });
+  if (sem.length === 0) return;
+  const { causas, outros } = await carregarProcessos();
+  for (const i of sem) {
+    const v = vincularProcesso(i.numeroProcesso, causas, outros);
+    const clienteNome = v.clienteNome ?? clienteDoTexto(i.texto);
+    if (clienteNome) await prisma.intimacao.update({ where: { id: i.id }, data: { clienteNome, recebimentoId: v.recebimentoId ?? undefined } });
+  }
+}
+
 export type IntimacaoNova = { tipo: TipoIntimacao; cliente: string | null; processo: string };
 
 export type ResultadoBusca = {
@@ -62,6 +83,7 @@ export async function sincronizarIntimacoes(hoje: string): Promise<ResultadoBusc
     }
   }
   const falhou = falhas === OABS.length;
+  await completarClientes().catch((e) => console.error("[intimacoes] completar clientes", e));
   const primeiraCarga = (await prisma.intimacao.count()) === 0;
   const unicas = semRepetidas(brutas);
   if (unicas.length === 0) return { novas: [], falhou, primeiraCarga };
@@ -72,17 +94,14 @@ export async function sincronizarIntimacoes(hoje: string): Promise<ResultadoBusc
   const faltam = unicas.filter((u) => !existentes.has(u.chave));
   if (faltam.length === 0) return { novas: [], falhou, primeiraCarga };
 
-  const [causas, audiencias, peticoes] = await Promise.all([
-    prisma.recebimento.findMany({ where: { processoNumero: { not: null } }, select: { id: true, processoNumero: true, clienteNome: true } }),
-    prisma.audiencia.findMany({ where: { processoNumero: { not: null } }, select: { processoNumero: true, clienteNome: true } }),
-    prisma.peticao.findMany({ where: { processoNumero: { not: null } }, select: { processoNumero: true, clienteNome: true } }),
-  ]);
-  const outros = [...audiencias, ...peticoes];
+  const { causas, outros } = await carregarProcessos();
 
   const novas: IntimacaoNova[] = [];
   for (const c of faltam) {
     const tipo = tipoDaIntimacao(c);
     const v = vincularProcesso(c.numero_processo, causas, outros);
+    // Processo que não está no app: o nome sai do próprio texto (parte autora).
+    const clienteNome = v.clienteNome ?? clienteDoTexto(c.texto);
     try {
       await prisma.intimacao.create({
         data: {
@@ -98,11 +117,11 @@ export async function sincronizarIntimacoes(hoje: string): Promise<ResultadoBusc
           tipoDocumento: c.tipoDocumento ?? null,
           texto: c.texto ?? "",
           link: c.link ?? null,
-          clienteNome: v.clienteNome,
+          clienteNome,
           recebimentoId: v.recebimentoId,
         },
       });
-      novas.push({ tipo, cliente: v.clienteNome, processo: c.numeroprocessocommascara ?? c.numero_processo });
+      novas.push({ tipo, cliente: clienteNome, processo: c.numeroprocessocommascara ?? c.numero_processo });
     } catch (e) {
       // Outra busca gravou a mesma ao mesmo tempo: tudo bem.
       if ((e as { code?: string }).code !== "P2002") throw e;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chaveIntimacao, lerOab, resumoDoDia, semRepetidas, tipoDaIntimacao, vincularProcesso, type ComunicacaoCnj } from "./intimacoes";
+import { chaveIntimacao, clienteDoTexto, lerOab, resumoDoDia, semRepetidas, tipoDaIntimacao, vincularProcesso, type ComunicacaoCnj } from "./intimacoes";
 
 const c = (o: Partial<ComunicacaoCnj>): ComunicacaoCnj => ({
   id: "1",
@@ -78,5 +78,21 @@ describe("lerOab", () => {
   it("recusa UF inválida ou número curto", () => {
     expect(lerOab("148002/XX")).toBeNull();
     expect(lerOab("12/MG")).toBeNull();
+  });
+});
+
+describe("clienteDoTexto", () => {
+  it("autor / reclamante", () => {
+    expect(clienteDoTexto("ATSum 0010675-61.2026.5.03.0047 AUTOR: CARLA POLIANA SILVA RÉU: SOUSA FISHCULTURE LTDA INTIMAÇÃO Fica")).toBe("Carla Poliana Silva");
+    expect(clienteDoTexto("RECLAMANTE: JOÃO DA SILVA RECLAMADO: X S.A. INTIMAÇÃO")).toBe("João da Silva");
+  });
+  it("recurso: a pessoa, não a empresa", () => {
+    expect(clienteDoTexto("ROT 0010086 RECORRENTE: MOTTU LOCACAO DE VEICULOS LTDA. RECORRIDO: THIAGO LIMA DE JESUS INTIMAÇÃO Fica")).toBe("Thiago Lima de Jesus");
+  });
+  it("réu pessoa física não confunde (pega o autor)", () => {
+    expect(clienteDoTexto("AUTOR: MATHEUS DE LIMA OLIVEIRA RÉU: 40.252.714 NIVALDO ANTUNES DE FREITAS INTIMAÇÃO")).toBe("Matheus de Lima Oliveira");
+  });
+  it("sem partes no texto", () => {
+    expect(clienteDoTexto("Certifico que foram disponibilizados valores")).toBeNull();
   });
 });

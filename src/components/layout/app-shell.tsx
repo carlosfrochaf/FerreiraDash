@@ -11,13 +11,13 @@ const navItems = [
   { href: "/", label: "Início", icon: Home },
   { href: "/lancamentos/novo", label: "Lançar", icon: PlusCircle },
   { href: "/recebimentos", label: "Recebimentos", icon: HandCoins },
-  { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: "/peticoes" },
+  { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: ["/peticoes", "/intimacoes"] },
   { href: "/despesas", label: "Despesas", icon: Wallet },
 ];
 
-function ativo(pathname: string, href: string, tambem?: string) {
+function ativo(pathname: string, href: string, tambem?: string[]) {
   if (href === "/") return pathname === "/";
-  return pathname.startsWith(href) || (!!tambem && pathname.startsWith(tambem));
+  return pathname.startsWith(href) || !!tambem?.some((t) => pathname.startsWith(t));
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {

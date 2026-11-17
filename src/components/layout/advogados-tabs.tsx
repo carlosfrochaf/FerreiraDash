@@ -4,15 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-/** Alterna entre Audiências e Petições (os dois tipos de pagamento a advogados). */
+/** Alterna entre Audiências, Petições e Intimações. */
 export function AdvogadosTabs() {
   const pathname = usePathname();
   const abas = [
     { href: "/audiencias", label: "Audiências" },
     { href: "/peticoes", label: "Petições" },
+    { href: "/intimacoes", label: "Intimações" },
   ];
   return (
-    <nav className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid sm:w-80" aria-label="Advogados">
+    <nav className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid sm:w-[26rem]" aria-label="Advogados">
       {abas.map((a) => {
         const ativo = pathname.startsWith(a.href);
         return (

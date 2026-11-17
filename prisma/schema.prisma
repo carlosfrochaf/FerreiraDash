@@ -176,7 +176,8 @@ model Recebimento {
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
-  parcelas Parcela[]
+  parcelas   Parcela[]
+  intimacoes Intimacao[]
 
   @@index([processoId])
   @@map("recebimentos")
@@ -308,4 +309,40 @@ model DespesaRecorrente {
 
   @@index([ativa])
   @@map("despesas_recorrentes")
+}
+
+enum TipoIntimacao {
+  SENTENCA
+  ACORDAO
+  DECISAO
+  DESPACHO
+  AUDIENCIA
+  OUTRA
+}
+
+/// Intimação publicada no Diário de Justiça Eletrônico Nacional (API de comunicações do CNJ).
+model Intimacao {
+  id              String        @id @default(cuid())
+  /// Processo + data + documento: impede repetir a mesma publicação.
+  chave           String        @unique
+  comunicacaoId   String        @map("comunicacao_id")
+  numeroProcesso  String        @map("numero_processo")
+  processoMascara String?       @map("processo_mascara")
+  data            DateTime      @db.Date
+  tipo            TipoIntimacao
+  tribunal        String?
+  orgao           String?
+  classe          String?
+  tipoDocumento   String?       @map("tipo_documento")
+  texto           String
+  link            String?
+  clienteNome     String?       @map("cliente_nome")
+  recebimentoId   String?       @map("recebimento_id")
+  recebimento     Recebimento?  @relation(fields: [recebimentoId], references: [id], onDelete: SetNull)
+  lidaEm          DateTime?     @map("lida_em")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([data])
+  @@index([numeroProcesso])
+  @@map("intimacoes")
 }

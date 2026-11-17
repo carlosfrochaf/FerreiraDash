@@ -4,6 +4,7 @@ import { StatusPagamento, StatusPeticao, StatusRecebimento, StatusRepasse, Statu
 import { prisma } from "@/lib/prisma";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
 import { gerarDespesasRecorrentes } from "@/lib/despesas-recorrentes";
+import { avisoDasIntimacoes, sincronizarIntimacoes } from "@/lib/intimacoes-servico";
 import { agruparAdvogados, ehSexta, montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type DadosDoDia, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
 
 export const dynamic = "force-dynamic";
@@ -35,10 +36,15 @@ export async function POST(request: Request) {
     const hoje = hojeSaoPaulo();
 
     let notificacoes: Notificacao[];
-    let turno: Turno | "teste";
+    let turno: Turno | "teste" | "intimacoes";
     let despesasCriadas = 0;
 
-    if (param === "teste") {
+    if (param === "intimacoes") {
+      // De hora em hora: avisa na hora só quando chega intimação nova (Diário de Justiça Eletrônico Nacional).
+      turno = "intimacoes";
+      const aviso = avisoDasIntimacoes(await sincronizarIntimacoes(hoje));
+      notificacoes = aviso ? [aviso] : [];
+    } else if (param === "teste") {
       turno = "teste";
       notificacoes = [{ title: "Notificações funcionando ✅", body: "Você vai receber os avisos às 8h e às 19h.", url: "/", tag: "teste" }];
     } else {

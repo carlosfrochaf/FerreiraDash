@@ -43,6 +43,10 @@ select cron.schedule('notif-acordar-noite', '55,58 21 * * *',
   $$select net.http_get('https://ferreiradash.onrender.com/login', timeout_milliseconds := 90000)$$);
 select cron.schedule('notif-noite', '0 22 * * *', $$select public.disparar_notificacoes('noite')$$);
 
+-- Intimações (Diário de Justiça Eletrônico Nacional): de hora em hora, das 8h30 às 19h30, em dia útil.
+-- Avisa na hora só quando chega intimação nova; no meio da hora para não somar com os avisos das 8h e 19h.
+select cron.schedule('notif-intimacoes', '30 11-22 * * 1-5', $$select public.disparar_notificacoes('intimacoes')$$);
+
 -- Conferir:
 --   select jobname, schedule, active from cron.job;
 --   select status, return_message, start_time from cron.job_run_details order by start_time desc limit 10;

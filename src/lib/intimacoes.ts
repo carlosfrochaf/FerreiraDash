@@ -153,10 +153,15 @@ export function clienteDoTexto(texto: string | null | undefined): string | null 
     let bruto = t.slice(ini, fimRotulo);
     const corte = FIM.exec(bruto);
     if (corte) bruto = bruto.slice(0, corte.index);
-    const nome = bruto
+    // O nome vem todo em maiúsculas: para na primeira palavra com minúscula ("Ficam as partes...").
+    const palavras = bruto.trim().split(" ");
+    const fimNome = palavras.findIndex((p) => p !== p.toUpperCase());
+    const nome = (fimNome === -1 ? palavras : palavras.slice(0, fimNome))
+      .join(" ")
       .replace(/\s+E OUTROS\s*\(\d+\).*$/i, "")
       .replace(/^[\d.\-/\s]+/, "")
-      .trim();
+      .trim()
+      .slice(0, 120);
     if (!nome) continue;
     const rotulo = m[1].toUpperCase();
     const lado = ATIVO.includes(rotulo) ? 0 : AMBIGUO.includes(rotulo) ? 1 : 2;

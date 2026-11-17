@@ -92,6 +92,9 @@ describe("clienteDoTexto", () => {
   it("réu pessoa física não confunde (pega o autor)", () => {
     expect(clienteDoTexto("AUTOR: MATHEUS DE LIMA OLIVEIRA RÉU: 40.252.714 NIVALDO ANTUNES DE FREITAS INTIMAÇÃO")).toBe("Matheus de Lima Oliveira");
   });
+  it("acórdão sem marcador de fim: para no fim do nome", () => {
+    expect(clienteDoTexto("RECORRENTE: CELULOSE NIPO BRASILEIRA S A CENIBRA RECORRIDO: MARCIO DA SILVA MACHADO Ficam as partes intimadas do Acórdão")).toBe("Marcio da Silva Machado");
+  });
   it("sem partes no texto", () => {
     expect(clienteDoTexto("Certifico que foram disponibilizados valores")).toBeNull();
   });

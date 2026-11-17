@@ -23,6 +23,10 @@ export function OabsCard({ oabs }: { oabs: { id: string; numero: string; uf: str
       const j = await res?.json().catch(() => ({}));
       if (!res?.ok) return setMsg({ ok: false, texto: j?.error ?? "Não foi possível agora." });
       setOab("");
+      if (j.falhou) {
+        setMsg({ ok: false, texto: "OAB cadastrada, mas o Diário da Justiça não respondeu agora. O app tenta de novo amanhã cedo, ou use “Buscar agora” em Intimações." });
+        return router.refresh();
+      }
       setMsg({ ok: true, texto: j.novas > 0 ? `Pronto. ${j.novas} intimações da última semana já estão em Intimações.` : "Pronto. As intimações chegam a partir de agora." });
       router.refresh();
     });

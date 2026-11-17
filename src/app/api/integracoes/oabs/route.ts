@@ -18,7 +18,8 @@ export async function POST(request: Request) {
     console.error("[intimacoes] primeira busca", e);
     return null;
   });
-  return NextResponse.json({ ok: true, novas: r?.novas.length ?? 0 });
+  const falhou = !r || r.falhas.length > 0;
+  return NextResponse.json({ ok: true, novas: r?.novas.length ?? 0, falhou });
 }
 
 export async function DELETE(request: Request) {

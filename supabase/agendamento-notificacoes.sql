@@ -25,7 +25,7 @@ begin
     raise exception 'Falta o segredo cron_secret no Vault do Supabase.';
   end if;
   return net.http_post(
-    url := 'https://ferreiradash.onrender.com/api/push/send-notifications?turno=' || turno,
+    url := 'https://ferreiradash-teste.vercel.app/api/push/send-notifications?turno=' || turno,
     headers := jsonb_build_object('Authorization', 'Bearer ' || segredo),
     timeout_milliseconds := 120000
   );
@@ -36,11 +36,11 @@ revoke all on function public.disparar_notificacoes(text) from public, anon, aut
 
 -- O plano gratuito do Render "dorme": acorda o servidor 5 e 2 minutos antes de cada aviso.
 select cron.schedule('notif-acordar-manha', '55,58 10 * * *',
-  $$select net.http_get('https://ferreiradash.onrender.com/login', timeout_milliseconds := 90000)$$);
+  $$select net.http_get('https://ferreiradash-teste.vercel.app/login', timeout_milliseconds := 90000)$$);
 select cron.schedule('notif-manha', '0 11 * * *', $$select public.disparar_notificacoes('manha')$$);
 
 select cron.schedule('notif-acordar-noite', '55,58 21 * * *',
-  $$select net.http_get('https://ferreiradash.onrender.com/login', timeout_milliseconds := 90000)$$);
+  $$select net.http_get('https://ferreiradash-teste.vercel.app/login', timeout_milliseconds := 90000)$$);
 select cron.schedule('notif-noite', '0 22 * * *', $$select public.disparar_notificacoes('noite')$$);
 
 -- Conferir:

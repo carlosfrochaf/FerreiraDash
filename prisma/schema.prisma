@@ -181,7 +181,8 @@ model Recebimento {
   cliente    Cliente?    @relation(fields: [clienteId], references: [id], onDelete: SetNull)
   documentos Documento[]
 
-  fichas Ficha[]
+  fichas     Ficha[]
+  intimacoes Intimacao[]
 
   @@index([processoId])
   @@index([clienteId])
@@ -374,6 +375,7 @@ model Cliente {
 
   fichas       Ficha[]
   recebimentos Recebimento[]
+  intimacoes   Intimacao[]
   audiencias   Audiencia[]
   peticoes     Peticao[]
   documentos   Documento[]
@@ -494,4 +496,54 @@ model ModeloMensagem {
   updatedAt DateTime        @updatedAt @map("updated_at")
 
   @@map("modelos_mensagem")
+}
+
+/// OAB cujas intimações o app busca no Diário de Justiça Eletrônico Nacional (CNJ).
+model OabAcompanhada {
+  id        String   @id @default(cuid())
+  numero    String
+  uf        String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([numero, uf])
+  @@map("oabs_acompanhadas")
+}
+
+enum TipoIntimacao {
+  SENTENCA
+  ACORDAO
+  DECISAO
+  DESPACHO
+  AUDIENCIA
+  OUTRA
+}
+
+/// Intimação publicada no DJEN, uma por publicação (cópias para cada advogado viram uma só).
+model Intimacao {
+  id              String        @id @default(cuid())
+  /// Processo + data + documento: impede repetir a mesma publicação.
+  chave           String        @unique
+  comunicacaoId   String        @map("comunicacao_id")
+  numeroProcesso  String        @map("numero_processo")
+  processoMascara String?       @map("processo_mascara")
+  data            DateTime      @db.Date
+  tipo            TipoIntimacao
+  tribunal        String?
+  orgao           String?
+  classe          String?
+  tipoDocumento   String?       @map("tipo_documento")
+  texto           String
+  link            String?
+  clienteId       String?       @map("cliente_id")
+  cliente         Cliente?      @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  recebimentoId   String?       @map("recebimento_id")
+  recebimento     Recebimento?  @relation(fields: [recebimentoId], references: [id], onDelete: SetNull)
+  lidaEm          DateTime?     @map("lida_em")
+  lidaPorId       String?       @map("lida_por_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([data])
+  @@index([clienteId])
+  @@index([numeroProcesso])
+  @@map("intimacoes")
 }

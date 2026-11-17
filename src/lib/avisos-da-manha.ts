@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { dataDoDb, dataParaDb } from "./datas";
 import { avisarUsuarios, avisarAdvogado } from "./fichas-servico";
 import { ehSegunda, fichasParadas, montarResumoSemanal } from "./resumo-semanal";
+import { avisarIntimacoesNovas, sincronizarIntimacoes } from "./intimacoes-servico";
 
 function somarDias(data: string, n: number): string {
   const d = new Date(`${data}T12:00:00Z`);
@@ -73,6 +74,12 @@ async function enviarResumoSemanal(hoje: string): Promise<number> {
 /** Roda no aviso da manhã. Falha num não impede o outro. */
 export async function avisosDaManha(hoje: string): Promise<number> {
   let n = 0;
+  try {
+    const r = await sincronizarIntimacoes(hoje);
+    n += await avisarIntimacoesNovas(r.novas);
+  } catch (e) {
+    console.error("[avisos] intimações", e);
+  }
   try {
     n += await avisarFichasParadas(hoje);
   } catch (e) {

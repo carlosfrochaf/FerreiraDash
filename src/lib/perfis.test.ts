@@ -81,3 +81,17 @@ describe("mensagens", () => {
     expect(podeUsarApi("FINANCEIRO", "GET", "/api/mensagens")).toBe(false);
   });
 });
+
+describe("intimações", () => {
+  it("dono, secretária e advogado veem; financeiro não", () => {
+    expect(podeVerTela("SECRETARIA", "/intimacoes")).toBe(true);
+    expect(podeVerTela("ADVOGADO", "/intimacoes")).toBe(true);
+    expect(podeVerTela("FINANCEIRO", "/intimacoes")).toBe(false);
+    expect(podeUsarApi("ADVOGADO", "PATCH", "/api/intimacoes/x")).toBe(true);
+    expect(podeUsarApi("FINANCEIRO", "POST", "/api/intimacoes/buscar")).toBe(false);
+  });
+  it("só o dono cadastra OAB", () => {
+    expect(podeUsarApi("DONO", "POST", "/api/integracoes/oabs")).toBe(true);
+    expect(podeUsarApi("SECRETARIA", "POST", "/api/integracoes/oabs")).toBe(false);
+  });
+});

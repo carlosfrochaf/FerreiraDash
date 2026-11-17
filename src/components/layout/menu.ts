@@ -8,6 +8,7 @@ import {
   Settings2,
   UserCog,
   Plug,
+  Scale,
   MessageSquareText,
   Users,
   Wallet,
@@ -35,6 +36,7 @@ export const SECOES: SecaoMenu[] = [
   {
     titulo: "Advogados",
     itens: [
+      { href: "/intimacoes", label: "Intimações", icon: Scale },
       { href: "/audiencias", label: "Audiências", icon: CalendarClock },
       { href: "/peticoes", label: "Petições", icon: FileSignature },
       { href: "/meus-pagamentos", label: "Meus pagamentos", icon: WalletCards },

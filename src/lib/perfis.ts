@@ -23,6 +23,7 @@ const TODOS = PERFIS;
 const FIN: Perfil[] = ["DONO", "FINANCEIRO"];
 const ESCRITORIO: Perfil[] = ["DONO", "FINANCEIRO", "SECRETARIA"];
 const CADASTRO: Perfil[] = ["DONO", "SECRETARIA"];
+const JURIDICO: Perfil[] = ["DONO", "SECRETARIA", "ADVOGADO"];
 
 /** Telas por prefixo. Vale o prefixo mais longo que casar; o que não estiver aqui é só do dono. */
 const TELAS: [string, Perfil[]][] = [
@@ -39,6 +40,7 @@ const TELAS: [string, Perfil[]][] = [
   ["/meus-pagamentos", ["ADVOGADO"]],
   ["/usuarios", ["DONO"]],
   ["/mensagens", CADASTRO],
+  ["/intimacoes", JURIDICO],
 ];
 
 /** Rotas da API: [prefixo, quem lê (GET), quem escreve]. */
@@ -57,6 +59,8 @@ const APIS: [string, Perfil[], Perfil[]][] = [
   ["/api/usuarios", ["DONO"], ["DONO"]],
   ["/api/integracoes", ["DONO"], ["DONO"]],
   ["/api/mensagens", CADASTRO, CADASTRO],
+  // O advogado só alcança as intimações dos clientes dele (`filtroIntimacoesDoUsuario`).
+  ["/api/intimacoes", JURIDICO, JURIDICO],
   ["/api/push/subscribe", TODOS, TODOS],
   ["/api/login", TODOS, TODOS],
 ];

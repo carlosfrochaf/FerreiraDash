@@ -6,6 +6,7 @@ import { FileText, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { arquivoAceito } from "@/lib/documentos";
 import { paraPdf } from "@/lib/pdf-imagem";
+import { enviarDocumento } from "@/lib/enviar-documento";
 
 /** Arquivo da petição: abre os já enviados e envia um novo (vai para os documentos do cliente como "Petição"). */
 export function ArquivoPeticao({
@@ -34,14 +35,8 @@ export function ArquivoPeticao({
       const problema = arquivoAceito(pdf.type, pdf.size);
       if (problema) throw new Error(`${pdf.name}: ${problema}`);
       setStatus("Enviando…");
-      const fd = new FormData();
-      fd.append("arquivo", pdf);
-      fd.append("clienteId", clienteId);
-      fd.append("peticaoId", peticaoId);
-      const res = await fetch("/api/documentos", { method: "POST", body: fd }).catch(() => null);
-      const d = await res?.json().catch(() => ({}));
-      if (!res?.ok) throw new Error(typeof d?.error === "string" ? d.error : "Não foi possível enviar o arquivo.");
-      setLista((l) => [{ id: d.id, nome: pdf.name }, ...l]);
+      const id = await enviarDocumento(pdf, { clienteId, peticaoId });
+      setLista((l) => [{ id, nome: pdf.name }, ...l]);
       router.refresh();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível enviar o arquivo.");

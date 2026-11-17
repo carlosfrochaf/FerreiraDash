@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { CampoEscolha } from "@/components/ui/campo-escolha";
 import { formatarDataCurta } from "@/lib/datas";
 import { ehImagem, paraPdf } from "@/lib/pdf-imagem";
+import { enviarDocumento } from "@/lib/enviar-documento";
 import {
   arquivoAceito,
   documentosFaltando,
@@ -112,21 +113,15 @@ export function DocumentosCliente({
         continue;
       }
       setEnviando(`Enviando ${i + 1} de ${arquivos.length}…`);
-      const fd = new FormData();
-      fd.append("arquivo", a);
-      fd.append("clienteId", clienteId);
-      fd.append("tipo", tipo);
-      if (causa) fd.append("recebimentoId", causa);
-      const res = await fetch("/api/documentos", {
-        method: "POST",
-        body: fd,
-      }).catch(() => null);
-      if (!res?.ok) {
-        const d = await res?.json().catch(() => ({}));
+      try {
+        await enviarDocumento(a, {
+          clienteId,
+          tipo,
+          recebimentoId: causa || null,
+        });
+      } catch (e) {
         erros.push(
-          typeof d?.error === "string"
-            ? d.error
-            : `${a.name}: não foi enviado.`,
+          e instanceof Error ? e.message : `${a.name}: não foi enviado.`,
         );
       }
     }

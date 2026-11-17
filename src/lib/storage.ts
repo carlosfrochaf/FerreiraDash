@@ -43,6 +43,35 @@ export async function enviarArquivo(caminho: string, arquivo: Blob, mime: string
   if (!res.ok) throw new Error(`Falha ao guardar o arquivo (${res.status}).`);
 }
 
+/** Link para o navegador mandar o arquivo direto ao Storage (PUT, vale 2 horas, não sobrescreve). */
+export async function linkDeEnvio(caminho: string): Promise<string> {
+  const { base, headers } = cfg();
+  const pedir = () => fetch(`${base}/object/upload/sign/${BUCKET}/${caminhoUrl(caminho)}`, { method: "POST", headers });
+  let res = await pedir();
+  if (res.status === 404 || res.status === 400) {
+    await criarBucketSeFaltar();
+    res = await pedir();
+  }
+  if (!res.ok) throw new Error(`Falha ao preparar o envio (${res.status}).`);
+  const { url } = (await res.json()) as { url: string };
+  return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+/** Tamanho do arquivo guardado, ou null se ele não existe. */
+export async function tamanhoGuardado(caminho: string): Promise<number | null> {
+  const { base, headers } = cfg();
+  const i = caminho.lastIndexOf("/");
+  const res = await fetch(`${base}/object/list/${BUCKET}`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: caminho.slice(0, i), search: caminho.slice(i + 1), limit: 5 }),
+  });
+  if (!res.ok) throw new Error(`Falha ao conferir o arquivo (${res.status}).`);
+  const lista = (await res.json()) as { name: string; metadata?: { size?: number } | null }[];
+  const achado = lista.find((o) => o.name === caminho.slice(i + 1));
+  return achado ? Number(achado.metadata?.size ?? 0) : null;
+}
+
 /** Link temporário para abrir/baixar o arquivo. */
 export async function linkAssinado(caminho: string, nomeParaBaixar?: string, segundos = 300): Promise<string> {
   const { base, headers } = cfg();

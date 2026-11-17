@@ -19,6 +19,8 @@ import {
   type FichaDados,
 } from "@/lib/ficha";
 import type { FichaSerializada } from "@/lib/fichas-servico";
+import { mesclarConversa, type Extracao } from "@/lib/conversa-ficha";
+import { PreencherPelaConversa } from "./preencher-conversa";
 import type { ClienteSerializado } from "@/lib/clientes-servico";
 import {
   BLOCOS,
@@ -209,6 +211,8 @@ export function FichaForm({
   causas,
   podeEditar,
   podeTrocarAdvogado,
+  conversaAtiva = false,
+  audioAtivo = false,
 }: {
   ficha: FichaSerializada;
   cliente: ClienteSerializado;
@@ -217,6 +221,10 @@ export function FichaForm({
   causas: { id: string; titulo: string }[] | null;
   podeEditar: boolean;
   podeTrocarAdvogado: boolean;
+  /** IA configurada: mostra "Preencher pela conversa". */
+  conversaAtiva?: boolean;
+  /** Transcrição configurada: lê os áudios da conversa. */
+  audioAtivo?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -263,6 +271,15 @@ export function FichaForm({
     });
 
   const linkWord = `/api/fichas/${ficha.id}/word`;
+
+  /** Junta o que veio da conversa só nos campos vazios; devolve quantos preencheu. */
+  function receberConversa(e: Extracao): number {
+    const r = mesclarConversa({ dados, cliente: cli, empresa }, e);
+    setDados(r.dados);
+    setCli(r.cliente);
+    setEmpresa(r.empresa);
+    return r.preenchidos;
+  }
 
   /** `word`: salva e baixa a ficha em Word, já com o que está na tela. */
   function salvar(enviar: boolean, word = false) {
@@ -320,6 +337,8 @@ export function FichaForm({
           {!podeEditar && " · só leitura"}
         </p>
       </section>
+
+      {podeEditar && conversaAtiva && <PreencherPelaConversa fichaId={ficha.id} audioAtivo={audioAtivo} aoReceber={receberConversa} />}
 
       <Secao n={0} titulo="Dados do atendimento" aberta>
         <div className="grid gap-3 sm:grid-cols-2">

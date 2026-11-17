@@ -9,6 +9,8 @@ import { serializarFicha } from "@/lib/fichas-servico";
 import { podeEditarFicha } from "@/lib/ficha";
 import { filtroClientesDoUsuario } from "@/lib/acesso-clientes";
 import { FichaForm } from "@/components/fichas/ficha-form";
+import { iaConfigurada } from "@/lib/conversa-ficha-ia";
+import { transcricaoConfigurada } from "@/lib/transcricao";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,8 @@ export default async function FichaPage({ params }: { params: Promise<{ id: stri
         causas={veCausas ? f.cliente.recebimentos.map((r, i) => ({ id: r.id, titulo: r.reclamada ? `Causa × ${r.reclamada}` : `Causa ${i + 1}` })) : null}
         podeEditar={podeEditarFicha(eu, f)}
         podeTrocarAdvogado={eu.perfil !== "ADVOGADO"}
+        conversaAtiva={iaConfigurada()}
+        audioAtivo={transcricaoConfigurada()}
       />
     </div>
   );

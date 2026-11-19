@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ExternalLink, Loader2, Pencil, RefreshCw, Scale, Undo2 } from "lucide-react";
+import { Check, CheckCheck, ChevronDown, ExternalLink, Loader2, Pencil, RefreshCw, Scale, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,7 @@ export function IntimacoesLista({ intimacoes }: { intimacoes: IntimacaoTela[] })
   const router = useRouter();
   const [aba, setAba] = useState<Aba>("novas");
   const [buscando, startBusca] = useTransition();
+  const [marcando, startMarcar] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const novas = intimacoes.filter((i) => !i.lida).length;
   const lista = useMemo(() => (aba === "novas" ? intimacoes.filter((i) => !i.lida) : intimacoes), [aba, intimacoes]);
@@ -47,6 +48,21 @@ export function IntimacoesLista({ intimacoes }: { intimacoes: IntimacaoTela[] })
       const j = await res?.json().catch(() => ({}));
       if (!res?.ok) return setMsg({ ok: false, texto: j?.error ?? "Não foi possível buscar agora." });
       setMsg({ ok: true, texto: j.novas > 0 ? `${j.novas} ${j.novas === 1 ? "intimação nova" : "intimações novas"}.` : "Nenhuma intimação nova." });
+      router.refresh();
+    });
+  }
+
+  function marcarTodas() {
+    const ids = intimacoes.filter((i) => !i.lida).map((i) => i.id);
+    if (!confirm(`Marcar ${ids.length === 1 ? "a intimação não lida" : `as ${ids.length} intimações não lidas`} como lida${ids.length === 1 ? "" : "s"}?`)) return;
+    setMsg(null);
+    startMarcar(async () => {
+      const res = await fetch("/api/intimacoes/lidas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      }).catch(() => null);
+      if (!res?.ok) return setMsg({ ok: false, texto: "Não foi possível marcar agora. Tente de novo." });
       router.refresh();
     });
   }
@@ -72,9 +88,16 @@ export function IntimacoesLista({ intimacoes }: { intimacoes: IntimacaoTela[] })
             </button>
           ))}
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={buscar} disabled={buscando}>
-          {buscando ? <Loader2 className="animate-spin" /> : <RefreshCw />} Buscar agora
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {novas > 0 && (
+            <Button type="button" variant="outline" size="sm" onClick={marcarTodas} disabled={marcando}>
+              {marcando ? <Loader2 className="animate-spin" /> : <CheckCheck />} Marcar todas como lidas
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={buscar} disabled={buscando}>
+            {buscando ? <Loader2 className="animate-spin" /> : <RefreshCw />} Buscar agora
+          </Button>
+        </div>
       </div>
       {msg && <p className={cn("text-sm", msg.ok ? "text-emerald-400" : "text-rose-300")}>{msg.texto}</p>}
 

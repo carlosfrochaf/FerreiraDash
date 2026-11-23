@@ -8,6 +8,7 @@ import {
   FileDown,
   Loader2,
   Save,
+  Search,
   Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/ficha";
 import type { FichaSerializada } from "@/lib/fichas-servico";
 import { mesclarConversa, type Extracao } from "@/lib/conversa-ficha";
+import { buscarCep, buscarCnpj, cepValido, cnpjValido, preencherVazios } from "@/lib/consulta-publica";
 import { PreencherPelaConversa } from "./preencher-conversa";
 import type { ClienteSerializado } from "@/lib/clientes-servico";
 import {
@@ -272,6 +274,42 @@ export function FichaForm({
 
   const linkWord = `/api/fichas/${ficha.id}/word`;
 
+  const [buscando, setBuscando] = useState(false);
+  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  /** Busca a empresa pelo CNPJ (BrasilAPI) e preenche só o que está vazio. */
+  async function buscarEmpresa() {
+    const cnpj = cnpjValido(String(dados.empresa?.cnpj ?? ""));
+    if (!cnpj) return setAviso({ ok: false, texto: "CNPJ inválido. Confira os números." });
+    setBuscando(true);
+    setAviso(null);
+    const r = await buscarCnpj(cnpj);
+    setBuscando(false);
+    if (r === "nao-achou") return setAviso({ ok: false, texto: "CNPJ não encontrado na Receita." });
+    if (r === "falhou") return setAviso({ ok: false, texto: "A consulta não respondeu agora. Tente de novo." });
+    const bloco = preencherVazios((dados.empresa ?? {}) as Record<string, Valor>, {
+      nomeFantasia: r.nomeFantasia,
+      endereco: r.endereco,
+      telefones: r.telefones,
+      email: r.email,
+    });
+    const novaRazao = !empresa.trim() && r.razaoSocial;
+    setDados((d) => ({ ...d, empresa: bloco.valores as FichaDados["empresa"] }));
+    if (novaRazao) setEmpresa(r.razaoSocial);
+    const n = bloco.preenchidos + (novaRazao ? 1 : 0);
+    setAviso({ ok: true, texto: n ? `Preenchi ${n} campo(s) com os dados da Receita.` : "Os campos já estavam preenchidos; nada foi trocado." });
+  }
+
+  /** CEP do cliente com 8 números: completa endereço e cidade/UF se estiverem vazios. */
+  function mudarCliente(k: string, v: Valor) {
+    setCli((c) => ({ ...c, [k]: v }));
+    const cep = k === "cep" ? cepValido(String(v ?? "")) : null;
+    if (!cep) return;
+    buscarCep(cep).then((r) => {
+      if (r) setCli((c) => preencherVazios(c, r).valores);
+    });
+  }
+
   /** Junta o que veio da conversa só nos campos vazios; devolve quantos preencheu. */
   function receberConversa(e: Extracao): number {
     const r = mesclarConversa({ dados, cliente: cli, empresa }, e);
@@ -409,7 +447,7 @@ export function FichaForm({
         <Grade
           campos={CAMPOS_CLIENTE}
           valores={cli}
-          set={(k, v) => setCli((c) => ({ ...c, [k]: v }))}
+          set={mudarCliente}
           disabled={off}
         />
       </Secao>
@@ -432,6 +470,14 @@ export function FichaForm({
           set={setBloco("empresa")}
           disabled={off}
         />
+        {!off && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={buscarEmpresa} disabled={buscando}>
+              {buscando ? <Loader2 className="animate-spin" /> : <Search />} Buscar dados pelo CNPJ
+            </Button>
+            {aviso && <span className={`text-xs ${aviso.ok ? "text-emerald-400" : "text-rose-300"}`}>{aviso.texto}</span>}
+          </div>
+        )}
       </Secao>
 
       <Secao n={3} titulo={BLOCOS[1].titulo}>

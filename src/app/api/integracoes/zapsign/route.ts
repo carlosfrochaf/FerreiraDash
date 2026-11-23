@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cadastrarAviso } from "@/lib/zapsign";
-import { configZapsign, ID_ZAPSIGN, trazerAssinados } from "@/lib/zapsign-servico";
+import { configZapsign, ID_ZAPSIGN } from "@/lib/zapsign-servico";
 
 /** Endereço público do app. */
 function enderecoDoApp(request: Request): string {
@@ -10,7 +10,7 @@ function enderecoDoApp(request: Request): string {
   return `${proto}://${host}`;
 }
 
-/** Conecta: cadastra o aviso no ZapSign para este endereço e traz os contratos já assinados (sem aviso no celular). */
+/** Conecta: cadastra o aviso no ZapSign para este endereço (uma vez por endereço). */
 export async function POST(request: Request) {
   const z = configZapsign();
   if (!z) return NextResponse.json({ error: "Falta colocar a chave ZAPSIGN_TOKEN na Vercel." }, { status: 503 });
@@ -27,9 +27,6 @@ export async function POST(request: Request) {
     }
     await prisma.integracao.upsert({ where: { id: ID_ZAPSIGN }, create: { id: ID_ZAPSIGN, url }, update: { url, conectadoEm: new Date() } });
   }
-  const trazidos = await trazerAssinados(z.token).catch((e) => {
-    console.error("[zapsign] trazer assinados", e);
-    return 0;
-  });
-  return NextResponse.json({ ok: true, trazidos });
+  // Os já assinados antes de conectar não entram: só os novos, pelo aviso.
+  return NextResponse.json({ ok: true, trazidos: 0 });
 }

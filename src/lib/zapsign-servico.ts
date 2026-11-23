@@ -2,7 +2,7 @@
 import { TipoContato } from "@prisma/client";
 import { prisma } from "./prisma";
 import { avisarTodos } from "./push";
-import { arquivosDoEnvio, chaveTelefone, detalharDocumento, escolherCliente, listarDocumentos, segredoDoAviso, type ZapDocumento } from "./zapsign";
+import { arquivosDoEnvio, chaveTelefone, detalharDocumento, escolherCliente, segredoDoAviso, type ZapDocumento } from "./zapsign";
 
 export const ID_ZAPSIGN = "zapsign";
 
@@ -46,7 +46,7 @@ async function contatoDoCliente(p: NonNullable<ReturnType<typeof escolherCliente
 export type Resultado = { situacao: "ignorado" | "pronto"; motivo?: string; id?: string };
 
 /** Grava um envio já assinado. Seguro para repetir: o mesmo envio nunca entra duas vezes. */
-async function gravar(doc: ZapDocumento, avisar: boolean): Promise<Resultado> {
+async function gravar(doc: ZapDocumento): Promise<Resultado> {
   if (doc.status !== "signed") return { situacao: "ignorado", motivo: "ainda não assinado por todos" };
   const pessoa = escolherCliente(doc.signers ?? []);
   if (!pessoa) return { situacao: "ignorado", motivo: "sem signatário" };
@@ -67,8 +67,6 @@ async function gravar(doc: ZapDocumento, avisar: boolean): Promise<Resultado> {
         contatoId,
         arquivos: arquivosDoEnvio(doc),
         assinadoEm: new Date(),
-        // Os que vieram na primeira carga não aparecem como novos.
-        vistoEm: avisar ? null : new Date(),
       },
       select: { id: true },
     });
@@ -77,34 +75,13 @@ async function gravar(doc: ZapDocumento, avisar: boolean): Promise<Resultado> {
     if ((e as { code?: string }).code === "P2002") return { situacao: "ignorado", motivo: "já recebido" };
     throw e;
   }
-  if (avisar) {
-    await avisarTodos([{ title: "✍️ Contrato assinado", body: pessoa.nome, url: "/contratos", tag: `zapsign-${doc.token}` }]).catch((err) =>
-      console.error("[zapsign] aviso", err),
-    );
-  }
+  await avisarTodos([{ title: "✍️ Contrato assinado", body: pessoa.nome, url: "/contratos", tag: `zapsign-${doc.token}` }]).catch((err) =>
+    console.error("[zapsign] aviso", err),
+  );
   return { situacao: "pronto", id: criado.id };
 }
 
 /** Aviso do ZapSign: não confia no corpo, consulta o envio pela API. */
 export async function processarAssinatura(token: string, docToken: string): Promise<Resultado> {
-  return gravar(await detalharDocumento(token, docToken), true);
-}
-
-/** Ao conectar: traz os envios já assinados das últimas páginas, sem aviso no celular. */
-export async function trazerAssinados(token: string, paginas = 3): Promise<number> {
-  let n = 0;
-  for (let p = 1; p <= paginas; p++) {
-    const lista = await listarDocumentos(token, p);
-    for (const d of lista.results ?? []) {
-      if (d.status !== "signed") continue;
-      // A lista não traz signatários e arquivos completos: consulta cada um.
-      const r = await gravar(await detalharDocumento(token, d.token), false).catch((e) => {
-        console.error("[zapsign] trazer", d.token, e);
-        return null;
-      });
-      if (r?.situacao === "pronto") n++;
-    }
-    if (!lista.next) break;
-  }
-  return n;
+  return gravar(await detalharDocumento(token, docToken));
 }

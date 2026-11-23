@@ -83,11 +83,6 @@ export function detalharDocumento(token: string, docToken: string) {
   return chamar<ZapDocumento>(token, `/docs/${encodeURIComponent(docToken)}/`);
 }
 
-/** Uma página da lista de envios (mais recentes primeiro). */
-export function listarDocumentos(token: string, pagina: number) {
-  return chamar<{ results?: ZapDocumento[]; next?: string | null }>(token, `/docs/?page=${pagina}`);
-}
-
 /** Cadastra no ZapSign o aviso de "documento assinado" para a URL do app, com o segredo no cabeçalho. */
 export function cadastrarAviso(token: string, url: string, segredo: string) {
   return chamar<unknown>(token, "/user/company/webhook/", {

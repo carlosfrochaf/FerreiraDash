@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, PenLine, RefreshCw } from "lucide-react";
+import { Loader2, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/** Liga o aviso do ZapSign (uma vez) e traz os contratos já assinados. */
+/** Liga o aviso do ZapSign (uma vez). Só os contratos assinados depois disso entram. */
 export function ConectarZapsign({ configurado, conectadoEm }: { configurado: boolean; conectadoEm: string | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -17,10 +17,7 @@ export function ConectarZapsign({ configurado, conectadoEm }: { configurado: boo
       const res = await fetch("/api/integracoes/zapsign", { method: "POST" }).catch(() => null);
       const j = await res?.json().catch(() => ({}));
       if (!res?.ok) return setMsg({ ok: false, texto: j?.error ?? "Não foi possível conectar agora." });
-      setMsg({
-        ok: true,
-        texto: j.trazidos > 0 ? `Pronto. ${j.trazidos} contrato${j.trazidos === 1 ? "" : "s"} já assinado${j.trazidos === 1 ? "" : "s"} entr${j.trazidos === 1 ? "ou" : "aram"} na lista.` : "Pronto. Os próximos contratos assinados chegam aqui sozinhos.",
-      });
+      setMsg({ ok: true, texto: "Pronto. Os próximos contratos assinados chegam aqui sozinhos." });
       router.refresh();
     });
   }
@@ -43,10 +40,11 @@ export function ConectarZapsign({ configurado, conectadoEm }: { configurado: boo
           <span>ZapSign ainda não ligado.</span>
         )}
       </div>
-      <Button type="button" size="sm" variant={conectadoEm ? "outline" : "default"} onClick={conectar} disabled={pending}>
-        {pending ? <Loader2 className="animate-spin" /> : conectadoEm ? <RefreshCw /> : <PenLine />}{" "}
-        {conectadoEm ? "Buscar assinados" : "Conectar ZapSign"}
-      </Button>
+      {!conectadoEm && (
+        <Button type="button" size="sm" onClick={conectar} disabled={pending}>
+          {pending ? <Loader2 className="animate-spin" /> : <PenLine />} Conectar ZapSign
+        </Button>
+      )}
       {msg && <p className={`w-full text-xs ${msg.ok ? "text-emerald-400" : "text-rose-300"}`}>{msg.texto}</p>}
     </section>
   );

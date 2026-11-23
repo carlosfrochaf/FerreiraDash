@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE, getAppPassword, tokenValido } from "@/lib/auth";
 
-// Rotas liberadas sem senha. O cron de notificações tem proteção própria (CRON_SECRET).
-const ROTAS_PUBLICAS = ["/login", "/api/login", "/api/push/send-notifications"];
+// Rotas liberadas sem senha. O cron de notificações (CRON_SECRET) e o aviso do ZapSign (segredo no cabeçalho)
+// têm proteção própria.
+const ROTAS_PUBLICAS = ["/login", "/api/login", "/api/push/send-notifications", "/api/integracoes/zapsign/aviso"];
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

@@ -62,6 +62,7 @@ model Contato {
 
   processos  Processo[]
   transacoes Transacao[]
+  contratos  ContratoAssinado[]
 
   @@map("contatos")
 }
@@ -345,4 +346,35 @@ model Intimacao {
   @@index([data])
   @@index([numeroProcesso])
   @@map("intimacoes")
+}
+
+/// Envio assinado no ZapSign (contrato, procuração, declaração). Os PDFs ficam no ZapSign e são abertos na hora.
+model ContratoAssinado {
+  id              String    @id @default(cuid())
+  /// Token do envio no ZapSign: o mesmo envio nunca entra duas vezes.
+  docToken        String    @unique @map("doc_token")
+  titulo          String
+  clienteNome     String    @map("cliente_nome")
+  clienteCpf      String?   @map("cliente_cpf")
+  clienteTelefone String?   @map("cliente_telefone")
+  clienteEmail    String?   @map("cliente_email")
+  contatoId       String?   @map("contato_id")
+  contato         Contato?  @relation(fields: [contatoId], references: [id], onDelete: SetNull)
+  /// [{ token, nome, tipo }] de cada PDF assinado.
+  arquivos        Json
+  assinadoEm      DateTime  @map("assinado_em")
+  vistoEm         DateTime? @map("visto_em")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([assinadoEm])
+  @@map("contratos_assinados")
+}
+
+/// Integração ligada (ex.: "zapsign"): quando e para qual endereço o aviso foi cadastrado.
+model Integracao {
+  id          String   @id
+  url         String
+  conectadoEm DateTime @default(now()) @map("conectado_em")
+
+  @@map("integracoes")
 }

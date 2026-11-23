@@ -11,7 +11,7 @@ const navItems = [
   { href: "/", label: "Início", icon: Home },
   { href: "/lancamentos/novo", label: "Lançar", icon: PlusCircle },
   { href: "/recebimentos", label: "Recebimentos", icon: HandCoins },
-  { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: ["/peticoes", "/intimacoes"] },
+  { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: ["/peticoes", "/intimacoes", "/contratos"] },
   { href: "/despesas", label: "Despesas", icon: Wallet },
 ];
 

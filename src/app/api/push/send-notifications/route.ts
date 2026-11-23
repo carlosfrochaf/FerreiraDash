@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import webpush from "web-push";
+import { avisarTodos, vapidConfigurado } from "@/lib/push";
 import { StatusPagamento, StatusPeticao, StatusRecebimento, StatusRepasse, StatusTransacao } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
@@ -24,12 +24,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Gatilho não autorizado." }, { status: 401 });
   }
 
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  if (!publicKey || !privateKey) {
+  if (!vapidConfigurado()) {
     return NextResponse.json({ error: "Chaves VAPID não configuradas no servidor." }, { status: 500 });
   }
-  webpush.setVapidDetails("mailto:carlos@ferreirarocha.adv.br", publicKey, privateKey);
 
   try {
     const param = new URL(request.url).searchParams.get("turno");
@@ -66,31 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, turno, hoje, despesasCriadas, mensagem: "Nada para avisar." });
     }
 
-    const aparelhos = await prisma.pushSubscription.findMany();
-    let enviados = 0;
-    const expirados: string[] = [];
-
-    await Promise.all(
-      aparelhos.flatMap((a) =>
-        notificacoes.map(async (n) => {
-          try {
-            await webpush.sendNotification({ endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } }, JSON.stringify(n), {
-              TTL: 6 * 60 * 60, // se o aparelho estiver offline, ainda entrega por 6h
-            });
-            enviados++;
-          } catch (err) {
-            const status = (err as { statusCode?: number }).statusCode;
-            // 404/410: o aparelho cancelou ou a inscrição expirou.
-            if (status === 404 || status === 410) expirados.push(a.id);
-            else console.error("[push] falha ao enviar", status, err);
-          }
-        })
-      )
-    );
-
-    if (expirados.length > 0) {
-      await prisma.pushSubscription.deleteMany({ where: { id: { in: [...new Set(expirados)] } } });
-    }
+    const r = await avisarTodos(notificacoes);
 
     return NextResponse.json({
       success: true,
@@ -98,9 +71,9 @@ export async function POST(request: Request) {
       hoje,
       despesasCriadas,
       notificacoes: notificacoes.map((n) => n.title),
-      aparelhos: aparelhos.length,
-      enviados,
-      aparelhosRemovidos: new Set(expirados).size,
+      aparelhos: r.aparelhos,
+      enviados: r.enviados,
+      aparelhosRemovidos: r.removidos,
     });
   } catch (error) {
     console.error("[POST /api/push/send-notifications]", error);

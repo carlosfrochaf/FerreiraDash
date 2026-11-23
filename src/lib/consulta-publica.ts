@@ -101,11 +101,40 @@ export function preencherVazios<T extends Record<string, unknown>>(atual: T, nov
   return { valores: valores as T, preenchidos };
 }
 
+export type RespostaCnpjWs = {
+  estabelecimento?: { ddd1?: string | null; telefone1?: string | null; ddd2?: string | null; telefone2?: string | null; email?: string | null } | null;
+};
+
+/** Telefones e e-mail do CNPJ.ws (que costuma ter o e-mail que a BrasilAPI não traz). */
+export function contatoDoCnpjWs(r: RespostaCnpjWs): { telefones: string; email: string } {
+  const e = r.estabelecimento ?? {};
+  const tel = (ddd?: string | null, n?: string | null) => (n ? telefone(`${ddd ?? ""}${n}`) : "");
+  return {
+    telefones: [tel(e.ddd1, e.telefone1), tel(e.ddd2, e.telefone2)].filter(Boolean).join(" / "),
+    email: (e.email ?? "").trim().toLowerCase(),
+  };
+}
+
+/** Completa o que a primeira consulta deixou vazio. */
+export function completarContato(base: EmpresaEncontrada, extra: { telefones: string; email: string } | null): EmpresaEncontrada {
+  if (!extra) return base;
+  return { ...base, telefones: base.telefones || extra.telefones, email: base.email || extra.email };
+}
+
+async function contatoExtra(cnpj: string) {
+  const res = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null);
+  if (!res?.ok) return null;
+  return contatoDoCnpjWs((await res.json().catch(() => ({}))) as RespostaCnpjWs);
+}
+
 export async function buscarCnpj(cnpj: string): Promise<EmpresaEncontrada | "nao-achou" | "falhou"> {
-  const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null);
+  const [res, extra] = await Promise.all([
+    fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null),
+    contatoExtra(cnpj),
+  ]);
   if (res?.status === 404 || res?.status === 400) return "nao-achou";
   if (!res?.ok) return "falhou";
-  return empresaDoCnpj((await res.json()) as RespostaCnpj);
+  return completarContato(empresaDoCnpj((await res.json()) as RespostaCnpj), extra);
 }
 
 export async function buscarCep(cep: string): Promise<{ endereco: string; cidadeUf: string } | null> {

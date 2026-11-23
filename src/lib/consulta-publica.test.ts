@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cepValido, cnpjValido, empresaDoCnpj, enderecoDoCep, preencherVazios } from "./consulta-publica";
+import { cepValido, cnpjValido, completarContato, contatoDoCnpjWs, empresaDoCnpj, enderecoDoCep, preencherVazios } from "./consulta-publica";
 
 describe("cnpjValido", () => {
   it("aceita com ou sem pontuação, recusa dígito errado", () => {
@@ -66,5 +66,15 @@ describe("preencherVazios", () => {
     const r = preencherVazios({ a: "já tem", b: "", c: null }, { a: "novo", b: "B", c: "", d: "D" });
     expect(r.valores).toEqual({ a: "já tem", b: "B", c: null, d: "D" });
     expect(r.preenchidos).toBe(2);
+  });
+});
+
+describe("contato pelo CNPJ.ws", () => {
+  it("monta telefones e e-mail e completa só o que faltou", () => {
+    const extra = contatoDoCnpjWs({ estabelecimento: { ddd1: "11", telefone1: "23851939", ddd2: null, telefone2: null, email: "Torres.Contab@gmail.com" } });
+    expect(extra).toEqual({ telefones: "(11) 2385-1939", email: "torres.contab@gmail.com" });
+    const base = { razaoSocial: "X", nomeFantasia: "", endereco: "", telefones: "(11) 1111-1111", email: "" };
+    expect(completarContato(base, extra)).toEqual({ ...base, email: "torres.contab@gmail.com" });
+    expect(completarContato(base, null)).toBe(base);
   });
 });

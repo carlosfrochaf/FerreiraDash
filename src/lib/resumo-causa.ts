@@ -32,3 +32,23 @@ export function resumoCausa(parcelas: ParcelaStatus[]) {
     cliente: { total: reais(cliTotal), repassado: reais(cliRepassado), falta: reais(cliTotal - cliRepassado) },
   };
 }
+
+/**
+ * Visão de todas as causas: quanto falta as empresas pagarem, quanto já entrou e falta
+ * repassar aos clientes, e quantas parcelas estão atrasadas. `hoje` em "AAAA-MM-DD".
+ */
+export function panoramaCausas(causas: (ParcelaStatus & { valorParcela: string; vencimento: string })[][], hoje: string) {
+  let faltaReceber = BigInt(0);
+  let aRepassar = BigInt(0);
+  let atrasadas = 0;
+  for (const p of causas.flat()) {
+    const recebida = p.statusRecebimento === "RECEBIDO";
+    if (!recebida) {
+      faltaReceber += paraCentavos(p.valorParcela);
+      if (p.vencimento.slice(0, 10) < hoje) atrasadas++;
+    } else if (p.statusRepasse !== "REPASSADO") {
+      aRepassar += paraCentavos(p.valorCliente);
+    }
+  }
+  return { faltaReceber: reais(faltaReceber), aRepassar: reais(aRepassar), atrasadas };
+}

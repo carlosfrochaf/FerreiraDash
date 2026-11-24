@@ -50,3 +50,28 @@ export function agruparNomes(nomes: string[]): { chave: string; nome: string }[]
     })
     .sort((a, b) => a.chave.localeCompare(b.chave));
 }
+
+const MINUSCULAS = new Set(["da", "de", "do", "das", "dos", "e"]);
+
+/** "THAYSSA MARIA VELOSO" → "Thayssa Maria Veloso". Nome já com minúsculas fica como está. */
+export function nomeExibicao(nome: string): string {
+  if (nome !== nome.toUpperCase() || !/[A-ZÀ-Ý]/.test(nome)) return nome;
+  return nome
+    .toLowerCase()
+    .split(/\s+/)
+    .map((p, i) => (i > 0 && MINUSCULAS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+    .join(" ");
+}
+
+/** "31996229190" → "(31) 99622-9190"; sem 10 ou 11 números, devolve como veio. */
+export function telefoneExibicao(telefone: string): string {
+  let d = telefone.replace(/\D/g, "");
+  if (d.startsWith("55") && d.length >= 12) d = d.slice(2);
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return telefone;
+}
+
+export function contar(n: number, um: string, varios: string): string {
+  return `${n} ${n === 1 ? um : varios}`;
+}

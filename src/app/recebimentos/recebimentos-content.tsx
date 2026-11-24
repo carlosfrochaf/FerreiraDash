@@ -3,14 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronDown, Loader2, Search, Send, Trash2, Gavel, Pencil } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Loader2, Search, Send, Trash2, Gavel, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
-import { resumoCausa } from "@/lib/resumo-causa";
+import { panoramaCausas, resumoCausa } from "@/lib/resumo-causa";
 import type { ResultadoCausa } from "@/lib/resultado-causa";
-import { formatarDataCurta } from "@/lib/datas";
+import { formatarDataCurta, hojeSaoPaulo } from "@/lib/datas";
 import type { RecebimentoSerializado } from "@/lib/recebimentos";
 import type { ParcelaResumo } from "@/types";
 import { ParcelaModal } from "@/components/parcelas/parcela-modal";
@@ -45,6 +45,8 @@ export function RecebimentosContent({ recebimentos, resultados }: { recebimentos
     });
   }, [recebimentos, busca, filtro]);
 
+  const panorama = useMemo(() => panoramaCausas(recebimentos.map((r) => r.parcelas), hojeSaoPaulo()), [recebimentos]);
+
   if (recebimentos.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-10 text-center">
@@ -62,6 +64,24 @@ export function RecebimentosContent({ recebimentos, resultados }: { recebimentos
 
   return (
     <div className="space-y-4">
+      <section className="relative grid grid-cols-3 gap-2 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-[hsl(218_57%_18%)] to-card p-4">
+        <div aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+        <div className="min-w-0">
+          <p className="truncate text-[11px] text-muted-foreground sm:text-xs">Falta receber</p>
+          <p className="truncate text-sm font-bold tabular-nums sm:text-lg">{formatCurrency(panorama.faltaReceber)}</p>
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[11px] text-muted-foreground sm:text-xs">Repassar agora</p>
+          <p className={cn("truncate text-sm font-bold tabular-nums sm:text-lg", panorama.aRepassar > 0 && "text-amber-200")}>{formatCurrency(panorama.aRepassar)}</p>
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[11px] text-muted-foreground sm:text-xs">Atrasadas</p>
+          <p className={cn("truncate text-sm font-bold tabular-nums sm:text-lg", panorama.atrasadas > 0 && "text-rose-300")}>
+            {panorama.atrasadas === 0 ? "Nenhuma" : `${panorama.atrasadas} ${panorama.atrasadas === 1 ? "parcela" : "parcelas"}`}
+          </p>
+        </div>
+      </section>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -205,13 +225,10 @@ function CausaCard({
                   </span>
                   <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     <span className="text-xs">{formatarDataCurta(p.vencimento)}</span>
-                    {!recebida && <PrazoBadge vencimento={p.vencimento} />}
+                    {recebida ? <SituacaoParcela repassada={repassada} /> : <PrazoBadge vencimento={p.vencimento} />}
                   </span>
                   <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(p.valorParcela)}</span>
-                  <span className="flex w-12 shrink-0 justify-end gap-1" aria-label={`${recebida ? "recebida" : "a receber"}, ${repassada ? "repassada" : "não repassada"}`}>
-                    <Check className={cn("h-4 w-4", recebida ? "text-emerald-400" : "text-muted-foreground/30")} />
-                    <Send className={cn("h-4 w-4", repassada ? "text-emerald-400" : "text-muted-foreground/30")} />
-                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" aria-hidden />
                 </button>
               </li>
             );
@@ -219,9 +236,7 @@ function CausaCard({
         </ul>
 
         <div className="flex items-center justify-end gap-2 sm:justify-between">
-          <p className="hidden text-[11px] text-muted-foreground sm:block">
-            <Check className="inline h-3 w-3" /> recebida da empresa · <Send className="inline h-3 w-3" /> repassada ao cliente
-          </p>
+          <p className="hidden text-[11px] text-muted-foreground sm:block">Toque numa parcela para marcar recebida ou repassada.</p>
           <div className="flex shrink-0 items-center gap-1">
           {!confirmando && (
             <Button asChild size="sm" variant="ghost" className="text-muted-foreground">
@@ -249,6 +264,19 @@ function CausaCard({
         {erro && <p className="text-xs text-rose-300">{erro}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+/** Parcela já recebida: falta repassar ou já repassada, em palavras. */
+function SituacaoParcela({ repassada }: { repassada: boolean }) {
+  const [texto, classe, Icone] = repassada
+    ? (["Repassada", "bg-emerald-500/10 text-emerald-300", Check] as const)
+    : (["Recebida · repassar", "bg-amber-500/10 text-amber-200", Send] as const);
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide", classe)}>
+      <Icone className="h-3 w-3" />
+      {texto}
+    </span>
   );
 }
 

@@ -142,12 +142,14 @@ export function NotificationBell() {
       onClick={handleToggleNotifications}
       disabled={loading}
       className={cn(
-        "flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300 relative cursor-pointer",
+        "relative flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border transition-all duration-300",
+        isSubscribed || loading ? "w-9" : "px-2.5",
         isSubscribed
           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 shadow-md shadow-emerald-500/15 scale-[1.02]"
           : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent"
       )}
-      title={isSubscribed ? "Notificações de Celular Ativadas" : "Habilitar Notificações no Celular"}
+      title={isSubscribed ? "Avisos no celular ligados. Toque para desligar." : "Ligar os avisos no celular"}
+      aria-label={isSubscribed ? "Avisos ligados" : "Ativar avisos"}
     >
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -160,7 +162,10 @@ export function NotificationBell() {
           </span>
         </>
       ) : (
-        <BellOff className="h-4 w-4" />
+        <>
+          <BellOff className="h-4 w-4" />
+          <span className="text-xs font-medium">Ativar avisos</span>
+        </>
       )}
     </button>
   );

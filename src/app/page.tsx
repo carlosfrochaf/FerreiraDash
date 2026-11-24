@@ -9,14 +9,40 @@ import { Hoje } from "@/components/dashboard/hoje";
 
 export const dynamic = "force-dynamic";
 
-const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const DIAS = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+];
+const MESES = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
 
 function saudacao() {
   const agora = new Date();
   const fuso = { timeZone: "America/Sao_Paulo" } as const;
-  const hora = Number(agora.toLocaleString("en-US", { ...fuso, hour: "numeric", hour12: false }));
-  const [a, m, d] = agora.toLocaleDateString("sv-SE", fuso).split("-").map(Number);
+  const hora = Number(
+    agora.toLocaleString("en-US", { ...fuso, hour: "numeric", hour12: false }),
+  );
+  const [a, m, d] = agora
+    .toLocaleDateString("sv-SE", fuso)
+    .split("-")
+    .map(Number);
   const dia = new Date(Date.UTC(a, m - 1, d)).getUTCDay();
   return {
     ola: hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite",
@@ -27,7 +53,8 @@ function saudacao() {
 async function Conteudo() {
   const r = await getDashboardResumo();
   return (
-    <>
+    // Celular: saldo, atalhos, pendências, gráfico. Computador: pendências na coluna da direita.
+    <div className="space-y-5 lg:grid lg:grid-cols-2 lg:grid-rows-[auto_auto_1fr] lg:gap-5 lg:space-y-0">
       <ResumoHero
         saldoAtual={r.saldoAtual}
         entradasMes={r.entradasMes}
@@ -36,16 +63,20 @@ async function Conteudo() {
         aReceberEscritorio={r.aReceberEscritorio}
       />
       <QuickActions />
-      <Pendencias
-        proximasEntradas={r.proximasEntradas}
-        repassesClientes={r.repassesClientes}
-        audienciasAPagar={r.audienciasAPagar}
-        peticoesPendentes={r.peticoesPendentes}
-        proximasAudiencias={r.proximasAudiencias}
-        recebiveisPendentes={r.recebiveisPendentes}
-      />
-      <CashFlowChartLazy data={r.fluxoMensal} />
-    </>
+      <div className="lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:self-start">
+        <Pendencias
+          proximasEntradas={r.proximasEntradas}
+          repassesClientes={r.repassesClientes}
+          audienciasAPagar={r.audienciasAPagar}
+          peticoesPendentes={r.peticoesPendentes}
+          proximasAudiencias={r.proximasAudiencias}
+          recebiveisPendentes={r.recebiveisPendentes}
+        />
+      </div>
+      <div className="lg:col-start-1 lg:row-start-3 lg:self-start">
+        <CashFlowChartLazy data={r.fluxoMensal} />
+      </div>
+    </div>
   );
 }
 
@@ -64,7 +95,7 @@ export default async function HomePage() {
   const completo = eu.perfil === "DONO" || eu.perfil === "FINANCEIRO";
   const { ola, data } = saudacao();
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="mx-auto max-w-3xl space-y-5 lg:max-w-none">
       <header>
         <h1 className="text-2xl font-bold tracking-tight">
           {ola}, {eu.nome.split(" ")[0]}

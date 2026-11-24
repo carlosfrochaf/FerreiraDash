@@ -438,7 +438,7 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {}, client
                 )}
                 {jaPagasEf > 0 && (
                   <label className="flex items-start gap-2 text-sm">
-                    <input type="checkbox" checked={jaRepassadas} onChange={(e) => setJaRepassadas(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[hsl(217_91%_60%)]" />
+                    <input type="checkbox" checked={jaRepassadas} onChange={(e) => setJaRepassadas(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[hsl(45_60%_54%)]" />
                     <span>
                       O cliente também já recebeu a parte dele nessas {jaPagasEf === 1 ? "parcela" : `${jaPagasEf} parcelas`}
                     </span>

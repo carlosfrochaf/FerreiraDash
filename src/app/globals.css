@@ -7,7 +7,7 @@
   --color-card-foreground: hsl(210 40% 96%);
   --color-popover: hsl(222 40% 11%);
   --color-popover-foreground: hsl(210 40% 96%);
-  --color-primary: hsl(217 91% 60%);
+  --color-primary: hsl(45 60% 54%);
   --color-primary-foreground: hsl(222 47% 7%);
   --color-secondary: hsl(217 25% 18%);
   --color-secondary-foreground: hsl(210 40% 96%);
@@ -19,7 +19,7 @@
   --color-destructive-foreground: hsl(210 40% 98%);
   --color-border: hsl(217 25% 20%);
   --color-input: hsl(217 25% 20%);
-  --color-ring: hsl(217 91% 60%);
+  --color-ring: hsl(45 60% 54%);
   --radius: 0.75rem;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;

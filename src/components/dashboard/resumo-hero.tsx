@@ -17,9 +17,10 @@ export function ResumoHero({ saldoAtual, entradasMes, saidasMes, aRepassarClient
   ];
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-[hsl(222_45%_13%)] via-card to-card p-5 sm:p-6">
-      <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
-      <p className="text-sm text-muted-foreground">Saldo do escritório</p>
+    <section className="relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-[hsl(218_57%_20%)] via-[hsl(222_45%_12%)] to-card p-5 sm:p-6">
+      <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Saldo do escritório</p>
       <p className={`mt-1 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl ${saldoAtual < 0 ? "text-rose-300" : ""}`}>
         {formatCurrency(saldoAtual)}
       </p>
@@ -29,7 +30,7 @@ export function ResumoHero({ saldoAtual, entradasMes, saidasMes, aRepassarClient
         </p>
       )}
 
-      <dl className="mt-5 grid grid-cols-3 gap-2 border-t border-border/50 pt-4">
+      <dl className="mt-5 grid grid-cols-3 gap-2 border-t border-primary/15 pt-4">
         {itens.map((i) => (
           <div key={i.label} className="min-w-0">
             <dt className="truncate text-[11px] text-muted-foreground sm:text-xs">{i.label}</dt>

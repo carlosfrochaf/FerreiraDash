@@ -138,6 +138,9 @@ export function FichaCliente({
     ["Pix", mostrarCausas ? cliente.pix : null], // advogado não vê o Pix do cliente
     ["Observações", cliente.observacoes],
   ];
+  const visiveis = dados.filter(([r]) => mostrarCausas || r !== "Pix");
+  const preenchidos = visiveis.filter(([, v]) => v);
+  const faltando = visiveis.filter(([, v]) => !v).map(([r]) => r);
 
   return (
     <div className="space-y-6">
@@ -178,21 +181,30 @@ export function FichaCliente({
         <ClienteForm inicial={cliente} onSalvo={() => setEditando(false)} />
       ) : (
         <Card>
-          <CardContent className="grid gap-x-4 gap-y-2 p-4 text-sm sm:grid-cols-2">
-            {dados
-              .filter(([r]) => mostrarCausas || r !== "Pix")
-              .map(([rotulo, valor]) => (
-                <div key={rotulo} className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {rotulo}
-                  </p>
-                  <p
-                    className={valor ? "break-words" : "text-muted-foreground"}
-                  >
-                    {valor || "—"}
-                  </p>
-                </div>
-              ))}
+          <CardContent className="space-y-3 p-4 text-sm">
+            {preenchidos.length > 0 && (
+              <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                {preenchidos.map(([rotulo, valor]) => (
+                  <div key={rotulo} className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {rotulo}
+                    </p>
+                    <p className="break-words">{valor}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {faltando.length > 0 && (
+              <p className={`text-xs text-muted-foreground ${preenchidos.length ? "border-t border-border/60 pt-3" : ""}`}>
+                <span className="font-semibold">Sem cadastro: </span>
+                {faltando.join(", ")}.
+                {podeEditar && (
+                  <button type="button" onClick={() => setEditando(true)} className="ml-1 font-semibold text-primary hover:underline">
+                    Completar
+                  </button>
+                )}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { chaveCliente, mascararCpf } from "@/lib/clientes";
+import { chaveCliente, contar, mascararCpf, nomeExibicao, telefoneExibicao } from "@/lib/clientes";
 
 export type ClienteDaLista = {
   id: string;
@@ -54,18 +54,27 @@ export function ClientesLista({ clientes }: { clientes: ClienteDaLista[] }) {
           <li key={c.id}>
             <Link href={`/clientes/${c.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/40">
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{c.nome}</p>
+                <p className="truncate font-semibold">{nomeExibicao(c.nome)}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {[c.cpf ? `CPF ${mascararCpf(c.cpf)}` : "", c.telefone ?? ""].filter(Boolean).join(" · ") || "Sem CPF e telefone"}
+                  {[c.cpf ? `CPF ${mascararCpf(c.cpf)}` : "", c.telefone ? telefoneExibicao(c.telefone) : ""].filter(Boolean).join(" · ") || "Sem CPF e telefone"}
                 </p>
-                <p className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
-                  {c.causas > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5">{c.causas} causa(s)</span>}
-                  {c.audiencias > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5">{c.audiencias} audiência(s)</span>}
-                  {c.peticoes > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5">{c.peticoes} petição(ões)</span>}
-                  {c.documentosFaltando > 0 && (
-                    <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-300">Faltam documentos</span>
-                  )}
-                </p>
+                {(c.causas > 0 || c.audiencias > 0 || c.peticoes > 0 || c.documentosFaltando > 0) && (
+                  <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                    {[
+                      c.causas > 0 && contar(c.causas, "causa", "causas"),
+                      c.audiencias > 0 && contar(c.audiencias, "audiência", "audiências"),
+                      c.peticoes > 0 && contar(c.peticoes, "petição", "petições"),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    {c.documentosFaltando > 0 && (
+                      <span className="text-amber-300/90">
+                        {c.causas > 0 || c.audiencias > 0 || c.peticoes > 0 ? " · " : ""}
+                        {contar(c.documentosFaltando, "documento faltando", "documentos faltando")}
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </Link>

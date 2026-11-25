@@ -7,8 +7,8 @@
   --color-card-foreground: hsl(210 40% 96%);
   --color-popover: hsl(222 40% 11%);
   --color-popover-foreground: hsl(210 40% 96%);
-  --color-primary: hsl(45 60% 54%);
-  --color-primary-foreground: hsl(222 47% 7%);
+  --color-primary: var(--marca);
+  --color-primary-foreground: var(--marca-texto);
   --color-secondary: hsl(217 25% 18%);
   --color-secondary-foreground: hsl(210 40% 96%);
   --color-muted: hsl(217 25% 15%);
@@ -19,10 +19,16 @@
   --color-destructive-foreground: hsl(210 40% 98%);
   --color-border: hsl(217 25% 20%);
   --color-input: hsl(217 25% 20%);
-  --color-ring: hsl(45 60% 54%);
+  --color-ring: var(--marca);
   --radius: 0.75rem;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* Cor do escritório: o layout troca pelos valores da configuração (lib/marca.ts). */
+:root {
+  --marca: hsl(46 65% 55%);
+  --marca-texto: hsl(222 47% 7%);
 }
 
 @layer base {

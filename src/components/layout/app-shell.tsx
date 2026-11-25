@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, Scale, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, APP_SUBTITLE } from "@/lib/constants";
 import { NotificationBell } from "./notification-bell";
 import { barraDoPerfil, itemAtivo, secoesDoPerfil, type ItemMenu } from "./menu";
 import { rotuloPerfil, type Perfil } from "@/lib/perfis";
@@ -47,7 +47,7 @@ export function AppShell({ children, usuario }: { children: React.ReactNode; usu
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold leading-tight">{APP_NAME}</p>
-              <p className="truncate text-xs text-muted-foreground">Financeiro Jurídico</p>
+              <p className="truncate text-xs text-muted-foreground">{APP_SUBTITLE}</p>
             </div>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">

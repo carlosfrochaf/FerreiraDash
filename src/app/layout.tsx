@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppShell } from "@/components/layout/app-shell";
 import { APP_NAME, APP_SUBTITLE } from "@/lib/constants";
+import { MARCA } from "@/lib/marca";
 import { usuarioOpcional } from "@/lib/usuario-atual";
 import "./globals.css";
 
@@ -19,11 +20,6 @@ export const metadata: Metadata = {
   title: `${APP_NAME} | Financeiro`,
   description: APP_SUBTITLE,
   applicationName: APP_NAME,
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.png",
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 export const viewport: Viewport = {
@@ -40,7 +36,7 @@ export default async function RootLayout({
 }>) {
   const u = await usuarioOpcional();
   return (
-    <html lang="pt-BR" className="dark">
+    <html lang="pt-BR" className="dark" style={{ "--marca": MARCA.cor, "--marca-texto": MARCA.texto } as React.CSSProperties}>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
         <AppShell usuario={u ? { nome: u.nome, perfil: u.perfil } : null}>{children}</AppShell>
       </body>

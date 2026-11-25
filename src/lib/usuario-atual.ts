@@ -35,7 +35,7 @@ export async function usuarioOpcional(): Promise<UsuarioLogado | null> {
 
 /** Para rotas da API: devolve o usuário ou a resposta de erro (401/403). */
 export async function exigirPerfilApi(request: Request): Promise<UsuarioLogado | NextResponse> {
-  const token = request.headers.get("cookie")?.match(new RegExp(`(?:^|;\s*)${AUTH_COOKIE}=([^;]+)`))?.[1];
+  const token = request.headers.get("cookie")?.match(new RegExp(String.raw`(?:^|;\s*)${AUTH_COOKIE}=([^;]+)`))?.[1];
   const u = await carregar(token ? decodeURIComponent(token) : undefined);
   if (!u) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   if (!podeUsarApi(u.perfil, request.method, new URL(request.url).pathname)) {

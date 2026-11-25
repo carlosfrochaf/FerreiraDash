@@ -41,6 +41,7 @@ const TELAS: [string, Perfil[]][] = [
   ["/usuarios", ["DONO"]],
   ["/mensagens", CADASTRO],
   ["/intimacoes", JURIDICO],
+  ["/minha-senha", TODOS],
 ];
 
 /** Rotas da API: [prefixo, quem lê (GET), quem escreve]. */
@@ -63,6 +64,7 @@ const APIS: [string, Perfil[], Perfil[]][] = [
   ["/api/intimacoes", JURIDICO, JURIDICO],
   ["/api/push/subscribe", TODOS, TODOS],
   ["/api/login", TODOS, TODOS],
+  ["/api/conta", TODOS, TODOS],
 ];
 
 function casa(pathname: string, prefixo: string): boolean {

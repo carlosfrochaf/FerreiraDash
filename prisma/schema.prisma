@@ -325,6 +325,8 @@ model Usuario {
   ativo         Boolean            @default(true)
   /// Sobe ao trocar senha/perfil ou desativar: derruba as sessões antigas.
   versaoSessao  Int                @default(1) @map("versao_sessao")
+  /// Último e-mail de "criar nova senha" enviado (limita a um a cada 2 minutos).
+  linkSenhaEm   DateTime?          @map("link_senha_em")
   createdAt     DateTime           @default(now()) @map("created_at")
   updatedAt     DateTime           @updatedAt @map("updated_at")
   aparelhos     PushSubscription[]

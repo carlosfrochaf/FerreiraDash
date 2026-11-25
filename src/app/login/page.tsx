@@ -154,6 +154,11 @@ function LoginForm() {
             disabled={enviando}
           />
         )}
+        {!primeiro && searchParams.get("senha") === "trocada" && !erro && (
+          <p className="rounded-lg bg-emerald-500/10 p-2.5 text-xs text-emerald-300">
+            Senha trocada. Entre com a nova senha.
+          </p>
+        )}
         {erro && <p className="text-xs font-medium text-red-400">{erro}</p>}
 
         <Button
@@ -170,6 +175,14 @@ function LoginForm() {
           )}
           {primeiro ? "Criar e entrar" : "Entrar"}
         </Button>
+        {!primeiro && (
+          <a
+            href="/login/esqueci"
+            className="block text-center text-xs font-medium text-muted-foreground hover:text-primary"
+          >
+            Esqueci minha senha
+          </a>
+        )}
       </form>
     </div>
   );

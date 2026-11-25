@@ -2,6 +2,7 @@ import {
   CalendarClock,
   FileSignature,
   HandCoins,
+  KeyRound,
   History,
   Home,
   PlusCircle,
@@ -49,6 +50,7 @@ export const SECOES: SecaoMenu[] = [
       { href: "/usuarios", label: "Usuários", icon: UserCog },
       { href: "/mensagens", label: "Mensagens", icon: MessageSquareText },
       { href: "/integracoes", label: "Integrações", icon: Plug },
+      { href: "/minha-senha", label: "Minha senha", icon: KeyRound },
     ],
   },
 ];

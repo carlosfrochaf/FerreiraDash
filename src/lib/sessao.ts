@@ -10,7 +10,7 @@ export type Sessao = { id: string; perfil: Perfil; versao: number; expira: numbe
 
 const enc = new TextEncoder();
 
-async function assinar(texto: string, segredo: string): Promise<string> {
+export async function assinar(texto: string, segredo: string): Promise<string> {
   const chave = await crypto.subtle.importKey("raw", enc.encode(segredo), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", chave, enc.encode(texto));
   return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0")).join("");

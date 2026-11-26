@@ -6,6 +6,9 @@ import { CashFlowChartLazy } from "@/components/dashboard/cash-flow-chart-lazy";
 import { getDashboardResumo } from "@/lib/finance";
 import { usuarioAtual } from "@/lib/usuario-atual";
 import { Hoje } from "@/components/dashboard/hoje";
+import { cookies } from "next/headers";
+import { AbasInicio } from "@/components/dashboard/abas-inicio";
+import { COOKIE_ABA_INICIO, type AbaInicio } from "@/lib/inicio";
 
 export const dynamic = "force-dynamic";
 
@@ -90,10 +93,13 @@ function Carregando() {
   );
 }
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ aba?: string }> }) {
   const eu = await usuarioAtual();
   const completo = eu.perfil === "DONO" || eu.perfil === "FINANCEIRO";
   const { ola, data } = saudacao();
+  // Aba do link; sem ela, a última escolhida (cookie); na primeira vez, Escritório.
+  const pedida = (await searchParams).aba ?? (await cookies()).get(COOKIE_ABA_INICIO)?.value;
+  const aba: AbaInicio = pedida === "financeiro" ? "financeiro" : "escritorio";
   return (
     <div className="mx-auto max-w-3xl space-y-5 lg:max-w-none">
       <header>
@@ -102,8 +108,9 @@ export default async function HomePage() {
         </h1>
         <p className="text-sm text-muted-foreground">{data}</p>
       </header>
-      <Suspense fallback={<Carregando />}>
-        {completo ? <Conteudo /> : <Hoje eu={eu} />}
+      {completo && <AbasInicio ativa={aba} />}
+      <Suspense key={aba} fallback={<Carregando />}>
+        {completo && aba === "financeiro" ? <Conteudo /> : <Hoje eu={eu} />}
       </Suspense>
     </div>
   );

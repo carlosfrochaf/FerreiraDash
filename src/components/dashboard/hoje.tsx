@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { CalendarClock, FileSignature, FileWarning, MessageCircle, Send } from "lucide-react";
+import { Bell, CalendarClock, ClipboardList, FileSignature, FileWarning, MessageCircle, Send } from "lucide-react";
+import { filtroIntimacoesDoUsuario } from "@/lib/intimacoes-acesso";
+import { ROTULO_TIPO } from "@/lib/intimacoes";
 import { quemAvisarHoje } from "@/lib/mensagens-cliente";
 import { prisma } from "@/lib/prisma";
 import { filtroDoUsuario } from "@/lib/acesso-dados";
@@ -26,16 +28,22 @@ function Bloco({ titulo, icone: Icone, children }: { titulo: string; icone: type
   );
 }
 
-/** Início da secretária e do advogado: o que tem para hoje e amanhã. */
+/** Aba "Escritório" do Início (e o Início da secretária e do advogado): o que precisa de atenção. */
 export async function Hoje({ eu }: { eu: UsuarioLogado }) {
   const hoje = hojeSaoPaulo();
   const amanha = somarDias(hoje, 1);
+  const semana = somarDias(hoje, 7);
   const onde = filtroDoUsuario(eu);
   const advogado = eu.perfil === "ADVOGADO";
 
-  const [audiencias, peticoes, meus, clientes] = await Promise.all([
+  const filtroIntimacoes = { ...filtroIntimacoesDoUsuario(eu), lidaEm: null };
+  const filtroFichas = {
+    situacao: "RASCUNHO" as const,
+    ...(advogado ? { advogadoChave: { equals: eu.advogadoChave ?? "\u0000sem-advogado", mode: "insensitive" as const } } : {}),
+  };
+  const [audiencias, peticoes, meus, clientes, intimacoes, totalIntimacoes, fichas, totalFichas] = await Promise.all([
     prisma.audiencia.findMany({
-      where: { ...onde, data: { gte: dataParaDb(hoje), lte: dataParaDb(amanha) } },
+      where: { ...onde, data: { gte: dataParaDb(hoje), lte: dataParaDb(semana) } },
       orderBy: [{ data: "asc" }, { hora: "asc" }],
       include: { cliente: { select: { telefone: true } } },
     }),
@@ -61,6 +69,20 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
             fichas: { select: { empresa: true, dados: true } },
           },
         }),
+    prisma.intimacao.findMany({
+      where: filtroIntimacoes,
+      orderBy: { data: "desc" },
+      take: 5,
+      select: { id: true, tipo: true, data: true, processoMascara: true, numeroProcesso: true, cliente: { select: { nome: true } } },
+    }),
+    prisma.intimacao.count({ where: filtroIntimacoes }),
+    prisma.ficha.findMany({
+      where: filtroFichas,
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: { id: true, clienteId: true, empresa: true, updatedAt: true, cliente: { select: { nome: true } } },
+    }),
+    prisma.ficha.count({ where: filtroFichas }),
   ]);
 
   const faltando = (clientes ?? []).filter((c) => {
@@ -76,9 +98,9 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
     : null;
 
   return (
-    <div className="space-y-4">
+    <div className="grid items-start gap-4 lg:grid-cols-2">
       {resumo && (
-        <Link href="/meus-pagamentos" className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 hover:bg-accent/40">
+        <Link href="/meus-pagamentos" className="grid grid-cols-2 gap-3 lg:col-span-2 rounded-2xl border border-border bg-card p-4 hover:bg-accent/40">
           <div>
             <p className="text-xs text-muted-foreground">Já recebido</p>
             <p className="text-lg font-bold tabular-nums text-emerald-400">{formatCurrency(resumo.recebido)}</p>
@@ -108,15 +130,16 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
         </Bloco>
       )}
 
-      <Bloco titulo="Audiências de hoje e amanhã" icone={CalendarClock}>
+      <Bloco titulo="Próximas audiências (7 dias)" icone={CalendarClock}>
         {audiencias.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nenhuma audiência hoje nem amanhã.</p>
+          <p className="text-xs text-muted-foreground">Nenhuma audiência nos próximos 7 dias.</p>
         ) : (
           <ul className="divide-y divide-border/60">
             {audiencias.map((a) => {
               // Abre o cliente já com o WhatsApp e a mensagem de audiência.
               const zap = !advogado && a.clienteId && a.cliente?.telefone ? `/clientes/${a.clienteId}?avisar=1` : null;
-              const dia = dataDoDb(a.data) === hoje ? "Hoje" : "Amanhã";
+              const d = dataDoDb(a.data);
+              const dia = d === hoje ? "Hoje" : d === amanha ? "Amanhã" : formatarDataCurta(d).replace(/ \d{4}$/, "");
               return (
                 <li key={a.id} className="flex items-center justify-between gap-2 py-2">
                   <div className="min-w-0">
@@ -137,6 +160,55 @@ export async function Hoje({ eu }: { eu: UsuarioLogado }) {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </Bloco>
+
+      <Bloco titulo={`Intimações novas (${totalIntimacoes})`} icone={Bell}>
+        {intimacoes.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Nenhuma intimação nova.</p>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {intimacoes.map((i) => (
+              <li key={i.id}>
+                <Link href="/intimacoes" className="flex items-center justify-between gap-2 py-2 hover:opacity-80">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {ROTULO_TIPO[i.tipo]} · {i.cliente?.nome ?? "Cliente não identificado"}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">{i.processoMascara ?? i.numeroProcesso}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formatarDataCurta(dataDoDb(i.data)).replace(/ \d{4}$/, "")}</span>
+                </Link>
+              </li>
+            ))}
+            {totalIntimacoes > intimacoes.length && (
+              <li className="pt-2">
+                <Link href="/intimacoes" className="text-xs font-semibold text-primary hover:underline">
+                  Ver todas as {totalIntimacoes}
+                </Link>
+              </li>
+            )}
+          </ul>
+        )}
+      </Bloco>
+
+      <Bloco titulo={`Fichas para terminar (${totalFichas})`} icone={ClipboardList}>
+        {fichas.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Nenhuma ficha em rascunho.</p>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {fichas.map((f) => (
+              <li key={f.id}>
+                <Link href={`/clientes/${f.clienteId}/fichas/${f.id}`} className="flex items-center justify-between gap-2 py-2 hover:opacity-80">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{f.cliente.nome}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{f.empresa || "Empresa não informada"}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">mexida {formatarDataCurta(f.updatedAt.toISOString().slice(0, 10)).replace(/ \d{4}$/, "")}</span>
+                </Link>
+              </li>
+            ))}
           </ul>
         )}
       </Bloco>

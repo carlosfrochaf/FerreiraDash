@@ -1,0 +1,634 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  CheckCircle2,
+  ChevronDown,
+  FileDown,
+  Loader2,
+  Save,
+  Search,
+  Send,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CampoEscolha } from "@/components/ui/campo-escolha";
+import {
+  documentosMarcados,
+  OPCOES_FICHA,
+  podeEnviarFicha,
+  type FichaDados,
+} from "@/lib/ficha";
+import type { FichaSerializada } from "@/lib/fichas-servico";
+import { mesclarConversa, type Extracao } from "@/lib/conversa-ficha";
+import { buscarCep, buscarCnpj, cepValido, cnpjValido, preencherVazios } from "@/lib/consulta-publica";
+import { PreencherPelaConversa } from "./preencher-conversa";
+import type { ClienteSerializado } from "@/lib/clientes-servico";
+import {
+  BLOCOS,
+  CAMPOS_CLIENTE,
+  type Bloco,
+  type Campo,
+  type Valor,
+} from "@/lib/ficha-campos";
+
+const O = OPCOES_FICHA;
+
+const caixa =
+  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm [color-scheme:dark] focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60";
+
+function Entrada({
+  campo,
+  valor,
+  onChange,
+  disabled,
+}: {
+  campo: Campo;
+  valor: Valor;
+  onChange: (v: Valor) => void;
+  disabled: boolean;
+}) {
+  const t = campo.tipo ?? "texto";
+  if (t === "simnao") {
+    return (
+      <div className="flex gap-2">
+        {[
+          [true, "Sim"],
+          [false, "Não"],
+        ].map(([v, r]) => (
+          <button
+            key={String(v)}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(valor === v ? null : (v as boolean))}
+            className={`h-10 flex-1 rounded-lg border text-sm ${valor === v ? "border-primary bg-primary/15 font-semibold" : "border-border hover:bg-accent"}`}
+          >
+            {r as string}
+          </button>
+        ))}
+      </div>
+    );
+  }
+  if (typeof t === "object") {
+    return (
+      <CampoEscolha
+        value={(valor as string) ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+      >
+        <option value="">—</option>
+        {t.opcoes.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </CampoEscolha>
+    );
+  }
+  if (t === "longo") {
+    return (
+      <textarea
+        className={`${caixa} h-28 py-2`}
+        value={(valor as string) ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+      />
+    );
+  }
+  return (
+    <input
+      className={caixa}
+      type={t === "data" ? "date" : t === "hora" ? "time" : "text"}
+      value={(valor as string) ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+    />
+  );
+}
+
+function Grade({
+  campos,
+  valores,
+  set,
+  disabled,
+}: {
+  campos: Campo[];
+  valores: Record<string, Valor>;
+  set: (k: string, v: Valor) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {campos.map((c) => (
+        <label
+          key={c.k}
+          className={`space-y-1 ${c.largo ? "sm:col-span-2" : ""}`}
+        >
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {c.rotulo}
+          </span>
+          <Entrada
+            campo={c}
+            valor={valores[c.k]}
+            onChange={(v) => set(c.k, v)}
+            disabled={disabled}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function Secao({
+  n,
+  titulo,
+  aberta,
+  children,
+}: {
+  n: number;
+  titulo: string;
+  aberta?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details
+      open={aberta}
+      className="group rounded-2xl border border-border bg-card"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold">
+        <span>
+          <span className="mr-2 text-primary">{n}</span>
+          {titulo}
+        </span>
+        <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="space-y-3 px-4 pb-4">{children}</div>
+    </details>
+  );
+}
+
+function Marcar({
+  itens,
+  marcados,
+  onToggle,
+  disabled,
+  travados,
+}: {
+  itens: readonly string[];
+  marcados: string[];
+  onToggle: (i: string) => void;
+  disabled: boolean;
+  travados?: Set<string>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {itens.map((i) => {
+        const on = marcados.includes(i);
+        const travado = travados?.has(i);
+        return (
+          <button
+            key={i}
+            type="button"
+            disabled={disabled || travado}
+            onClick={() => onToggle(i)}
+            title={travado ? "Já enviado ao app" : undefined}
+            className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs ${on ? "border-primary bg-primary/15 font-semibold" : "border-border hover:bg-accent"}`}
+          >
+            {travado && (
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+            )}
+            {i}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function FichaForm({
+  ficha,
+  cliente,
+  advogados,
+  tiposEnviados,
+  causas,
+  podeEditar,
+  podeTrocarAdvogado,
+  conversaAtiva = false,
+  audioAtivo = false,
+}: {
+  ficha: FichaSerializada;
+  cliente: ClienteSerializado;
+  advogados: { chave: string; nome: string }[];
+  tiposEnviados: string[];
+  causas: { id: string; titulo: string }[] | null;
+  podeEditar: boolean;
+  podeTrocarAdvogado: boolean;
+  /** IA configurada: mostra "Preencher pela conversa". */
+  conversaAtiva?: boolean;
+  /** Transcrição configurada: lê os áudios da conversa. */
+  audioAtivo?: boolean;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [dados, setDados] = useState<FichaDados>(ficha.dados);
+  const [empresa, setEmpresa] = useState(ficha.empresa ?? "");
+  const [advogado, setAdvogado] = useState(ficha.advogadoChave ?? "");
+  const [causa, setCausa] = useState(ficha.recebimentoId ?? "");
+  const [cli, setCli] = useState<Record<string, Valor>>(() =>
+    Object.fromEntries(
+      CAMPOS_CLIENTE.map((c) => [
+        c.k,
+        (cliente as Record<string, unknown>)[c.k] as Valor,
+      ]),
+    ),
+  );
+  const off = !podeEditar || pending;
+
+  const setBloco = (b: Bloco) => (k: string, v: Valor) =>
+    setDados((d) => ({ ...d, [b]: { ...((d[b] as object) ?? {}), [k]: v } }));
+  const lista = documentosMarcados(dados.documentos ?? [], tiposEnviados);
+  const enviados = new Set(lista.filter((d) => d.enviado).map((d) => d.item));
+  const alternar = (campo: "documentos" | "teses" | "dias") => (i: string) =>
+    setDados((d) => {
+      if (campo === "dias") {
+        const atual = d.jornada?.dias ?? [];
+        return {
+          ...d,
+          jornada: {
+            ...d.jornada,
+            dias: atual.includes(i)
+              ? atual.filter((x) => x !== i)
+              : [...atual, i],
+          },
+        };
+      }
+      const atual = d[campo] ?? [];
+      return {
+        ...d,
+        [campo]: atual.includes(i)
+          ? atual.filter((x) => x !== i)
+          : [...atual, i],
+      };
+    });
+
+  const linkWord = `/api/fichas/${ficha.id}/word`;
+
+  const [buscando, setBuscando] = useState(false);
+  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  /** Busca a empresa pelo CNPJ (BrasilAPI) e preenche só o que está vazio. */
+  async function buscarEmpresa() {
+    const cnpj = cnpjValido(String(dados.empresa?.cnpj ?? ""));
+    if (!cnpj) return setAviso({ ok: false, texto: "CNPJ inválido. Confira os números." });
+    setBuscando(true);
+    setAviso(null);
+    const r = await buscarCnpj(cnpj);
+    setBuscando(false);
+    if (r === "nao-achou") return setAviso({ ok: false, texto: "CNPJ não encontrado na Receita." });
+    if (r === "falhou") return setAviso({ ok: false, texto: "A consulta não respondeu agora. Tente de novo." });
+    const bloco = preencherVazios((dados.empresa ?? {}) as Record<string, Valor>, {
+      nomeFantasia: r.nomeFantasia,
+      endereco: r.endereco,
+      telefones: r.telefones,
+      email: r.email,
+    });
+    const novaRazao = !empresa.trim() && r.razaoSocial;
+    setDados((d) => ({ ...d, empresa: bloco.valores as FichaDados["empresa"] }));
+    if (novaRazao) setEmpresa(r.razaoSocial);
+    const n = bloco.preenchidos + (novaRazao ? 1 : 0);
+    setAviso({ ok: true, texto: n ? `Preenchi ${n} campo(s) com os dados da Receita.` : "Os campos já estavam preenchidos; nada foi trocado." });
+  }
+
+  /** CEP do cliente com 8 números: completa endereço e cidade/UF se estiverem vazios. */
+  function mudarCliente(k: string, v: Valor) {
+    setCli((c) => ({ ...c, [k]: v }));
+    const cep = k === "cep" ? cepValido(String(v ?? "")) : null;
+    if (!cep) return;
+    buscarCep(cep).then((r) => {
+      if (r) setCli((c) => preencherVazios(c, r).valores);
+    });
+  }
+
+  /** Junta o que veio da conversa só nos campos vazios; devolve quantos preencheu. */
+  function receberConversa(e: Extracao): number {
+    const r = mesclarConversa({ dados, cliente: cli, empresa }, e);
+    setDados(r.dados);
+    setCli(r.cliente);
+    setEmpresa(r.empresa);
+    return r.preenchidos;
+  }
+
+  /** `word`: salva e baixa a ficha em Word, já com o que está na tela. */
+  function salvar(enviar: boolean, word = false) {
+    setMsg(null);
+    if (enviar) {
+      const motivo = podeEnviarFicha({ empresa, advogadoChave: advogado });
+      if (motivo) return setMsg({ ok: false, texto: motivo });
+    }
+    start(async () => {
+      const corpo = {
+        empresa,
+        dados,
+        cliente: Object.fromEntries(
+          Object.entries(cli).map(([k, v]) => [k, v ?? ""]),
+        ),
+        ...(podeTrocarAdvogado && { advogadoChave: advogado || null }),
+        ...(causas && { recebimentoId: causa || null }),
+        ...(enviar && { acao: "enviar" }),
+      };
+      const res = await fetch(`/api/fichas/${ficha.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(corpo),
+      }).catch(() => null);
+      const j = await res?.json().catch(() => ({}));
+      if (!res?.ok)
+        return setMsg({
+          ok: false,
+          texto: j?.error ?? "Não foi possível salvar.",
+        });
+      setMsg({
+        ok: true,
+        texto: enviar
+          ? "Ficha enviada ao advogado."
+          : word
+            ? "Ficha salva. Baixando o Word…"
+            : "Ficha salva.",
+      });
+      if (word) window.location.href = linkWord;
+      router.refresh();
+    });
+  }
+
+  const nomeAdvogado =
+    advogados.find((a) => a.chave === advogado)?.nome ?? advogado;
+
+  return (
+    <div className="space-y-3">
+      <section>
+        <h1 className="text-2xl font-bold tracking-tight">
+          Ficha de atendimento
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {ficha.situacao === "ENVIADA" ? "Enviada ao advogado" : "Rascunho"}
+          {!podeEditar && " · só leitura"}
+        </p>
+      </section>
+
+      {podeEditar && conversaAtiva && <PreencherPelaConversa fichaId={ficha.id} audioAtivo={audioAtivo} aoReceber={receberConversa} />}
+
+      <Secao n={0} titulo="Dados do atendimento" aberta>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Data do atendimento
+            </span>
+            <input
+              type="date"
+              className={caixa}
+              value={dados.dataAtendimento ?? ""}
+              onChange={(e) =>
+                setDados((d) => ({ ...d, dataAtendimento: e.target.value }))
+              }
+              disabled={off}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Advogado(a) responsável
+            </span>
+            {podeTrocarAdvogado ? (
+              <CampoEscolha
+                value={advogado}
+                onChange={(e) => setAdvogado(e.target.value)}
+                disabled={off}
+              >
+                <option value="">Escolha…</option>
+                {advogado && !advogados.some((a) => a.chave === advogado) && (
+                  <option value={advogado}>{advogado}</option>
+                )}
+                {advogados.map((a) => (
+                  <option key={a.chave} value={a.chave}>
+                    {a.nome}
+                  </option>
+                ))}
+              </CampoEscolha>
+            ) : (
+              <input className={caixa} value={nomeAdvogado} disabled />
+            )}
+          </label>
+          {causas && causas.length > 0 && (
+            <label className="space-y-1 sm:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Ligar a uma causa (depois do acordo)
+              </span>
+              <CampoEscolha
+                value={causa}
+                onChange={(e) => setCausa(e.target.value)}
+                disabled={off}
+              >
+                <option value="">Nenhuma</option>
+                {causas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.titulo}
+                  </option>
+                ))}
+              </CampoEscolha>
+            </label>
+          )}
+        </div>
+      </Secao>
+
+      <Secao n={1} titulo="Dados do(a) cliente (reclamante)">
+        <p className="text-xs text-muted-foreground">
+          Estes dados são os do cadastro do cliente: mudar aqui muda lá.
+        </p>
+        <Grade
+          campos={CAMPOS_CLIENTE}
+          valores={cli}
+          set={mudarCliente}
+          disabled={off}
+        />
+      </Secao>
+
+      <Secao n={2} titulo={BLOCOS[0].titulo}>
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Nome / razão social *
+          </span>
+          <input
+            className={caixa}
+            value={empresa}
+            onChange={(e) => setEmpresa(e.target.value)}
+            disabled={off}
+          />
+        </label>
+        <Grade
+          campos={BLOCOS[0].campos}
+          valores={(dados.empresa ?? {}) as Record<string, Valor>}
+          set={setBloco("empresa")}
+          disabled={off}
+        />
+        {!off && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={buscarEmpresa} disabled={buscando}>
+              {buscando ? <Loader2 className="animate-spin" /> : <Search />} Buscar dados pelo CNPJ
+            </Button>
+            {aviso && <span className={`text-xs ${aviso.ok ? "text-emerald-400" : "text-rose-300"}`}>{aviso.texto}</span>}
+          </div>
+        )}
+      </Secao>
+
+      <Secao n={3} titulo={BLOCOS[1].titulo}>
+        <Grade
+          campos={BLOCOS[1].campos}
+          valores={(dados.contrato ?? {}) as Record<string, Valor>}
+          set={setBloco("contrato")}
+          disabled={off}
+        />
+      </Secao>
+
+      <Secao n={4} titulo={BLOCOS[2].titulo}>
+        <div className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Dias trabalhados
+          </span>
+          <Marcar
+            itens={O.dias.map((d) => d.rotulo)}
+            marcados={O.dias
+              .filter((d) => dados.jornada?.dias?.includes(d.valor))
+              .map((d) => d.rotulo)}
+            onToggle={(r) =>
+              alternar("dias")(O.dias.find((d) => d.rotulo === r)!.valor)
+            }
+            disabled={off}
+          />
+        </div>
+        <Grade
+          campos={BLOCOS[2].campos}
+          valores={(dados.jornada ?? {}) as Record<string, Valor>}
+          set={setBloco("jornada")}
+          disabled={off}
+        />
+      </Secao>
+
+      <Secao n={5} titulo={BLOCOS[3].titulo}>
+        <Grade
+          campos={BLOCOS[3].campos}
+          valores={(dados.ambiente ?? {}) as Record<string, Valor>}
+          set={setBloco("ambiente")}
+          disabled={off}
+        />
+      </Secao>
+
+      <Secao n={6} titulo={BLOCOS[4].titulo}>
+        <Grade
+          campos={BLOCOS[4].campos}
+          valores={(dados.verbas ?? {}) as Record<string, Valor>}
+          set={setBloco("verbas")}
+          disabled={off}
+        />
+      </Secao>
+
+      <Secao n={7} titulo="Principais reclamações e relato do cliente">
+        <textarea
+          className={`${caixa} h-48 py-2`}
+          value={dados.relato ?? ""}
+          onChange={(e) => setDados((d) => ({ ...d, relato: e.target.value }))}
+          disabled={off}
+        />
+      </Secao>
+
+      <Secao n={8} titulo="Documentos apresentados / solicitados">
+        <p className="text-xs text-muted-foreground">
+          Os que já foram enviados ao app aparecem marcados sozinhos.
+        </p>
+        {(dados.provasPedidas?.length ?? 0) > 0 && (
+          <p className="text-xs text-amber-200">
+            Provas pedidas ao cliente pelo WhatsApp:{" "}
+            {dados.provasPedidas!.join(", ")}.
+          </p>
+        )}
+        <Marcar
+          itens={O.documentosChecklist}
+          marcados={lista.filter((d) => d.marcado).map((d) => d.item)}
+          onToggle={alternar("documentos")}
+          disabled={off}
+          travados={enviados}
+        />
+      </Secao>
+
+      <Secao n={9} titulo="Direitos pleiteados (tese)">
+        <Marcar
+          itens={O.teses}
+          marcados={dados.teses ?? []}
+          onToggle={alternar("teses")}
+          disabled={off}
+        />
+      </Secao>
+
+      <Secao n={10} titulo={BLOCOS[5].titulo}>
+        <Grade
+          campos={BLOCOS[5].campos}
+          valores={(dados.outras ?? {}) as Record<string, Valor>}
+          set={setBloco("outras")}
+          disabled={off}
+        />
+      </Secao>
+
+      <div className="sticky bottom-24 z-30 rounded-2xl border border-border bg-background/95 p-3 backdrop-blur md:bottom-4">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-end gap-2">
+          {msg && (
+            <p
+              className={`mr-auto text-sm ${msg.ok ? "text-emerald-400" : "text-rose-300"}`}
+            >
+              {msg.texto}
+            </p>
+          )}
+          {podeEditar ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => salvar(false, true)}
+              disabled={pending}
+            >
+              <FileDown /> Baixar Word
+            </Button>
+          ) : (
+            <Button asChild variant="outline">
+              <a href={linkWord}>
+                <FileDown /> Baixar Word
+              </a>
+            </Button>
+          )}
+          {podeEditar && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => salvar(false)}
+                disabled={pending}
+              >
+                {pending ? <Loader2 className="animate-spin" /> : <Save />}{" "}
+                Salvar
+              </Button>
+              {podeTrocarAdvogado && (
+                <Button
+                  type="button"
+                  onClick={() => salvar(true)}
+                  disabled={pending}
+                >
+                  <Send />{" "}
+                  {ficha.situacao === "ENVIADA"
+                    ? "Reenviar ao advogado"
+                    : "Enviar ao advogado"}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

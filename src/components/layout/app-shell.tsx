@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, HandCoins, Scale, Settings2, History, LogOut, CalendarClock, Wallet } from "lucide-react";
+import { Home, PlusCircle, HandCoins, Scale, Settings2, History, LogOut, CalendarClock, Wallet, Users, MessageSquareText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { NotificationBell } from "./notification-bell";
 
 const navItems = [
   { href: "/", label: "Início", icon: Home },
+  { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/lancamentos/novo", label: "Lançar", icon: PlusCircle },
   { href: "/recebimentos", label: "Recebimentos", icon: HandCoins },
   { href: "/audiencias", label: "Advogados", icon: CalendarClock, tambem: ["/peticoes", "/intimacoes", "/contratos"] },
@@ -84,6 +85,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <History className="h-4 w-4" />
             </Link>
             <Link
+              href="/mensagens"
+              aria-current={pathname.startsWith("/mensagens") ? "page" : undefined}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
+                pathname.startsWith("/mensagens")
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}
+              title="Mensagens do WhatsApp"
+              aria-label="Mensagens do WhatsApp"
+            >
+              <MessageSquareText className="h-4 w-4" />
+            </Link>
+            <Link
               href="/categorias"
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               title="Categorias e ajustes"
@@ -109,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Navegação no celular */}
       <nav className="safe-area-pb fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-card/95 backdrop-blur-md md:hidden" aria-label="Principal">
-        <div className="mx-auto grid max-w-5xl grid-cols-5 gap-0.5 px-1.5 pt-2">
+        <div className="mx-auto grid max-w-5xl grid-cols-6 gap-0.5 px-1.5 pt-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isAtivo = ativo(pathname, item.href, "tambem" in item ? item.tambem : undefined);

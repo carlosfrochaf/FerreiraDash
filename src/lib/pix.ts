@@ -14,7 +14,7 @@ export function crc16(texto: string): string {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
-function cpfValido(d: string): boolean {
+export function cpfValido(d: string): boolean {
   if (!/^\d{11}$/.test(d) || /^(\d)\1{10}$/.test(d)) return false;
   const dv = (n: number) => {
     let soma = 0;

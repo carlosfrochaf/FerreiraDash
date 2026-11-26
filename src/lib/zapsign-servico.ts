@@ -5,6 +5,7 @@ import { avisarTodos } from "./push";
 import { TAMANHO_MAXIMO } from "./documentos";
 import { apagarArquivo, enviarArquivo, storageConfigurado } from "./storage";
 import { hojeSaoPaulo } from "./datas";
+import { chaveCliente } from "./clientes";
 import { arquivosAssinados, arquivosDoEnvio, chaveTelefone, detalharDocumento, escolherCliente, segredoDoAviso, type ZapDocumento } from "./zapsign";
 
 export const ID_ZAPSIGN = "zapsign";
@@ -99,12 +100,22 @@ export async function processarAssinatura(token: string, docToken: string): Prom
 }
 
 type Pessoa = NonNullable<ReturnType<typeof escolherCliente>>;
+type ClienteBusca = { id: string; nome: string; cpf: string | null; telefone: string | null };
+
+/** Cliente já cadastrado: CPF, depois telefone, depois o mesmo nome (sem acento/maiúscula). */
+export function clienteExistente<T extends ClienteBusca>(todos: T[], p: Pessoa): T | null {
+  return (
+    (p.cpf && todos.find((c) => digitos(c.cpf) === p.cpf)) ||
+    (p.telefone && todos.find((c) => chaveTelefone(c.telefone) === p.telefone)) ||
+    todos.find((c) => chaveCliente(c.nome) === chaveCliente(p.nome)) ||
+    null
+  );
+}
 
 /** Acha o cliente (CPF, depois telefone) ou cadastra; completa o que faltava sem sobrescrever. */
 async function acharOuCriarCliente(p: Pessoa): Promise<{ id: string; nome: string; novo: boolean }> {
   const todos = await prisma.cliente.findMany({ select: { id: true, nome: true, cpf: true, telefone: true, email: true } });
-  const achado =
-    (p.cpf && todos.find((c) => digitos(c.cpf) === p.cpf)) || (p.telefone && todos.find((c) => chaveTelefone(c.telefone) === p.telefone)) || null;
+  const achado = clienteExistente(todos, p);
   if (achado) {
     await prisma.cliente.update({
       where: { id: achado.id },

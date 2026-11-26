@@ -59,11 +59,14 @@ export async function juntarClientes(destinoId: string, origemId: string) {
     ]);
     if (!destino || !origem) throw new ErroNegocio("Cliente não encontrado.", 404);
     const mover = { where: { clienteId: origemId }, data: { clienteId: destinoId } };
+    // O nome escrito passa a ser o do cliente que fica: editar depois não desfaz a junção.
+    const moverComNome = { where: { clienteId: origemId }, data: { clienteId: destinoId, clienteNome: destino.nome } };
     await Promise.all([
-      tx.recebimento.updateMany(mover),
-      tx.audiencia.updateMany(mover),
-      tx.peticao.updateMany(mover),
+      tx.recebimento.updateMany(moverComNome),
+      tx.audiencia.updateMany(moverComNome),
+      tx.peticao.updateMany(moverComNome),
       tx.documento.updateMany(mover),
+      tx.ficha.updateMany(mover),
     ]);
     // Completa o que estiver vazio no destino com os dados da origem.
     const completar: Prisma.ClienteUpdateInput = {};

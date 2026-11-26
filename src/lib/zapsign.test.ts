@@ -77,3 +77,21 @@ describe("arquivosAssinados", () => {
     ]);
   });
 });
+
+import { clienteExistente } from "./zapsign-servico";
+
+describe("clienteExistente", () => {
+  const todos = [
+    { id: "1", nome: "MARIA SOUZA", cpf: null, telefone: null },
+    { id: "2", nome: "Ana", cpf: "12345678901", telefone: null },
+  ];
+  it("CPF primeiro", () => {
+    expect(clienteExistente(todos, { nome: "Outra", cpf: "12345678901", telefone: null, email: null })?.id).toBe("2");
+  });
+  it("sem CPF/telefone conhecidos, acha pelo nome (sem acento/maiúscula)", () => {
+    expect(clienteExistente(todos, { nome: "Maria Souza", cpf: "99999999999", telefone: "11988887777", email: null })?.id).toBe("1");
+  });
+  it("ninguém parecido → null", () => {
+    expect(clienteExistente(todos, { nome: "Pedro", cpf: null, telefone: null, email: null })).toBeNull();
+  });
+});

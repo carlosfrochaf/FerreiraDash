@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arquivosDoEnvio, chaveTelefone, escolherCliente, linkDoArquivo, segredoDoAviso, tipoPeloNome, ROTULO_ARQUIVO } from "./zapsign";
+import { arquivosAssinados, arquivosDoEnvio, chaveTelefone, escolherCliente, linkDoArquivo, segredoDoAviso, tipoPeloNome, ROTULO_ARQUIVO } from "./zapsign";
 
 describe("tipoPeloNome", () => {
   it("reconhece os três documentos", () => {
@@ -57,5 +57,23 @@ describe("segredoDoAviso", () => {
     expect(segredoDoAviso("abc")).toBe(segredoDoAviso("abc"));
     expect(segredoDoAviso("abc")).not.toBe(segredoDoAviso("abd"));
     expect(segredoDoAviso("abc")).not.toContain("abc");
+  });
+});
+
+describe("arquivosAssinados", () => {
+  it("principal e extras assinados, cada um com sua origem e tipo pelo nome", () => {
+    const doc = {
+      token: "d1",
+      name: "Contrato de Honorários.pdf",
+      signed_file: "https://z/1.pdf",
+      extra_docs: [
+        { token: "e1", name: "Procuração", signed_file: "https://z/2.pdf" },
+        { token: "e2", name: "Sem assinatura", signed_file: null },
+      ],
+    };
+    expect(arquivosAssinados(doc)).toEqual([
+      { origem: "zapsign:d1", nome: "Contrato de Honorários.pdf", url: "https://z/1.pdf", tipo: "CONTRATO_HONORARIOS" },
+      { origem: "zapsign:e1", nome: "Procuração.pdf", url: "https://z/2.pdf", tipo: "PROCURACAO" },
+    ]);
   });
 });

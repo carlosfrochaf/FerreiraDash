@@ -58,6 +58,16 @@ export function arquivosDoEnvio(doc: ZapDocumento): ArquivoAssinado[] {
     });
 }
 
+/** Arquivos assinados com o link para baixar e a origem que impede guardar duas vezes nos documentos do cliente. */
+export function arquivosAssinados(doc: ZapDocumento): { origem: string; nome: string; url: string; tipo: TipoArquivo }[] {
+  return [doc, ...(doc.extra_docs ?? [])]
+    .filter((a) => a.signed_file)
+    .map((a) => {
+      const nome = (a.name?.trim() || "Documento assinado").replace(/\.pdf$/i, "");
+      return { origem: `zapsign:${a.token}`, nome: `${nome}.pdf`, url: a.signed_file!, tipo: tipoPeloNome(nome) };
+    });
+}
+
 /** Link atual (temporário) de um arquivo do envio, ou null. */
 export function linkDoArquivo(doc: ZapDocumento, token: string): string | null {
   return [doc, ...(doc.extra_docs ?? [])].find((a) => a.token === token)?.signed_file ?? null;

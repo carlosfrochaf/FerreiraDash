@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { calcularParcelas, paraCentavos, validarParcelas, type ParcelaCalculada, type ResultadoParcelas } from "./parcelas";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import type { ParcelaAcao, RecebimentoInput } from "./validations";
+import { garantirCliente } from "./clientes-servico";
 
 /** Erro de regra de negócio: vira resposta 400/404/409 com a mensagem para o usuário. */
 export class ErroRecebimento extends Error {
@@ -81,8 +82,10 @@ export async function criarRecebimento(input: RecebimentoInput) {
     if (!existe) throw new ErroRecebimento("Processo não encontrado.", 404);
   }
 
+  const clienteId = await garantirCliente(prisma, input.clienteNome, { pix: input.clientePix });
   const criado = await prisma.recebimento.create({
     data: {
+      clienteId,
       processoId: input.processoId ?? null,
       processoNumero: input.processoNumero ?? null,
       clienteNome: input.clienteNome,
@@ -132,6 +135,7 @@ export async function atualizarRecebimento(id: string, input: RecebimentoInput) 
   if (!atual) throw new ErroRecebimento("Causa não encontrada.", 404);
 
   const textos = {
+    clienteId: await garantirCliente(prisma, input.clienteNome, { pix: input.clientePix }),
     clienteNome: input.clienteNome,
     clientePix: input.clientePix ?? null,
     reclamada: input.reclamada ?? null,

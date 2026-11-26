@@ -5,6 +5,7 @@ import { dataDoDb, dataParaDb, hojeSaoPaulo } from "./datas";
 import type { AudienciaAcao, AudienciaInput } from "./validations";
 import { ErroRecebimento as ErroNegocio } from "./recebimentos";
 import { chaveAdvogado, pixDosAdvogados, salvarPixAdvogado } from "./advogados";
+import { garantirCliente } from "./clientes-servico";
 
 export { ErroNegocio };
 
@@ -80,6 +81,7 @@ export async function criarAudiencia(input: AudienciaInput) {
   const criada = await prisma.audiencia.create({
     data: {
       ...dadosDoInput(input),
+      clienteId: await garantirCliente(prisma, input.clienteNome),
       ...(pagamento.statusPagamento
         ? { statusPagamento: pagamento.statusPagamento, dataPagamento: dataParaDb(pagamento.dataPagamento!) }
         : {}),
@@ -96,7 +98,7 @@ export async function atualizarAudiencia(id: string, input: AudienciaInput) {
   if (atual.statusPagamento === StatusPagamento.PAGO && !dados.valor) {
     throw new ErroNegocio("Esta audiência já foi paga: o valor não pode ficar em branco.");
   }
-  const salva = await prisma.audiencia.update({ where: { id }, data: dados });
+  const salva = await prisma.audiencia.update({ where: { id }, data: { ...dados, clienteId: await garantirCliente(prisma, input.clienteNome) } });
   await salvarPixAdvogado(input.advogadoNome, input.advogadoPix);
   return serializarAudiencia(salva, await pixDosAdvogados());
 }

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Crop,
   Download,
   Eye,
   FileText,
@@ -14,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { CampoEscolha } from "@/components/ui/campo-escolha";
 import { formatarDataCurta } from "@/lib/datas";
-import { ehImagem, paraPdf } from "@/lib/pdf-imagem";
+import { ehImagem, ehPdf, paraPdf, pdfEmFotos } from "@/lib/pdf-imagem";
+import { AjustarFoto } from "@/components/documentos/ajustar-foto";
 import { enviarDocumento } from "@/lib/enviar-documento";
 import {
   arquivoAceito,
@@ -24,6 +26,9 @@ import {
   TIPOS_PESSOAIS,
   type TipoDoc,
 } from "@/lib/documentos";
+
+// Assinados ou vindos do processo: ajustar viraria foto e perderia a assinatura digital.
+const NAO_AJUSTA: TipoDoc[] = ["PROCURACAO", "CONTRATO_HONORARIOS", "DECLARACAO_HIPOSSUFICIENCIA", "PETICAO", "DECISAO", "ACORDO_ATA", "ALVARA", "COMPROVANTE"];
 
 export type DocumentoDaFicha = {
   id: string;
@@ -73,6 +78,8 @@ export function DocumentosCliente({
   // Várias fotos de uma vez: pergunta se junta num PDF só antes de enviar.
   const [fotos, setFotos] = useState<File[] | null>(null);
   const [juntar, setJuntar] = useState(true);
+  // Fotos abertas na tela de ajuste e o que fazer com elas depois.
+  const [ajustando, setAjustando] = useState<{ arquivos: File[]; pronto: (f: File[]) => void } | null>(null);
 
   const faltando = documentosFaltando(documentos, causas, cpf ?? null);
   const pessoais = documentos.filter((d) => !d.recebimentoId);
@@ -83,6 +90,23 @@ export function DocumentosCliente({
     const arquivos = lista ? [...lista] : [];
     if (input.current) input.current.value = "";
     if (!arquivos.length) return;
+    const fotosEscolhidas = arquivos.filter((a) => ehImagem(a.type));
+    if (fotosEscolhidas.length) {
+      // Antes de virar PDF, abre a tela para endireitar, cortar e clarear.
+      setAjustando({
+        arquivos: fotosEscolhidas,
+        pronto: (ajustadas) => {
+          setAjustando(null);
+          let k = 0;
+          seguirEscolha(arquivos.map((a) => (ehImagem(a.type) ? ajustadas[k++] : a)));
+        },
+      });
+      return;
+    }
+    seguirEscolha(arquivos);
+  }
+
+  function seguirEscolha(arquivos: File[]) {
     if (arquivos.filter((a) => ehImagem(a.type)).length >= 2) {
       setJuntar(true);
       setFotos(arquivos);
@@ -128,6 +152,46 @@ export function DocumentosCliente({
     setEnviando("");
     if (erros.length) setErro(erros.join(" "));
     router.refresh();
+  }
+
+  // Documento já enviado: abre as páginas na tela de ajuste e troca pelo ajustado.
+  async function ajustar(d: DocumentoDaFicha) {
+    setErro("");
+    setEnviando("Abrindo…");
+    let paginas: File[];
+    try {
+      const res = await fetch(`/api/documentos/${d.id}`);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const arq = new File([blob], d.nome, { type: blob.type || d.mime });
+      paginas = ehPdf(arq) ? await pdfEmFotos(arq, d.nome) : [arq];
+    } catch {
+      setEnviando("");
+      setErro(`Não foi possível abrir "${d.nome}".`);
+      return;
+    }
+    setEnviando("");
+    setAjustando({
+      arquivos: paginas,
+      pronto: async (ajustadas) => {
+        setAjustando(null);
+        try {
+          setEnviando("Salvando o ajuste…");
+          const [pdf] = await paraPdf(ajustadas, true);
+          const nome = /\.pdf$/i.test(d.nome) ? d.nome : `${d.nome}.pdf`;
+          const final = new File([pdf], nome, { type: "application/pdf" });
+          const problema = arquivoAceito(final.type, final.size);
+          if (problema) throw new Error(problema);
+          await enviarDocumento(final, { clienteId, tipo: d.tipo, recebimentoId: d.recebimentoId });
+          const res = await fetch(`/api/documentos/${d.id}`, { method: "DELETE" }).catch(() => null);
+          if (!res?.ok) setErro("O ajustado foi salvo, mas o antigo não saiu. Apague o antigo à mão.");
+        } catch (e) {
+          setErro(e instanceof Error && e.message ? e.message : "Não foi possível salvar o ajuste.");
+        }
+        setEnviando("");
+        router.refresh();
+      },
+    });
   }
 
   function renomear(d: DocumentoDaFicha) {
@@ -194,6 +258,18 @@ export function DocumentosCliente({
             >
               <Download className="h-4 w-4" />
             </a>
+            {podeMexer(d) && !NAO_AJUSTA.includes(d.tipo) && (
+              <button
+                type="button"
+                onClick={() => void ajustar(d)}
+                disabled={!!enviando}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent"
+                title="Ajustar (endireitar, cortar, clarear)"
+                aria-label="Ajustar"
+              >
+                <Crop className="h-4 w-4" />
+              </button>
+            )}
             {podeMexer(d) && (
               <button
                 type="button"
@@ -227,6 +303,13 @@ export function DocumentosCliente({
 
   return (
     <section className="space-y-3">
+      {ajustando && (
+        <AjustarFoto
+          arquivos={ajustando.arquivos}
+          onPronto={ajustando.pronto}
+          onCancelar={() => setAjustando(null)}
+        />
+      )}
       <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
         Documentos
       </h2>

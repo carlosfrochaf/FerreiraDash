@@ -118,3 +118,27 @@ export async function paraPdf(arquivos: File[], juntar: boolean): Promise<File[]
   }
   return saida;
 }
+
+/** Páginas de um PDF viram fotos (JPEG), para poder ajustar. Até `max` páginas. */
+export async function pdfEmFotos(pdf: Blob, nome: string, max = 15): Promise<File[]> {
+  const { getDocumentProxy } = await import("unpdf");
+  const doc = await getDocumentProxy(new Uint8Array(await pdf.arrayBuffer()));
+  const base = nome.replace(/\.[^./\\]+$/, "");
+  const saida: File[] = [];
+  for (let n = 1; n <= Math.min(doc.numPages, max); n++) {
+    const pagina = await doc.getPage(n);
+    const v0 = pagina.getViewport({ scale: 1 });
+    const viewport = pagina.getViewport({ scale: Math.min(3, 2000 / Math.max(v0.width, v0.height)) });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await pagina.render({ canvas, canvasContext: ctx, viewport } as Parameters<typeof pagina.render>[0]).promise;
+    const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/jpeg", 0.9));
+    if (!blob) throw new Error(`Não foi possível abrir ${nome}.`);
+    saida.push(new File([blob], `${base} ${n}.jpg`, { type: "image/jpeg" }));
+  }
+  return saida;
+}

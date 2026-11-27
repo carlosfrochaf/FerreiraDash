@@ -1,3 +1,4 @@
+import { ADVOGADO_A_DEFINIR } from "./audiencia-intimacao";
 import { Prisma, StatusPagamento } from "@prisma/client";
 import { prisma } from "./prisma";
 import { centavosParaString, paraCentavos } from "./parcelas";
@@ -157,7 +158,7 @@ export async function sugestoesAudiencia() {
     if (r.processoNumero) processos.set(r.processoNumero, { clienteNome: r.clienteNome, reclamada: r.reclamada });
   }
   return {
-    advogados: [...new Set([...advogados, ...advogadosPeticoes].map((a) => a.advogadoNome))].sort((x, y) => x.localeCompare(y, "pt-BR")),
+    advogados: [...new Set([...advogados, ...advogadosPeticoes].map((a) => a.advogadoNome))].filter((n) => n !== ADVOGADO_A_DEFINIR).sort((x, y) => x.localeCompare(y, "pt-BR")),
     processos: [...processos.entries()].map(([numero, v]) => ({ numero, ...v })),
     pixAdvogados,
   };

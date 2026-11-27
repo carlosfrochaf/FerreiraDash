@@ -144,6 +144,17 @@ function nomeBonito(s: string): string {
 
 /** Nome do cliente pelo cabeçalho do texto: a parte autora (ou, em recurso, a pessoa e não a empresa). */
 export function clienteDoTexto(texto: string | null | undefined): string | null {
+  const pessoa = partesDoTexto(texto).sort((a, b) => a.lado - b.lado).find((p) => !EMPRESA.test(p.nome.toUpperCase()));
+  return pessoa ? nomeBonito(pessoa.nome) : null;
+}
+
+/** Reclamada pelo cabeçalho do texto: a parte ré ("RÉU:", "RECLAMADA:"...), como está escrita. */
+export function reclamadaDoTexto(texto: string | null | undefined): string | null {
+  return partesDoTexto(texto).find((p) => p.lado === 2)?.nome ?? null;
+}
+
+/** Partes do cabeçalho: lado 0 = autor, 1 = recurso (ambíguo), 2 = réu. */
+function partesDoTexto(texto: string | null | undefined): { lado: number; nome: string }[] {
   const t = (texto ?? "").replace(/\s+/g, " ").slice(0, 1500);
   const achados = [...t.matchAll(ROTULO)];
   const partes: { lado: number; nome: string }[] = [];
@@ -167,6 +178,5 @@ export function clienteDoTexto(texto: string | null | undefined): string | null 
     const lado = ATIVO.includes(rotulo) ? 0 : AMBIGUO.includes(rotulo) ? 1 : 2;
     partes.push({ lado, nome });
   }
-  const pessoa = partes.sort((a, b) => a.lado - b.lado).find((p) => !EMPRESA.test(p.nome.toUpperCase()));
-  return pessoa ? nomeBonito(pessoa.nome) : null;
+  return partes;
 }

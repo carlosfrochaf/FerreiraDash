@@ -1,5 +1,6 @@
 "use client";
 
+import { ADVOGADO_A_DEFINIR } from "@/lib/audiencia-intimacao";
 import { cn, formatCurrency } from "@/lib/utils";
 import { diasAte, formatarDataCurta } from "@/lib/datas";
 import type { AudienciaSerializada } from "@/lib/audiencias";
@@ -31,7 +32,11 @@ export function AudienciaItem({ a, modo, onClick }: { a: AudienciaSerializada; m
           {a.clienteNome}
           {a.reclamada ? <span className="text-muted-foreground"> × {a.reclamada}</span> : null}
         </p>
-        <p className="truncate text-xs text-muted-foreground">Advogado: {a.advogadoNome}</p>
+        {a.advogadoNome === ADVOGADO_A_DEFINIR ? (
+          <p className="truncate text-xs font-semibold text-amber-300">Advogado: a definir. Toque para escolher</p>
+        ) : (
+          <p className="truncate text-xs text-muted-foreground">Advogado: {a.advogadoNome}</p>
+        )}
         {selo && (
           <span className={cn("inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset", selo.cor)}>
             {selo.texto}

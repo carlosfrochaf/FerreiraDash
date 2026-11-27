@@ -1,7 +1,49 @@
 // Busca as intimações no Diário de Justiça Eletrônico Nacional e grava as novas. Só no servidor.
 import { prisma } from "./prisma";
-import { dataParaDb } from "./datas";
-import { ROTULO_TIPO, clienteDoTexto, resumoDoDia, semRepetidas, tipoDaIntimacao, vincularProcesso, type ComunicacaoCnj, type TipoIntimacao } from "./intimacoes";
+import { dataDoDb, dataParaDb } from "./datas";
+import { ROTULO_TIPO, clienteDoTexto, reclamadaDoTexto, resumoDoDia, semRepetidas, tipoDaIntimacao, vincularProcesso, type ComunicacaoCnj, type TipoIntimacao } from "./intimacoes";
+import { ADVOGADO_A_DEFINIR, lerAudiencia, type AudienciaLancada } from "./audiencia-intimacao";
+import { garantirCliente } from "./clientes-servico";
+
+const soDigitos = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
+
+type IntimacaoParaAudiencia = { numeroProcesso: string; processoMascara: string | null; data: Date; texto: string; clienteNome: string | null };
+
+/**
+ * Lança a audiência marcada na intimação (advogado "A definir"). Não repete: mesmo processo e mesma data já lançados
+ * ficam como estão. Com `simular`, só diz o que lançaria.
+ */
+export async function lancarAudienciaDaIntimacao(i: IntimacaoParaAudiencia, simular = false): Promise<AudienciaLancada | null> {
+  const lida = lerAudiencia(i.texto, dataDoDb(i.data));
+  if (!lida) return null;
+  const numero = soDigitos(i.numeroProcesso);
+  const mesmoDia = await prisma.audiencia.findMany({ where: { data: dataParaDb(lida.data) }, select: { processoNumero: true } });
+  if (numero && mesmoDia.some((a) => soDigitos(a.processoNumero) === numero)) return null;
+
+  const cliente = i.clienteNome?.trim() || null;
+  if (simular) return { id: "", data: lida.data, hora: lida.hora, cliente };
+  const obs = [
+    `Lançada pela intimação de ${dataDoDb(i.data).split("-").reverse().join("/")}.`,
+    lida.tipo && `Audiência ${lida.tipo.toLowerCase()}.`,
+    lida.link && `Sala: ${lida.link}`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const nova = await prisma.audiencia.create({
+    data: {
+      data: dataParaDb(lida.data),
+      hora: lida.hora,
+      advogadoNome: ADVOGADO_A_DEFINIR,
+      clienteNome: cliente ?? "A conferir",
+      reclamada: reclamadaDoTexto(i.texto),
+      processoNumero: i.processoMascara ?? i.numeroProcesso,
+      observacoes: obs,
+      clienteId: cliente ? await garantirCliente(prisma, cliente) : null,
+    },
+    select: { id: true },
+  });
+  return { id: nova.id, data: lida.data, hora: lida.hora, cliente };
+}
 
 const API = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
 const POR_PAGINA = 100;
@@ -67,6 +109,8 @@ export type ResultadoBusca = {
   falhou: boolean;
   /** A tabela estava vazia antes: é a primeira carga (não avisa no celular). */
   primeiraCarga: boolean;
+  /** Audiências lançadas a partir das intimações novas. */
+  audiencias?: AudienciaLancada[];
 };
 
 /** Busca os últimos dias e grava só o que ainda não existe. Seguro para repetir. */
@@ -97,6 +141,7 @@ export async function sincronizarIntimacoes(hoje: string): Promise<ResultadoBusc
   const { causas, outros } = await carregarProcessos();
 
   const novas: IntimacaoNova[] = [];
+  const audiencias: AudienciaLancada[] = [];
   for (const c of faltam) {
     const tipo = tipoDaIntimacao(c);
     const v = vincularProcesso(c.numero_processo, causas, outros);
@@ -125,9 +170,22 @@ export async function sincronizarIntimacoes(hoje: string): Promise<ResultadoBusc
     } catch (e) {
       // Outra busca gravou a mesma ao mesmo tempo: tudo bem.
       if ((e as { code?: string }).code !== "P2002") throw e;
+      continue;
+    }
+    try {
+      const a = await lancarAudienciaDaIntimacao({
+        numeroProcesso: c.numero_processo,
+        processoMascara: c.numeroprocessocommascara ?? null,
+        data: dataParaDb(c.data_disponibilizacao),
+        texto: c.texto ?? "",
+        clienteNome,
+      });
+      if (a) audiencias.push(a);
+    } catch (e) {
+      console.error("[intimacoes] audiência", c.chave, e);
     }
   }
-  return { novas, falhou, primeiraCarga };
+  return { novas, falhou, primeiraCarga, audiencias };
 }
 
 /** Aviso das intimações que acabaram de chegar, ou null quando não há nada novo (ou é a primeira carga). */

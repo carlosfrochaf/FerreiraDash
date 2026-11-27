@@ -6,6 +6,7 @@ import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
 import { gerarDespesasRecorrentes } from "@/lib/despesas-recorrentes";
 import { avisoDasIntimacoes, sincronizarIntimacoes } from "@/lib/intimacoes-servico";
 import { avisoFichasParadas, limiteFichaParada } from "@/lib/fichas-paradas";
+import { avisoDasAudiencias } from "@/lib/audiencia-intimacao";
 import { agruparAdvogados, ehSexta, montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type DadosDoDia, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +41,10 @@ export async function POST(request: Request) {
     if (param === "intimacoes") {
       // De hora em hora: avisa na hora só quando chega intimação nova (Diário de Justiça Eletrônico Nacional).
       turno = "intimacoes";
-      const aviso = avisoDasIntimacoes(await sincronizarIntimacoes(hoje));
-      notificacoes = aviso ? [aviso] : [];
+      const r = await sincronizarIntimacoes(hoje);
+      const aviso = avisoDasIntimacoes(r);
+      const audiencias = r.primeiraCarga ? null : avisoDasAudiencias(r.audiencias ?? []);
+      notificacoes = [aviso, audiencias].filter((n): n is Notificacao => !!n);
     } else if (param === "teste") {
       turno = "teste";
       notificacoes = [{ title: "Notificações funcionando ✅", body: "Você vai receber os avisos às 8h e às 19h.", url: "/", tag: "teste" }];

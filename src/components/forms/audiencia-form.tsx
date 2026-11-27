@@ -1,5 +1,6 @@
 "use client";
 
+import { ADVOGADO_A_DEFINIR } from "@/lib/audiencia-intimacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2 } from "lucide-react";
@@ -34,7 +35,8 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
   const [pending, startTransition] = useTransition();
   const [data, setData] = useState(inicial?.data ?? hojeSaoPaulo());
   const [hora, setHora] = useState(inicial?.hora ?? "");
-  const [advogadoNome, setAdvogadoNome] = useState(inicial?.advogadoNome ?? "");
+  // Lançada pela intimação: o campo começa vazio para escolher o advogado.
+  const [advogadoNome, setAdvogadoNome] = useState(inicial?.advogadoNome === ADVOGADO_A_DEFINIR ? "" : (inicial?.advogadoNome ?? ""));
   const [advogadoPix, setAdvogadoPix] = useState(inicial?.advogadoPix ?? "");
   const [pixAuto, setPixAuto] = useState(false);
 

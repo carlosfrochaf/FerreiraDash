@@ -1,5 +1,7 @@
 // Envio assinado no ZapSign → contrato na lista, cliente (com os PDFs nos documentos), ficha em rascunho e aviso. Só no servidor.
-import { TipoContato, type TipoDocumento } from "@prisma/client";
+import { TipoContato, type Prisma, type TipoDocumento } from "@prisma/client";
+import { completarCadastro, completarEmpresa, lerContratoPadrao } from "./contrato-padrao";
+import { buscarCep, buscarCnpj } from "./consulta-publica";
 import { prisma } from "./prisma";
 import { avisarTodos } from "./push";
 import { TAMANHO_MAXIMO } from "./documentos";
@@ -182,7 +184,37 @@ export async function levarParaCliente(doc: ZapDocumento, pessoa: Pessoa): Promi
     (novos > 0 || !qualquer
       ? await prisma.ficha.create({ data: { clienteId: cliente.id, dados: { dataAtendimento: hojeSaoPaulo() } }, select: { id: true } })
       : qualquer);
+  // Lê o Contrato Padrão e completa cadastro e ficha. Falhar aqui não atrapalha o resto.
+  await completarPeloContrato(doc, cliente.id, ficha!.id).catch((e) => console.error("[zapsign] leitura do contrato", e));
   return { clienteId: cliente.id, fichaId: ficha!.id, nome: cliente.nome, novo: cliente.novo, novos };
+}
+
+/** Lê nascimento, CPF, endereço, CEP, telefone, empresa e CNPJ do contrato assinado; só preenche o que está vazio. */
+async function completarPeloContrato(doc: ZapDocumento, clienteId: string, fichaId: string) {
+  const arquivo = arquivosAssinados(doc).find((a) => a.tipo === "CONTRATO_HONORARIOS");
+  if (!arquivo) return;
+  const pdf = await baixarPdf(arquivo.url);
+  if (!pdf) return;
+  const { extractText, getDocumentProxy } = await import("unpdf");
+  const { text } = await extractText(await getDocumentProxy(new Uint8Array(await pdf.arrayBuffer())), { mergePages: true });
+  const d = lerContratoPadrao(text);
+  if (Object.keys(d).length === 0) return;
+  const [cep, achada] = await Promise.all([d.cep ? buscarCep(d.cep) : null, d.cnpj ? buscarCnpj(d.cnpj) : null]);
+
+  const atual = await prisma.cliente.findUnique({
+    where: { id: clienteId },
+    select: { cpf: true, telefone: true, endereco: true, cep: true, cidadeUf: true, dataNascimento: true },
+  });
+  if (atual) {
+    const novo = completarCadastro(atual, d, cep?.cidadeUf ?? null);
+    if (Object.keys(novo).length) await prisma.cliente.update({ where: { id: clienteId }, data: novo });
+  }
+  if (!d.empresa && !d.cnpj) return;
+  const ficha = await prisma.ficha.findUnique({ where: { id: fichaId }, select: { dados: true } });
+  if (!ficha) return;
+  const dados = (ficha.dados && typeof ficha.dados === "object" ? ficha.dados : {}) as Record<string, unknown>;
+  const empresa = completarEmpresa(dados.empresa as Parameters<typeof completarEmpresa>[0], d, typeof achada === "object" ? achada : null);
+  await prisma.ficha.update({ where: { id: fichaId }, data: { dados: { ...dados, empresa } as Prisma.InputJsonValue } });
 }
 
 /** Contrato já gravado antes desta mudança: consulta o ZapSign de novo e leva para o cliente. */

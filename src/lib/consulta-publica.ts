@@ -102,8 +102,43 @@ export function preencherVazios<T extends Record<string, unknown>>(atual: T, nov
 }
 
 export type RespostaCnpjWs = {
-  estabelecimento?: { ddd1?: string | null; telefone1?: string | null; ddd2?: string | null; telefone2?: string | null; email?: string | null } | null;
+  razao_social?: string | null;
+  estabelecimento?: {
+    ddd1?: string | null;
+    telefone1?: string | null;
+    ddd2?: string | null;
+    telefone2?: string | null;
+    email?: string | null;
+    nome_fantasia?: string | null;
+    tipo_logradouro?: string | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
+    cep?: string | null;
+    cidade?: { nome?: string | null } | null;
+    estado?: { sigla?: string | null } | null;
+  } | null;
 };
+
+/** Empresa inteira pelo CNPJ.ws (reserva quando a BrasilAPI falha). */
+export function empresaDoCnpjWs(r: RespostaCnpjWs): EmpresaEncontrada {
+  const e = r.estabelecimento ?? {};
+  return completarContato(
+    empresaDoCnpj({
+      razao_social: r.razao_social,
+      nome_fantasia: e.nome_fantasia,
+      logradouro: [e.tipo_logradouro, e.logradouro].filter(Boolean).join(" "),
+      numero: e.numero,
+      complemento: e.complemento,
+      bairro: e.bairro,
+      municipio: e.cidade?.nome,
+      uf: e.estado?.sigla,
+      cep: e.cep,
+    }),
+    contatoDoCnpjWs(r),
+  );
+}
 
 /** Telefones e e-mail do CNPJ.ws (que costuma ter o e-mail que a BrasilAPI não traz). */
 export function contatoDoCnpjWs(r: RespostaCnpjWs): { telefones: string; email: string } {
@@ -121,20 +156,24 @@ export function completarContato(base: EmpresaEncontrada, extra: { telefones: st
   return { ...base, telefones: base.telefones || extra.telefones, email: base.email || extra.email };
 }
 
-async function contatoExtra(cnpj: string) {
+async function cnpjWs(cnpj: string): Promise<RespostaCnpjWs | null> {
   const res = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null);
   if (!res?.ok) return null;
-  return contatoDoCnpjWs((await res.json().catch(() => ({}))) as RespostaCnpjWs);
+  return (await res.json().catch(() => null)) as RespostaCnpjWs | null;
 }
 
 export async function buscarCnpj(cnpj: string): Promise<EmpresaEncontrada | "nao-achou" | "falhou"> {
-  const [res, extra] = await Promise.all([
+  const [res, ws] = await Promise.all([
     fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null),
-    contatoExtra(cnpj),
+    cnpjWs(cnpj),
   ]);
+  if (res?.ok) {
+    const base = await res.json().catch(() => null);
+    if (base) return completarContato(empresaDoCnpj(base as RespostaCnpj), ws ? contatoDoCnpjWs(ws) : null);
+  }
+  if (ws?.estabelecimento) return empresaDoCnpjWs(ws);
   if (res?.status === 404 || res?.status === 400) return "nao-achou";
-  if (!res?.ok) return "falhou";
-  return completarContato(empresaDoCnpj((await res.json()) as RespostaCnpj), extra);
+  return "falhou";
 }
 
 export async function buscarCep(cep: string): Promise<{ endereco: string; cidadeUf: string } | null> {

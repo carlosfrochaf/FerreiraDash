@@ -72,8 +72,10 @@ export function lerContratoPadrao(texto: string): DadosContrato {
   const cpf = parte.match(/CPF:?\s*(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/i);
   if (cpf && cpfValido(digitos(cpf[1]))) r.cpf = digitos(cpf[1]);
   const end = parte.match(/residente e domiciliad[oa] (?:na|no|em)\s+(.+?)\s*(?:,\s*)?(?:CEP|e telefone)/i);
-  if (end) r.endereco = end[1].replace(/[\s,-]+$/, "").trim();
-  const cep = parte.match(/CEP:?\s*(\d{2}\.?\d{3}-?\s?\d{3})/i);
+  // CEP às vezes vem só como número no fim do endereço ("..., 35969000").
+  const cepSolto = end?.[1].match(/[\s,-]+(\d{2}\.?\d{3}-?\d{3})$/);
+  if (end) r.endereco = end[1].replace(cepSolto?.[0] ?? "", "").replace(/[\s,-]+$/, "").trim();
+  const cep = parte.match(/CEP:?\s*(\d{2}\.?\d{3}-?\s?\d{3})/i) ?? cepSolto;
   if (cep) r.cep = cepValido(cep[1]) ?? undefined;
   const tel = parte.match(/telefone para contato:?\s*(\(?\d{2}\)?\s*9?\d{4}-?\s?\d{4})/i);
   if (tel) {

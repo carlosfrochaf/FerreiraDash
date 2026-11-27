@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cepValido, cnpjValido, completarContato, contatoDoCnpjWs, empresaDoCnpj, enderecoDoCep, preencherVazios } from "./consulta-publica";
+import { cepValido, cnpjValido, completarContato, contatoDoCnpjWs, empresaDoCnpj, empresaDoCnpjWs, enderecoDoCep, preencherVazios } from "./consulta-publica";
 
 describe("cnpjValido", () => {
   it("aceita com ou sem pontuação, recusa dígito errado", () => {
@@ -76,5 +76,25 @@ describe("contato pelo CNPJ.ws", () => {
     const base = { razaoSocial: "X", nomeFantasia: "", endereco: "", telefones: "(11) 1111-1111", email: "" };
     expect(completarContato(base, extra)).toEqual({ ...base, email: "torres.contab@gmail.com" });
     expect(completarContato(base, null)).toBe(base);
+  });
+});
+
+describe("empresaDoCnpjWs", () => {
+  it("monta a empresa só com o CNPJ.ws (quando a BrasilAPI falha)", () => {
+    const r = {
+      razao_social: "PADARIA LTDA",
+      estabelecimento: {
+        nome_fantasia: "PÃO BOM", tipo_logradouro: "RUA", logradouro: "DAS FLORES", numero: "10", complemento: null,
+        bairro: "CENTRO", cep: "30720412", cidade: { nome: "Belo Horizonte" }, estado: { sigla: "MG" },
+        ddd1: "31", telefone1: "33334444", email: "A@B.COM",
+      },
+    };
+    expect(empresaDoCnpjWs(r)).toEqual({
+      razaoSocial: "PADARIA LTDA",
+      nomeFantasia: "PÃO BOM",
+      endereco: "Rua das Flores, 10 – Centro – Belo Horizonte/MG – CEP 30720-412",
+      telefones: "(31) 3333-4444",
+      email: "a@b.com",
+    });
   });
 });

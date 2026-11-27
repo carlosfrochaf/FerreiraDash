@@ -67,6 +67,12 @@ describe("lerContratoPadrao", () => {
     expect(r.cep).toBeUndefined();
   });
 
+  it("CEP escrito sem a palavra CEP, no fim do endereço", () => {
+    const r = lerContratoPadrao(TEXTO.replace("CENTRO - CONTAGEM CEP 32000000 e telefone", "CENTRO - CONTAGEM - MG, 35969000 e telefone"));
+    expect(r.cep).toBe("35969000");
+    expect(r.endereco).toBe("RUA DAS FLORES, 10, AP 2, CENTRO - CONTAGEM - MG");
+  });
+
   it("empresa sem CNPJ: só o nome", () => {
     const r = lerContratoPadrao(TEXTO.replace(" 11.222.333/0001-81", ""));
     expect(r.empresa).toBe("Padaria Pão Bom LTDA");

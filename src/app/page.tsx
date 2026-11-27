@@ -51,7 +51,7 @@ function saudacao() {
 async function Conteudo() {
   const r = await getDashboardResumo();
   return (
-    <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5 lg:space-y-0">
+    <div className="space-y-5 lg:grid lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:items-start lg:gap-5 lg:space-y-0">
       <div className="space-y-5">
         <ResumoHero
           saldoAtual={r.saldoAtual}

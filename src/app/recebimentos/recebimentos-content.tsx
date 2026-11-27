@@ -427,7 +427,7 @@ function TabelaCausas({
             <th className="px-3 py-2.5 text-right font-medium">
               Cliente recebe
             </th>
-            <th className="px-3 py-2.5 text-right font-medium">Resultado</th>
+            <th className="hidden px-3 py-2.5 text-right font-medium lg:table-cell">Resultado</th>
             <th className="px-3 py-2.5 font-medium">Parcelas</th>
             <th className="px-4 py-2.5 font-medium">Próxima</th>
           </tr>
@@ -492,7 +492,7 @@ function TabelaCausas({
                         : "✓ repassado"}
                     </p>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
+                  <td className="hidden whitespace-nowrap px-3 py-2.5 text-right tabular-nums lg:table-cell">
                     {res ? (
                       <>
                         <p className={cn("font-semibold", res.resultado >= 0 ? "text-emerald-400" : "text-rose-400")}>

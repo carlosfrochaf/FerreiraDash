@@ -1,5 +1,5 @@
 // Ficha de atendimento em Word (.docx), para o escritório e o advogado editarem à vontade.
-import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
+import { AlignmentType, BorderStyle, Document, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType } from "docx";
 import { documentosMarcados, OPCOES_FICHA, type FichaDados } from "./ficha";
 import { BLOCOS, CAMPOS_CLIENTE, type Campo } from "./ficha-campos";
 
@@ -64,29 +64,96 @@ export function secoesDaFicha(f: {
   return secoes.filter((s) => s.linhas.length > 0);
 }
 
-/** Monta o .docx: nome do escritório, título e um bloco por seção. */
+const AZUL = "1B2A4A";
+const BORDA = { style: BorderStyle.SINGLE, size: 4, color: "BFC7D5" };
+const BORDAS = { top: BORDA, bottom: BORDA, left: BORDA, right: BORDA, insideHorizontal: BORDA, insideVertical: BORDA };
+const LARGURA = 9638; // A4 com margens de 2 cm, em twips
+const MARGEM_CELULA = { top: 60, bottom: 60, left: 100, right: 100 };
+
+/** Texto com as quebras de linha mantidas (relato, observações). */
+function runsDoValor(valor: string, tamanho = 20): TextRun[] {
+  return valor.split(/\r?\n/).map((p, i) => new TextRun({ text: p, size: tamanho, break: i > 0 ? 1 : undefined }));
+}
+
+/** Célula "Rótulo: valor", com o rótulo em negrito azul, como no modelo do escritório. */
+function celula(rotulo: string, valor: string, colunas = 1): TableCell {
+  const titulo = rotulo ? [new TextRun({ text: rotulo.endsWith("?") ? `${rotulo} ` : `${rotulo}: `, bold: true, color: AZUL, size: 20 })] : [];
+  return new TableCell({
+    columnSpan: colunas > 1 ? colunas : undefined,
+    width: { size: (LARGURA / 2) * colunas, type: WidthType.DXA },
+    margins: MARGEM_CELULA,
+    children: [new Paragraph({ children: [...titulo, ...runsDoValor(valor)] })],
+  });
+}
+
+/** Faixa azul com o título da seção. */
+function faixa(titulo: string): Paragraph {
+  return new Paragraph({
+    spacing: { before: 280, after: 0 },
+    shading: { type: ShadingType.CLEAR, color: "auto", fill: AZUL },
+    children: [new TextRun({ text: ` ${titulo}`, bold: true, color: "FFFFFF", size: 24 })],
+  });
+}
+
+/** Linhas da seção em tabela: dois campos por linha; texto longo e itens de lista ocupam a linha toda. */
+function tabela(linhas: [string, string][]): Table {
+  const longo = ([r, v]: [string, string]) => !r || v.length > 55 || v.includes("\n");
+  const rows: TableRow[] = [];
+  const itens = linhas.filter(([r]) => !r).map(([, v]) => v);
+  let par: [string, string][] = [];
+  const fecharPar = () => {
+    if (par.length === 0) return;
+    rows.push(new TableRow({ children: par.length === 2 ? par.map(([r, v]) => celula(r, v)) : [celula(par[0][0], par[0][1], 2)] }));
+    par = [];
+  };
+  for (const l of linhas) {
+    if (!l[0]) continue; // itens de lista vão juntos no fim
+    if (longo(l)) {
+      fecharPar();
+      rows.push(new TableRow({ children: [celula(l[0], l[1], 2)] }));
+      continue;
+    }
+    par.push(l);
+    if (par.length === 2) fecharPar();
+  }
+  fecharPar();
+  if (itens.length) {
+    rows.push(
+      new TableRow({
+        children: [
+          new TableCell({
+            columnSpan: 2,
+            width: { size: LARGURA, type: WidthType.DXA },
+            margins: MARGEM_CELULA,
+            children: itens.map((v) => new Paragraph({ children: [...(itens.length > 1 ? [new TextRun({ text: "• ", size: 20 })] : []), ...runsDoValor(v)] })),
+          }),
+        ],
+      })
+    );
+  }
+  return new Table({ width: { size: LARGURA, type: WidthType.DXA }, columnWidths: [LARGURA / 2, LARGURA / 2], borders: BORDAS, rows });
+}
+
+/** Monta o .docx no modelo do escritório: cabeçalho, e cada seção com faixa azul numerada e tabela com linhas. */
 export async function gerarWord(secoes: Secao[], cab: { escritorio: string; cliente: string; empresa: string | null }): Promise<Buffer> {
-  const corpo: Paragraph[] = [
-    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: cab.escritorio, bold: true, size: 28 })] }),
-    new Paragraph({ alignment: AlignmentType.CENTER, heading: HeadingLevel.TITLE, children: [new TextRun({ text: "Ficha de Atendimento", bold: true, size: 36 })] }),
+  const corpo: (Paragraph | Table)[] = [
+    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: cab.escritorio, bold: true, size: 26, color: AZUL })] }),
+    new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "FICHA DE ATENDIMENTO", bold: true, size: 34, color: AZUL })] }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 300 },
-      children: [new TextRun({ text: cab.empresa ? `${cab.cliente} × ${cab.empresa}` : cab.cliente, size: 24 })],
+      spacing: { after: 120 },
+      children: [new TextRun({ text: cab.empresa ? `${cab.cliente} × ${cab.empresa}` : cab.cliente, size: 22 })],
     }),
   ];
+  let n = 0;
   for (const s of secoes) {
-    corpo.push(new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 240, after: 120 }, children: [new TextRun({ text: s.titulo.toUpperCase(), bold: true })] }));
-    for (const [rotulo, valor] of s.linhas) {
-      // Texto longo (relato, observações) mantém as quebras de linha.
-      const partes = valor.split(/\r?\n/);
-      const runs = partes.map((p, i) => new TextRun({ text: p, break: i > 0 ? 1 : undefined }));
-      corpo.push(new Paragraph({ spacing: { after: 80 }, children: rotulo ? [new TextRun({ text: rotulo.endsWith("?") ? `${rotulo} ` : `${rotulo}: `, bold: true }), ...runs] : [new TextRun({ text: "• " }), ...runs] }));
-    }
+    // "Dados do atendimento" abre a ficha sem número; as demais seguem 1, 2, 3…
+    const titulo = s.titulo === "Dados do atendimento" ? s.titulo : `${++n}. ${s.titulo}`;
+    corpo.push(faixa(titulo), tabela(s.linhas));
   }
   const doc = new Document({
-    styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
-    sections: [{ children: corpo }],
+    styles: { default: { document: { run: { font: "Calibri", size: 20 } } } },
+    sections: [{ properties: { page: { margin: { top: 1000, bottom: 1000, left: 1134, right: 1134 } } }, children: corpo }],
   });
   return Packer.toBuffer(doc);
 }

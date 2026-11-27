@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
@@ -319,6 +319,52 @@ export function FichaForm({
     return r.preenchidos;
   }
 
+  // Salva sozinho: 1,5 s depois de parar de digitar, e ao sair da tela (trocar de aba, ir para o Início).
+  const corpo = useMemo(
+    () =>
+      JSON.stringify({
+        empresa,
+        dados,
+        cliente: Object.fromEntries(Object.entries(cli).map(([k, v]) => [k, v ?? ""])),
+        ...(podeTrocarAdvogado && { advogadoChave: advogado || null }),
+        ...(causas && { recebimentoId: causa || null }),
+      }),
+    [empresa, dados, cli, advogado, causa, podeTrocarAdvogado, causas],
+  );
+  const salvo = useRef(corpo);
+  const pendente = useRef(corpo);
+  pendente.current = corpo;
+  const [auto, setAuto] = useState<"" | "salvando" | "salvo" | "erro">("");
+  const urlFicha = `/api/fichas/${ficha.id}`;
+
+  useEffect(() => {
+    if (!podeEditar || corpo === salvo.current) return;
+    const t = setTimeout(async () => {
+      setAuto("salvando");
+      const res = await fetch(urlFicha, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: corpo }).catch(() => null);
+      if (res?.ok) salvo.current = corpo;
+      setAuto(res?.ok ? "salvo" : "erro");
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [corpo, podeEditar, urlFicha]);
+
+  useEffect(() => {
+    if (!podeEditar) return;
+    const sair = () => {
+      if (pendente.current === salvo.current) return;
+      salvo.current = pendente.current;
+      void fetch(urlFicha, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: pendente.current, keepalive: true }).catch(() => {});
+    };
+    const escondeu = () => document.visibilityState === "hidden" && sair();
+    window.addEventListener("pagehide", sair);
+    document.addEventListener("visibilitychange", escondeu);
+    return () => {
+      window.removeEventListener("pagehide", sair);
+      document.removeEventListener("visibilitychange", escondeu);
+      sair(); // saiu da ficha por dentro do app
+    };
+  }, [podeEditar, urlFicha]);
+
   /** `word`: salva e baixa a ficha em Word, já com o que está na tela. */
   function salvar(enviar: boolean, word = false) {
     setMsg(null);
@@ -348,6 +394,7 @@ export function FichaForm({
           ok: false,
           texto: j?.error ?? "Não foi possível salvar.",
         });
+      salvo.current = pendente.current;
       setMsg({
         ok: true,
         texto: enviar
@@ -375,6 +422,9 @@ export function FichaForm({
         <p className="text-sm text-muted-foreground">
           {ficha.situacao === "ENVIADA" ? "Enviada ao advogado" : "Rascunho"}
           {!podeEditar && " · só leitura"}
+          {auto === "salvando" && " · salvando…"}
+          {auto === "salvo" && " · salvo automaticamente"}
+          {auto === "erro" && <span className="text-rose-300"> · não salvou sozinho, use Salvar</span>}
         </p>
       </section>
 

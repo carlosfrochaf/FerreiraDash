@@ -72,7 +72,6 @@ export function ClientesLista({ clientes }: { clientes: ClienteDaLista[] }) {
           <span>Nome</span>
           <span>CPF</span>
           <span>Telefone</span>
-          <span className="text-center">Causas</span>
           <span className="text-center">Audiências</span>
           <span className="text-center">Petições</span>
           <span>Documentos</span>
@@ -91,9 +90,6 @@ export function ClientesLista({ clientes }: { clientes: ClienteDaLista[] }) {
               </span>
               <span className="truncate tabular-nums text-muted-foreground">
                 {c.telefone ? telefoneExibicao(c.telefone) : "—"}
-              </span>
-              <span className="text-center tabular-nums">
-                {c.causas || "—"}
               </span>
               <span className="text-center tabular-nums">
                 {c.audiencias || "—"}
@@ -165,4 +161,4 @@ export function ClientesLista({ clientes }: { clientes: ClienteDaLista[] }) {
   );
 }
 
-const COLUNAS = "grid-cols-[minmax(0,2fr)_9rem_9rem_4.5rem_5.5rem_4.5rem_7rem]";
+const COLUNAS = "grid-cols-[minmax(0,2fr)_9rem_9rem_5.5rem_4.5rem_7rem]";

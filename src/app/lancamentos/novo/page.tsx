@@ -48,11 +48,25 @@ async function getFormData() {
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
-async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: "causa" | "audiencia" | "peticao" | "simples" }) {
-  const [{ processos, contatos, categorias }, sugestoes, pix, transacaoEdicao] = await Promise.all([
+/** Nome, Pix e reclamada (empresa da ficha mais recente) para a causa nova lançada a partir do cliente. */
+async function causaDoCliente(clienteId: string) {
+  const c = await prisma.cliente.findUnique({
+    where: { id: clienteId },
+    select: { nome: true, pix: true, fichas: { orderBy: { createdAt: "desc" }, select: { dados: true } } },
+  });
+  if (!c) return undefined;
+  const empresa = c.fichas
+    .map((f) => (f.dados as { empresa?: { nomeFantasia?: string } } | null)?.empresa?.nomeFantasia?.trim())
+    .find(Boolean);
+  return { clienteNome: c.nome, clientePix: c.pix ?? undefined, reclamada: empresa };
+}
+
+async function LancamentoPageContent({ editId, modo, clienteId }: { editId?: string; modo: "causa" | "audiencia" | "peticao" | "simples"; clienteId?: string }) {
+  const [{ processos, contatos, categorias }, sugestoes, pix, causaPreenchida, transacaoEdicao] = await Promise.all([
     getFormData(),
     sugestoesAudiencia(),
     pixConhecidos(),
+    clienteId ? causaDoCliente(clienteId) : Promise.resolve(undefined),
     editId
       ? prisma.transacao.findUnique({
           where: { id: editId },
@@ -91,6 +105,7 @@ async function LancamentoPageContent({ editId, modo }: { editId?: string; modo: 
       modoInicial={modo}
       sugestoesAudiencia={sugestoes}
       pixConhecidos={pix}
+      causaPreenchida={causaPreenchida}
     />
   );
 }
@@ -123,7 +138,7 @@ export default async function NovoLancamentoPage(props: {
         </p>
       </section>
       <Suspense fallback={<FormFallback />}>
-        <LancamentoPageContent editId={editId} modo={modo} />
+        <LancamentoPageContent editId={editId} modo={modo} clienteId={typeof searchParams.cliente === "string" ? searchParams.cliente : undefined} />
       </Suspense>
     </div>
   );

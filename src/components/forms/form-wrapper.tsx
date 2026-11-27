@@ -21,6 +21,7 @@ type Props = {
   modoInicial?: Modo;
   sugestoesAudiencia: SugestoesAudiencia;
   pixConhecidos?: Record<string, string>;
+  causaPreenchida?: { clienteNome?: string; clientePix?: string; reclamada?: string };
 };
 
 type Modo = "causa" | "audiencia" | "peticao" | "simples";
@@ -32,7 +33,7 @@ const MODOS = [
   { id: "simples", label: "Outro", desc: "Despesa ou entrada avulsa", icon: Receipt },
 ] as const;
 
-export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, modoInicial = "causa", sugestoesAudiencia, pixConhecidos }: Props) {
+export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, modoInicial = "causa", sugestoesAudiencia, pixConhecidos, causaPreenchida }: Props) {
   const [modo, setModo] = useState<Modo>(modoInicial);
 
   // Edição de um lançamento existente: só o formulário simples, sem abas.
@@ -68,7 +69,7 @@ export function FormWrapper({ processos, contatos, categorias, transacaoEdicao, 
       </div>
 
       {modo === "causa" ? (
-        <RecebimentoForm processos={processos} pixConhecidos={pixConhecidos} />
+        <RecebimentoForm processos={processos} pixConhecidos={pixConhecidos} preenchido={causaPreenchida} />
       ) : modo === "audiencia" ? (
         <AudienciaForm sugestoes={sugestoesAudiencia} />
       ) : modo === "peticao" ? (

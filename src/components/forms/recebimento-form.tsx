@@ -61,11 +61,13 @@ type Props = {
   processos: ProcessoOption[];
   /** Pix já usados por cliente (nome em minúsculas → chave). */
   pixConhecidos?: Record<string, string>;
+  /** Causa nova já preenchida a partir do cliente (nome, Pix, reclamada). */
+  preenchido?: { clienteNome?: string; clientePix?: string; reclamada?: string };
   /** Causa existente: o formulário vira edição. */
   inicial?: RecebimentoSerializado;
 };
 
-export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Props) {
+export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos = {} }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const editando = !!inicial;
@@ -74,10 +76,10 @@ export function RecebimentoForm({ processos, inicial, pixConhecidos = {} }: Prop
 
   const [processoNumero, setProcessoNumero] = useState(inicial?.processoNumero ?? "");
   const [processoId, setProcessoId] = useState(inicial?.processoId ?? "");
-  const [clienteNome, setClienteNome] = useState(inicial?.clienteNome ?? "");
-  const [clientePix, setClientePix] = useState(inicial?.clientePix ?? "");
+  const [clienteNome, setClienteNome] = useState(inicial?.clienteNome ?? preenchido?.clienteNome ?? "");
+  const [clientePix, setClientePix] = useState(inicial?.clientePix ?? preenchido?.clientePix ?? "");
   const [pixAuto, setPixAuto] = useState(false);
-  const [reclamada, setReclamada] = useState(inicial?.reclamada ?? "");
+  const [reclamada, setReclamada] = useState(inicial?.reclamada ?? preenchido?.reclamada ?? "");
   const [observacoes, setObservacoes] = useState(inicial?.observacoes ?? "");
 
   const [valorTotal, setValorTotal] = useState(inicial ? decimalParaMascara(inicial.valorTotal) : "");

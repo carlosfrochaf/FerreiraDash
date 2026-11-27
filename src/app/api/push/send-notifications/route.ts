@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { dataDoDb, dataParaDb, hojeSaoPaulo } from "@/lib/datas";
 import { gerarDespesasRecorrentes } from "@/lib/despesas-recorrentes";
 import { avisoDasIntimacoes, sincronizarIntimacoes } from "@/lib/intimacoes-servico";
+import { avisoFichasParadas, limiteFichaParada } from "@/lib/fichas-paradas";
 import { agruparAdvogados, ehSexta, montarNotificacoes, proximoDiaDePagamento, turnoPorHorario, type DadosDoDia, type Notificacao, type ParcelaAviso, type Turno } from "@/lib/notificacoes";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,19 @@ export async function POST(request: Request) {
       const dados: DadosDoDia = await buscarDadosDoDia(hoje);
       if (turno === "manha" && ehSexta(hoje)) dados.advogadosAPagar = await buscarAdvogadosAPagar(hoje);
       notificacoes = montarNotificacoes(turno, dados);
+      if (turno === "manha") {
+        try {
+          const paradas = await prisma.ficha.findMany({
+            where: { situacao: "RASCUNHO", createdAt: { lt: limiteFichaParada(hoje) } },
+            orderBy: { createdAt: "asc" },
+            select: { id: true, clienteId: true, cliente: { select: { nome: true } } },
+          });
+          const aviso = avisoFichasParadas(paradas.map((f) => ({ fichaId: f.id, clienteId: f.clienteId, nome: f.cliente.nome })));
+          if (aviso) notificacoes.push(aviso);
+        } catch (err) {
+          console.error("[fichas paradas]", err);
+        }
+      }
     }
 
     if (notificacoes.length === 0) {

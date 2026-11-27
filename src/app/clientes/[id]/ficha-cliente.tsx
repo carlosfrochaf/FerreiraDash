@@ -13,6 +13,7 @@ import {
   Loader2,
   MessageCircle,
   Pencil,
+  Plus,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -227,9 +228,17 @@ export function FichaCliente({
 
       {mostrarCausas && (
         <section className="space-y-2">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-            Causas
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              Causas
+            </h2>
+            <Link
+              href={`/lancamentos/novo?modo=causa&cliente=${cliente.id}`}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-medium hover:bg-accent"
+            >
+              <Plus className="h-3.5 w-3.5" /> Lançar causa
+            </Link>
+          </div>
           {causas.length === 0 ? (
             <p className="text-xs text-muted-foreground">Nenhuma causa.</p>
           ) : (

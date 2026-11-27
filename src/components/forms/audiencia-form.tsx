@@ -134,11 +134,11 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
               <Label htmlFor="aud-data">
                 Data <span className="text-rose-400">*</span>
               </Label>
-              <Input id="aud-data" type="date" value={data} onChange={(e) => setData(e.target.value)} className="h-11" />
+              <Input id="aud-data" type="date" value={data} onChange={(e) => setData(e.target.value)} className="h-11 md:h-9" />
             </div>
             <div className="w-32 space-y-2">
               <Label htmlFor="aud-hora">Hora</Label>
-              <Input id="aud-hora" type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="h-11" />
+              <Input id="aud-hora" type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="h-11 md:h-9" />
             </div>
           </div>
 
@@ -153,7 +153,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
               value={advogadoNome}
               onChange={(e) => mudarAdvogado(e.target.value)}
               aria-invalid={invalido(advogadoNome)}
-              className={cn("h-11", invalido(advogadoNome) && "border-rose-500/60")}
+              className={cn("h-11 md:h-9", invalido(advogadoNome) && "border-rose-500/60")}
             />
             <datalist id="advogados-list">
               {sugestoes.advogados.map((a) => (
@@ -173,7 +173,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
                 setPixAuto(false);
               }}
               autoComplete="off"
-              className="h-11 font-mono"
+              className="h-11 md:h-9 font-mono"
             />
             <p className="text-xs text-muted-foreground">
               {pixAuto ? "Pix já cadastrado deste advogado. " : ""}Fica salvo para todas as audiências e petições dele.
@@ -189,7 +189,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
               placeholder="Escolha um processo para preencher cliente e empresa"
               value={processoNumero}
               onChange={(e) => escolherProcesso(e.target.value)}
-              className="h-11"
+              className="h-11 md:h-9"
             />
             <datalist id="aud-processos-list">
               {sugestoes.processos.map((p) => (
@@ -211,12 +211,12 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
                 value={clienteNome}
                 onChange={(e) => setClienteNome(e.target.value)}
                 aria-invalid={invalido(clienteNome)}
-                className={cn("h-11", invalido(clienteNome) && "border-rose-500/60")}
+                className={cn("h-11 md:h-9", invalido(clienteNome) && "border-rose-500/60")}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="aud-empresa">Empresa</Label>
-              <Input id="aud-empresa" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11" />
+              <Input id="aud-empresa" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11 md:h-9" />
             </div>
           </div>
 
@@ -230,7 +230,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
                 placeholder="0,00"
                 value={valor}
                 onChange={(e) => setValor(e.target.value.replace(/\D/g, "") ? maskCurrencyInput(e.target.value) : "")}
-                className="h-11 pl-11 font-semibold tabular-nums"
+                className="h-11 md:h-9 pl-11 font-semibold tabular-nums"
               />
             </div>
             <p className="text-xs text-muted-foreground">Pode deixar em branco e definir depois da audiência.</p>
@@ -258,7 +258,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
                     type="date"
                     value={dataPagamento}
                     onChange={(e) => setDataPagamento(e.target.value)}
-                    className="h-11"
+                    className="h-11 md:h-9"
                   />
                 </div>
               )}
@@ -267,7 +267,7 @@ export function AudienciaForm({ sugestoes, inicial }: Props) {
 
           <div className="space-y-2">
             <Label htmlFor="aud-obs">Observações</Label>
-            <Input id="aud-obs" placeholder="Ex.: vara, local, link da sala" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11" />
+            <Input id="aud-obs" placeholder="Ex.: vara, local, link da sala" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11 md:h-9" />
           </div>
 
           {erro && (

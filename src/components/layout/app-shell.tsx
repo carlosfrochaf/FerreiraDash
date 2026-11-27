@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <main id="conteudo" className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 pb-28 md:px-6 md:pb-10">
+        <main id="conteudo" className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 pb-28 md:px-6 md:pb-10 lg:max-w-6xl lg:px-8">
           {children}
         </main>
       </div>

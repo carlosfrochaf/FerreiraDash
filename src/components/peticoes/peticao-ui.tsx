@@ -160,14 +160,14 @@ export function PeticaoModal({ peticao, onFechar }: { peticao: PeticaoSerializad
                 </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
-                  <Input id="pet-modal-valor" inputMode="numeric" placeholder="0,00" value={valor} onChange={(e) => setValor(maskCurrencyInput(e.target.value))} className="h-11 pl-10 font-semibold" />
+                  <Input id="pet-modal-valor" inputMode="numeric" placeholder="0,00" value={valor} onChange={(e) => setValor(maskCurrencyInput(e.target.value))} className="h-11 md:h-9 pl-10 font-semibold" />
                 </div>
               </div>
             )}
             <label htmlFor="pet-modal-data" className="text-xs font-semibold text-muted-foreground">
               Data do pagamento
             </label>
-            <Input id="pet-modal-data" type="date" value={data} max={hojeSaoPaulo()} onChange={(e) => setData(e.target.value)} className="h-11" />
+            <Input id="pet-modal-data" type="date" value={data} max={hojeSaoPaulo()} onChange={(e) => setData(e.target.value)} className="h-11 md:h-9" />
             <Button variant="success" className="w-full" disabled={pending || !data} onClick={pagar}>
               {pending ? <Loader2 className="animate-spin" /> : <Check />}
               Marcar como pago

@@ -167,9 +167,9 @@ export function HistoricoContent({ movimentos }: { movimentos: Movimento[] }) {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Cliente, empresa, advogado, processo..." value={busca} onChange={(e) => setBusca(e.target.value)} className="h-11 pl-10" />
+            <Input placeholder="Cliente, empresa, advogado, processo..." value={busca} onChange={(e) => setBusca(e.target.value)} className="h-11 md:h-9 pl-10" />
           </div>
-          <Button variant="outline" className="h-11 shrink-0" onClick={exportarCsv} disabled={filtrados.length === 0} title="Exportar o que está filtrado para Excel (CSV)">
+          <Button variant="outline" className="h-11 md:h-9 shrink-0" onClick={exportarCsv} disabled={filtrados.length === 0} title="Exportar o que está filtrado para Excel (CSV)">
             <FileDown /> <span className="hidden sm:inline">Exportar CSV</span>
           </Button>
         </div>

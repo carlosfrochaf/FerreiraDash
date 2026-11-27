@@ -167,7 +167,7 @@ export function Pendencias(props: Props) {
       <div role="tabpanel" className="px-2 pb-3 pt-2 sm:px-3">
         {totais[aba] && <p className="px-2 pb-1 text-xs text-muted-foreground">{totais[aba]}</p>}
 
-        <div className="max-h-[26rem] space-y-0.5 overflow-y-auto">
+        <div className="max-h-[26rem] space-y-0.5 overflow-y-auto lg:max-h-none lg:overflow-visible">
           {contagem[aba] === 0 && <p className="px-2 py-10 text-center text-sm text-muted-foreground">{vazio[aba]}</p>}
 
           {aba === "receber" && (

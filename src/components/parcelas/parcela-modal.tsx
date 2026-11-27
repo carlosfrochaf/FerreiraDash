@@ -131,7 +131,7 @@ export function ParcelaModal({ parcela, onFechar }: Props) {
             <label htmlFor="data-acao" className="text-xs font-semibold text-muted-foreground">
               {!recebida ? "Data em que a empresa pagou" : "Data do repasse ao cliente"}
             </label>
-            <Input id="data-acao" type="date" value={data} max={hojeSaoPaulo()} onChange={(e) => setData(e.target.value)} className="h-11" />
+            <Input id="data-acao" type="date" value={data} max={hojeSaoPaulo()} onChange={(e) => setData(e.target.value)} className="h-11 md:h-9" />
             {recebida && (
               <PixCopiar
                 rotulo="Pix do cliente"
@@ -183,9 +183,9 @@ export function ParcelaModal({ parcela, onFechar }: Props) {
 
         {editandoVencimento && (
           <div className="flex gap-2">
-            <Input type="date" value={novoVencimento} onChange={(e) => setNovoVencimento(e.target.value)} className="h-11" />
+            <Input type="date" value={novoVencimento} onChange={(e) => setNovoVencimento(e.target.value)} className="h-11 md:h-9" />
             <Button
-              className="h-11 shrink-0"
+              className="h-11 md:h-9 shrink-0"
               disabled={pending || !novoVencimento}
               onClick={() => executar({ acao: "alterar_vencimento", vencimento: novoVencimento })}
             >

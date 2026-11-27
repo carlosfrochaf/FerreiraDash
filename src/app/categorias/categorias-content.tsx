@@ -181,7 +181,7 @@ export function CategoriasContent({ initialCategorias }: Props) {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full gap-2 cursor-pointer h-11" disabled={pending}>
+            <Button type="submit" className="w-full gap-2 cursor-pointer h-11 md:h-9" disabled={pending}>
               {pending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

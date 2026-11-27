@@ -34,7 +34,7 @@ export function ClienteForm({ inicial, onSalvo }: { inicial?: ClienteSerializado
     id: `cli-${k}`,
     value: c[k],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setC({ ...c, [k]: k === "cpf" ? mascaraCpf(e.target.value) : e.target.value }),
-    className: "h-11",
+    className: "h-11 md:h-9",
   });
   const avisoCpf = c.cpf.replace(/\D/g, "").length === 11 && !cpfValido(c.cpf) ? "Confira o CPF: os dígitos não batem." : "";
 

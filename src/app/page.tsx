@@ -7,14 +7,40 @@ import { getDashboardResumo } from "@/lib/finance";
 
 export const dynamic = "force-dynamic";
 
-const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const DIAS = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+];
+const MESES = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
 
 function saudacao() {
   const agora = new Date();
   const fuso = { timeZone: "America/Sao_Paulo" } as const;
-  const hora = Number(agora.toLocaleString("en-US", { ...fuso, hour: "numeric", hour12: false }));
-  const [a, m, d] = agora.toLocaleDateString("sv-SE", fuso).split("-").map(Number);
+  const hora = Number(
+    agora.toLocaleString("en-US", { ...fuso, hour: "numeric", hour12: false }),
+  );
+  const [a, m, d] = agora
+    .toLocaleDateString("sv-SE", fuso)
+    .split("-")
+    .map(Number);
   const dia = new Date(Date.UTC(a, m - 1, d)).getUTCDay();
   return {
     ola: hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite",
@@ -25,25 +51,29 @@ function saudacao() {
 async function Conteudo() {
   const r = await getDashboardResumo();
   return (
-    <>
-      <ResumoHero
-        saldoAtual={r.saldoAtual}
-        entradasMes={r.entradasMes}
-        saidasMes={r.saidasMes}
-        aRepassarClientes={r.aRepassarClientes}
-        aReceberEscritorio={r.aReceberEscritorio}
-      />
-      <QuickActions />
-      <Pendencias
-        proximasEntradas={r.proximasEntradas}
-        repassesClientes={r.repassesClientes}
-        audienciasAPagar={r.audienciasAPagar}
-        peticoesPendentes={r.peticoesPendentes}
-        proximasAudiencias={r.proximasAudiencias}
-        recebiveisPendentes={r.recebiveisPendentes}
-      />
+    <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5 lg:space-y-0">
+      <div className="space-y-5">
+        <ResumoHero
+          saldoAtual={r.saldoAtual}
+          entradasMes={r.entradasMes}
+          saidasMes={r.saidasMes}
+          aRepassarClientes={r.aRepassarClientes}
+          aReceberEscritorio={r.aReceberEscritorio}
+        />
+        <QuickActions />
+      </div>
+      <div className="lg:row-span-2">
+        <Pendencias
+          proximasEntradas={r.proximasEntradas}
+          repassesClientes={r.repassesClientes}
+          audienciasAPagar={r.audienciasAPagar}
+          peticoesPendentes={r.peticoesPendentes}
+          proximasAudiencias={r.proximasAudiencias}
+          recebiveisPendentes={r.recebiveisPendentes}
+        />
+      </div>
       <CashFlowChartLazy data={r.fluxoMensal} />
-    </>
+    </div>
   );
 }
 
@@ -60,7 +90,7 @@ function Carregando() {
 export default function HomePage() {
   const { ola, data } = saudacao();
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="mx-auto max-w-3xl space-y-5 lg:max-w-none">
       <header>
         <h1 className="text-2xl font-bold tracking-tight">{ola}</h1>
         <p className="text-sm text-muted-foreground">{data}</p>

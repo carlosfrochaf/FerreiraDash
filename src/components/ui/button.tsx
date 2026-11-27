@@ -17,10 +17,10 @@ const buttonVariants = cva(
         danger: "bg-rose-600 text-white hover:bg-rose-500",
       },
       size: {
-        default: "h-11 px-5 py-2",
+        default: "h-11 px-5 py-2 md:h-9 md:px-4",
         sm: "h-9 rounded-lg px-3",
-        lg: "h-14 rounded-2xl px-8 text-base",
-        icon: "h-11 w-11",
+        lg: "h-14 rounded-2xl px-8 text-base md:h-10 md:rounded-xl md:px-5 md:text-sm",
+        icon: "h-11 w-11 md:h-9 md:w-9",
       },
     },
     defaultVariants: {

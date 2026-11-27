@@ -1,9 +1,18 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Loader2, Search, Send, Trash2, Gavel, Pencil } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Loader2,
+  Search,
+  Send,
+  Trash2,
+  Gavel,
+  Pencil,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,15 +30,28 @@ function concluida(r: RecebimentoSerializado) {
   return r.parcelas.every((p) => p.statusRepasse === "REPASSADO");
 }
 
-function paraResumo(r: RecebimentoSerializado, p: RecebimentoSerializado["parcelas"][number]): ParcelaResumo {
+function paraResumo(
+  r: RecebimentoSerializado,
+  p: RecebimentoSerializado["parcelas"][number],
+): ParcelaResumo {
   return {
     ...p,
     totalParcelas: r.numeroParcelas,
-    recebimento: { id: r.id, clienteNome: r.clienteNome, clientePix: r.clientePix, reclamada: r.reclamada, processoNumero: r.processoNumero },
+    recebimento: {
+      id: r.id,
+      clienteNome: r.clienteNome,
+      clientePix: r.clientePix,
+      reclamada: r.reclamada,
+      processoNumero: r.processoNumero,
+    },
   };
 }
 
-export function RecebimentosContent({ recebimentos }: { recebimentos: RecebimentoSerializado[] }) {
+export function RecebimentosContent({
+  recebimentos,
+}: {
+  recebimentos: RecebimentoSerializado[];
+}) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("abertas");
   const [selecionada, setSelecionada] = useState<ParcelaResumo | null>(null);
@@ -40,7 +62,9 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
       if (filtro === "abertas" && concluida(r)) return false;
       if (filtro === "concluidas" && !concluida(r)) return false;
       if (!q) return true;
-      return [r.clienteNome, r.reclamada, r.processoNumero, r.clientePix].some((t) => t?.toLowerCase().includes(q));
+      return [r.clienteNome, r.reclamada, r.processoNumero, r.clientePix].some(
+        (t) => t?.toLowerCase().includes(q),
+      );
     });
   }, [recebimentos, busca, filtro]);
 
@@ -50,7 +74,9 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
         <Gavel className="h-10 w-10 text-muted-foreground" />
         <div>
           <p className="font-semibold">Nenhuma causa cadastrada</p>
-          <p className="text-sm text-muted-foreground">Cadastre a primeira para acompanhar parcelas e repasses aqui.</p>
+          <p className="text-sm text-muted-foreground">
+            Cadastre a primeira para acompanhar parcelas e repasses aqui.
+          </p>
         </div>
         <Button asChild>
           <Link href="/lancamentos/novo?modo=causa">Cadastrar causa</Link>
@@ -64,9 +90,17 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar cliente, empresa ou processo" value={busca} onChange={(e) => setBusca(e.target.value)} className="h-11 pl-10" />
+          <Input
+            placeholder="Buscar cliente, empresa ou processo"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="h-11 md:h-9 pl-10"
+          />
         </div>
-        <div className="flex gap-1 rounded-xl border border-border bg-card p-1" role="tablist">
+        <div
+          className="flex gap-1 rounded-xl border border-border bg-card p-1"
+          role="tablist"
+        >
           {(
             [
               ["abertas", "Em aberto"],
@@ -81,7 +115,9 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
               onClick={() => setFiltro(id)}
               className={cn(
                 "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none",
-                filtro === id ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+                filtro === id
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {label}
@@ -95,10 +131,27 @@ export function RecebimentosContent({ recebimentos }: { recebimentos: Recebiment
           Nada encontrado com esses filtros.
         </p>
       ) : (
-        lista.map((r) => <CausaCard key={r.id} r={r} onParcela={(p) => setSelecionada(paraResumo(r, p))} />)
+        <>
+          <div className="space-y-4 md:hidden">
+            {lista.map((r) => (
+              <CausaCard
+                key={r.id}
+                r={r}
+                onParcela={(p) => setSelecionada(paraResumo(r, p))}
+              />
+            ))}
+          </div>
+          <TabelaCausas
+            lista={lista}
+            onParcela={(r, p) => setSelecionada(paraResumo(r, p))}
+          />
+        </>
       )}
 
-      <ParcelaModal parcela={selecionada} onFechar={() => setSelecionada(null)} />
+      <ParcelaModal
+        parcela={selecionada}
+        onFechar={() => setSelecionada(null)}
+      />
     </div>
   );
 }
@@ -110,26 +163,13 @@ function CausaCard({
   r: RecebimentoSerializado;
   onParcela: (p: RecebimentoSerializado["parcelas"][number]) => void;
 }) {
-  const router = useRouter();
-  const [confirmando, setConfirmando] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [erro, setErro] = useState("");
-
-  const recebidas = r.parcelas.filter((p) => p.statusRecebimento === "RECEBIDO").length;
-  const repassadas = r.parcelas.filter((p) => p.statusRepasse === "REPASSADO").length;
+  const recebidas = r.parcelas.filter(
+    (p) => p.statusRecebimento === "RECEBIDO",
+  ).length;
+  const repassadas = r.parcelas.filter(
+    (p) => p.statusRepasse === "REPASSADO",
+  ).length;
   const resumo = resumoCausa(r.parcelas);
-
-  function excluir() {
-    setErro("");
-    startTransition(async () => {
-      const res = await fetch(`/api/recebimentos/${r.id}`, { method: "DELETE" }).catch(() => null);
-      if (!res?.ok) {
-        setErro("Não foi possível excluir.");
-        return;
-      }
-      router.refresh();
-    });
-  }
 
   return (
     <Card>
@@ -138,28 +178,52 @@ function CausaCard({
           <div className="min-w-0 space-y-0.5">
             <p className="truncate font-semibold">{r.clienteNome}</p>
             <p className="truncate text-xs text-muted-foreground">
-              {[r.reclamada, r.processoNumero].filter(Boolean).join(" · ") || "Sem processo vinculado"}
+              {[r.reclamada, r.processoNumero].filter(Boolean).join(" · ") ||
+                "Sem processo vinculado"}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              Pix: {r.clientePix ? <span className="font-mono text-foreground/80">{r.clientePix}</span> : <span className="text-amber-300/80">não cadastrado</span>}
+              Pix:{" "}
+              {r.clientePix ? (
+                <span className="font-mono text-foreground/80">
+                  {r.clientePix}
+                </span>
+              ) : (
+                <span className="text-amber-300/80">não cadastrado</span>
+              )}
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="font-bold tabular-nums">{formatCurrency(r.valorTotal)}</p>
-            <p className="text-[11px] text-muted-foreground">{Number(r.percentualEscritorio)}% escritório</p>
+            <p className="font-bold tabular-nums">
+              {formatCurrency(r.valorTotal)}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {Number(r.percentualEscritorio)}% escritório
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-lg bg-muted/40 p-2">
             <p className="text-muted-foreground">Escritório</p>
-            <p className="font-semibold tabular-nums text-emerald-300">{formatCurrency(resumo.escritorio.total)}</p>
-            <Andamento feito={resumo.escritorio.recebido} falta={resumo.escritorio.falta} verbo="recebido" />
+            <p className="font-semibold tabular-nums text-emerald-300">
+              {formatCurrency(resumo.escritorio.total)}
+            </p>
+            <Andamento
+              feito={resumo.escritorio.recebido}
+              falta={resumo.escritorio.falta}
+              verbo="recebido"
+            />
           </div>
           <div className="rounded-lg bg-muted/40 p-2">
             <p className="text-muted-foreground">Cliente</p>
-            <p className="font-semibold tabular-nums text-amber-200">{formatCurrency(resumo.cliente.total)}</p>
-            <Andamento feito={resumo.cliente.repassado} falta={resumo.cliente.falta} verbo="repassado" />
+            <p className="font-semibold tabular-nums text-amber-200">
+              {formatCurrency(resumo.cliente.total)}
+            </p>
+            <Andamento
+              feito={resumo.cliente.repassado}
+              falta={resumo.cliente.falta}
+              verbo="repassado"
+            />
           </div>
         </div>
 
@@ -178,48 +242,114 @@ function CausaCard({
                 key={p.id}
                 className={cn(
                   "flex-1",
-                  p.statusRepasse === "REPASSADO" ? "bg-emerald-500" : p.statusRecebimento === "RECEBIDO" ? "bg-amber-400" : "bg-muted"
+                  p.statusRepasse === "REPASSADO"
+                    ? "bg-emerald-500"
+                    : p.statusRecebimento === "RECEBIDO"
+                      ? "bg-amber-400"
+                      : "bg-muted",
                 )}
               />
             ))}
           </div>
         </div>
 
-        <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
-          {r.parcelas.map((p) => {
-            const recebida = p.statusRecebimento === "RECEBIDO";
-            const repassada = p.statusRepasse === "REPASSADO";
-            return (
-              <li key={p.id}>
-                <button
-                  onClick={() => onParcela(p)}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:outline-none"
-                >
-                  <span className="w-9 shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
-                    {p.numero}/{r.numeroParcelas}
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                    <span className="text-xs">{formatarDataCurta(p.vencimento)}</span>
-                    {!recebida && <PrazoBadge vencimento={p.vencimento} />}
-                  </span>
-                  <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(p.valorParcela)}</span>
-                  <span className="flex w-12 shrink-0 justify-end gap-1" aria-label={`${recebida ? "recebida" : "a receber"}, ${repassada ? "repassada" : "não repassada"}`}>
-                    <Check className={cn("h-4 w-4", recebida ? "text-emerald-400" : "text-muted-foreground/30")} />
-                    <Send className={cn("h-4 w-4", repassada ? "text-emerald-400" : "text-muted-foreground/30")} />
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <ListaParcelas r={r} onParcela={onParcela} />
+        <AcoesCausa r={r} />
+      </CardContent>
+    </Card>
+  );
+}
 
-        <div className="flex items-center justify-end gap-2 sm:justify-between">
-          <p className="hidden text-[11px] text-muted-foreground sm:block">
-            <Check className="inline h-3 w-3" /> recebida da empresa · <Send className="inline h-3 w-3" /> repassada ao cliente
-          </p>
-          <div className="flex shrink-0 items-center gap-1">
+function ListaParcelas({
+  r,
+  onParcela,
+}: {
+  r: RecebimentoSerializado;
+  onParcela: (p: RecebimentoSerializado["parcelas"][number]) => void;
+}) {
+  return (
+    <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
+      {r.parcelas.map((p) => {
+        const recebida = p.statusRecebimento === "RECEBIDO";
+        const repassada = p.statusRepasse === "REPASSADO";
+        return (
+          <li key={p.id}>
+            <button
+              onClick={() => onParcela(p)}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:outline-none"
+            >
+              <span className="w-9 shrink-0 text-xs font-bold tabular-nums text-muted-foreground">
+                {p.numero}/{r.numeroParcelas}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                <span className="text-xs">
+                  {formatarDataCurta(p.vencimento)}
+                </span>
+                {!recebida && <PrazoBadge vencimento={p.vencimento} />}
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums">
+                {formatCurrency(p.valorParcela)}
+              </span>
+              <span
+                className="flex w-12 shrink-0 justify-end gap-1"
+                aria-label={`${recebida ? "recebida" : "a receber"}, ${repassada ? "repassada" : "não repassada"}`}
+              >
+                <Check
+                  className={cn(
+                    "h-4 w-4",
+                    recebida ? "text-emerald-400" : "text-muted-foreground/30",
+                  )}
+                />
+                <Send
+                  className={cn(
+                    "h-4 w-4",
+                    repassada ? "text-emerald-400" : "text-muted-foreground/30",
+                  )}
+                />
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function AcoesCausa({ r }: { r: RecebimentoSerializado }) {
+  const router = useRouter();
+  const [confirmando, setConfirmando] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [erro, setErro] = useState("");
+
+  function excluir() {
+    setErro("");
+    startTransition(async () => {
+      const res = await fetch(`/api/recebimentos/${r.id}`, {
+        method: "DELETE",
+      }).catch(() => null);
+      if (!res?.ok) {
+        setErro("Não foi possível excluir.");
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-end gap-2 sm:justify-between">
+        <p className="hidden text-[11px] text-muted-foreground sm:block">
+          <Check className="inline h-3 w-3" /> recebida da empresa ·{" "}
+          <Send className="inline h-3 w-3" /> repassada ao cliente
+        </p>
+        <div className="flex shrink-0 items-center gap-1">
           {!confirmando && (
-            <Button asChild size="sm" variant="ghost" className="text-muted-foreground">
+            <Button
+              asChild
+              size="sm"
+              variant="ghost"
+              className="text-muted-foreground"
+            >
               <Link href={`/recebimentos/${r.id}/editar`}>
                 <Pencil /> Editar
               </Link>
@@ -227,29 +357,207 @@ function CausaCard({
           )}
           {confirmando ? (
             <div className="flex shrink-0 items-center gap-1">
-              <Button size="sm" variant="ghost" onClick={() => setConfirmando(false)} disabled={pending}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirmando(false)}
+                disabled={pending}
+              >
                 Cancelar
               </Button>
-              <Button size="sm" variant="danger" onClick={excluir} disabled={pending}>
-                {pending ? <Loader2 className="animate-spin" /> : <Trash2 />} Excluir causa
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={excluir}
+                disabled={pending}
+              >
+                {pending ? <Loader2 className="animate-spin" /> : <Trash2 />}{" "}
+                Excluir causa
               </Button>
             </div>
           ) : (
-            <Button size="sm" variant="ghost" className="shrink-0 text-muted-foreground hover:text-rose-300" onClick={() => setConfirmando(true)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="shrink-0 text-muted-foreground hover:text-rose-300"
+              onClick={() => setConfirmando(true)}
+            >
               <Trash2 /> Excluir
             </Button>
           )}
-          </div>
         </div>
-        {erro && <p className="text-xs text-rose-300">{erro}</p>}
-      </CardContent>
-    </Card>
+      </div>
+      {erro && <p className="text-xs text-rose-300">{erro}</p>}
+    </>
+  );
+}
+
+/** Computador: uma linha por causa; clicar abre as parcelas logo abaixo. */
+function TabelaCausas({
+  lista,
+  onParcela,
+}: {
+  lista: RecebimentoSerializado[];
+  onParcela: (
+    r: RecebimentoSerializado,
+    p: RecebimentoSerializado["parcelas"][number],
+  ) => void;
+}) {
+  const [aberta, setAberta] = useState<string | null>(null);
+  return (
+    <div className="hidden overflow-hidden rounded-2xl border border-border/70 bg-card md:block">
+      <table className="w-full text-sm">
+        <thead className="border-b border-border/70 bg-muted/30 text-left text-xs text-muted-foreground">
+          <tr>
+            <th className="px-4 py-2.5 font-medium">Cliente</th>
+            <th className="px-3 py-2.5 text-right font-medium">Total</th>
+            <th className="px-3 py-2.5 text-right font-medium">Escritório</th>
+            <th className="px-3 py-2.5 text-right font-medium">
+              Cliente recebe
+            </th>
+            <th className="px-3 py-2.5 font-medium">Parcelas</th>
+            <th className="px-4 py-2.5 font-medium">Próxima</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60">
+          {lista.map((r) => {
+            const resumo = resumoCausa(r.parcelas);
+            const recebidas = r.parcelas.filter(
+              (p) => p.statusRecebimento === "RECEBIDO",
+            ).length;
+            const proxima = r.parcelas.find(
+              (p) => p.statusRecebimento !== "RECEBIDO",
+            );
+            const expandida = aberta === r.id;
+            return (
+              <Fragment key={r.id}>
+                <tr
+                  onClick={() => setAberta(expandida ? null : r.id)}
+                  aria-expanded={expandida}
+                  className={cn(
+                    "cursor-pointer transition-colors hover:bg-accent/40",
+                    expandida && "bg-accent/30",
+                  )}
+                >
+                  <td className="max-w-0 px-4 py-2.5">
+                    <p className="flex items-center gap-1.5 truncate font-medium">
+                      <ChevronRight
+                        className={cn(
+                          "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
+                          expandida && "rotate-90",
+                        )}
+                      />
+                      <span className="truncate">{r.clienteNome}</span>
+                    </p>
+                    <p className="truncate pl-5 text-xs text-muted-foreground">
+                      {[r.reclamada, r.processoNumero]
+                        .filter(Boolean)
+                        .join(" · ") || "Sem processo vinculado"}
+                    </p>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold tabular-nums">
+                    {formatCurrency(r.valorTotal)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
+                    <p className="text-emerald-300">
+                      {formatCurrency(resumo.escritorio.total)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {resumo.escritorio.falta > 0
+                        ? `falta ${formatCurrency(resumo.escritorio.falta)}`
+                        : "✓ recebido"}
+                    </p>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
+                    <p className="text-amber-200">
+                      {formatCurrency(resumo.cliente.total)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {resumo.cliente.falta > 0
+                        ? `falta ${formatCurrency(resumo.cliente.falta)}`
+                        : "✓ repassado"}
+                    </p>
+                  </td>
+                  <td className="w-32 px-3 py-2.5">
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      {recebidas}/{r.numeroParcelas} recebidas
+                    </p>
+                    <div className="mt-1 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
+                      {r.parcelas.map((p) => (
+                        <span
+                          key={p.id}
+                          className={cn(
+                            "flex-1",
+                            p.statusRepasse === "REPASSADO"
+                              ? "bg-emerald-500"
+                              : p.statusRecebimento === "RECEBIDO"
+                                ? "bg-amber-400"
+                                : "bg-muted",
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5">
+                    {proxima ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-xs tabular-nums">
+                          {formatarDataCurta(proxima.vencimento)}
+                        </span>
+                        <PrazoBadge vencimento={proxima.vencimento} />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
+                </tr>
+                {expandida && (
+                  <tr className="bg-muted/10">
+                    <td colSpan={6} className="space-y-3 px-4 pb-4 pt-1">
+                      <p className="text-xs text-muted-foreground">
+                        Pix:{" "}
+                        {r.clientePix ? (
+                          <span className="font-mono text-foreground/80">
+                            {r.clientePix}
+                          </span>
+                        ) : (
+                          <span className="text-amber-300/80">
+                            não cadastrado
+                          </span>
+                        )}
+                        {" · "}
+                        {Number(r.percentualEscritorio)}% escritório
+                      </p>
+                      <ListaParcelas r={r} onParcela={(p) => onParcela(r, p)} />
+                      <AcoesCausa r={r} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 /** "✓ R$ X recebido · falta R$ Y" (ou "✓ tudo recebido"), embaixo do total. */
-function Andamento({ feito, falta, verbo }: { feito: number; falta: number; verbo: "recebido" | "repassado" }) {
-  if (falta <= 0 && feito > 0) return <p className="mt-0.5 text-[11px] font-medium text-emerald-400">✓ tudo {verbo}</p>;
+function Andamento({
+  feito,
+  falta,
+  verbo,
+}: {
+  feito: number;
+  falta: number;
+  verbo: "recebido" | "repassado";
+}) {
+  if (falta <= 0 && feito > 0)
+    return (
+      <p className="mt-0.5 text-[11px] font-medium text-emerald-400">
+        ✓ tudo {verbo}
+      </p>
+    );
   return (
     <p className="mt-0.5 text-[11px] leading-snug tabular-nums">
       {feito > 0 && (
@@ -258,7 +566,9 @@ function Andamento({ feito, falta, verbo }: { feito: number; falta: number; verb
           <br />
         </span>
       )}
-      <span className="text-muted-foreground">falta {formatCurrency(falta)}</span>
+      <span className="text-muted-foreground">
+        falta {formatCurrency(falta)}
+      </span>
     </p>
   );
 }

@@ -127,7 +127,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               value={advogadoNome}
               onChange={(e) => mudarAdvogado(e.target.value)}
               aria-invalid={invalido(advogadoNome)}
-              className={cn("h-11", invalido(advogadoNome) && "border-rose-500/60")}
+              className={cn("h-11 md:h-9", invalido(advogadoNome) && "border-rose-500/60")}
             />
             <datalist id="pet-advogados-list">
               {sugestoes.advogados.map((a) => (
@@ -147,7 +147,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
                 setPixAuto(false);
               }}
               autoComplete="off"
-              className="h-11 font-mono"
+              className="h-11 md:h-9 font-mono"
             />
             <p className="text-xs text-muted-foreground">
               {pixAuto ? "Pix já cadastrado deste advogado. " : ""}Fica salvo para todas as audiências e petições dele.
@@ -165,7 +165,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               aria-invalid={invalido(descricao)}
-              className={cn("h-11", invalido(descricao) && "border-rose-500/60")}
+              className={cn("h-11 md:h-9", invalido(descricao) && "border-rose-500/60")}
             />
             <datalist id="pet-tipos-list">
               {TIPOS_COMUNS.map((t) => (
@@ -183,7 +183,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               placeholder="Escolha um processo para preencher cliente e empresa"
               value={processoNumero}
               onChange={(e) => escolherProcesso(e.target.value)}
-              className="h-11"
+              className="h-11 md:h-9"
             />
             <datalist id="pet-processos-list">
               {sugestoes.processos.map((p) => (
@@ -205,12 +205,12 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
                 value={clienteNome}
                 onChange={(e) => setClienteNome(e.target.value)}
                 aria-invalid={invalido(clienteNome)}
-                className={cn("h-11", invalido(clienteNome) && "border-rose-500/60")}
+                className={cn("h-11 md:h-9", invalido(clienteNome) && "border-rose-500/60")}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="pet-empresa">Empresa</Label>
-              <Input id="pet-empresa" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11" />
+              <Input id="pet-empresa" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11 md:h-9" />
             </div>
           </div>
 
@@ -219,7 +219,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
               <Label htmlFor="pet-entrega">
                 Data de entrega <span className="text-rose-400">*</span>
               </Label>
-              <Input id="pet-entrega" type="date" value={dataEntrega} max={hojeSaoPaulo()} onChange={(e) => setDataEntrega(e.target.value)} className="h-11" />
+              <Input id="pet-entrega" type="date" value={dataEntrega} max={hojeSaoPaulo()} onChange={(e) => setDataEntrega(e.target.value)} className="h-11 md:h-9" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="pet-valor">Valor da petição</Label>
@@ -231,7 +231,7 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
                   placeholder="0,00"
                   value={valor}
                   onChange={(e) => setValor(e.target.value.replace(/\D/g, "") ? maskCurrencyInput(e.target.value) : "")}
-                  className="h-11 pl-11 font-semibold tabular-nums"
+                  className="h-11 md:h-9 pl-11 font-semibold tabular-nums"
                 />
               </div>
             </div>
@@ -259,14 +259,14 @@ export function PeticaoForm({ sugestoes, inicial }: { sugestoes: SugestoesAudien
             {status === "PAGA" && (
               <div className="space-y-1 pt-1">
                 <Label htmlFor="pet-pagamento">Data do pagamento</Label>
-                <Input id="pet-pagamento" type="date" value={dataPagamento} max={hojeSaoPaulo()} onChange={(e) => setDataPagamento(e.target.value)} className="h-11" />
+                <Input id="pet-pagamento" type="date" value={dataPagamento} max={hojeSaoPaulo()} onChange={(e) => setDataPagamento(e.target.value)} className="h-11 md:h-9" />
               </div>
             )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="pet-obs">Observações</Label>
-            <Input id="pet-obs" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11" />
+            <Input id="pet-obs" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11 md:h-9" />
           </div>
 
           {erro && (

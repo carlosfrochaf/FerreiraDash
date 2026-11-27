@@ -20,7 +20,7 @@ export function QuickActions() {
             href={a.href}
             className="group flex flex-col items-center gap-1.5 rounded-2xl py-2 text-center transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/20">
+            <span className="flex h-11 w-11 md:h-9 md:w-9 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/20">
               <Icon className="h-5 w-5" />
             </span>
             <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">{a.titulo}</span>

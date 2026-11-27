@@ -56,7 +56,7 @@ export function ZonaDeRisco() {
             Digite <strong className="text-rose-300">APAGAR</strong> para confirmar:
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Input id="confirmar-apagar" value={texto} onChange={(e) => setTexto(e.target.value)} disabled={apagando} className="h-11 sm:max-w-xs" autoComplete="off" />
+            <Input id="confirmar-apagar" value={texto} onChange={(e) => setTexto(e.target.value)} disabled={apagando} className="h-11 md:h-9 sm:max-w-xs" autoComplete="off" />
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => { setAberto(false); setTexto(""); }} disabled={apagando}>
                 Cancelar

@@ -249,7 +249,7 @@ export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos 
                 placeholder="0000000-00.0000.0.00.0000"
                 value={processoNumero}
                 onChange={(e) => escolherProcesso(e.target.value)}
-                className="h-11"
+                className="h-11 md:h-9"
               />
               <datalist id="processos-list">
                 {processos.map((p) => (
@@ -279,12 +279,12 @@ export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos 
                     }
                   }}
                   aria-invalid={tentouEnviar && !clienteNome.trim()}
-                  className={cn("h-11", tentouEnviar && !clienteNome.trim() && "border-rose-500/60")}
+                  className={cn("h-11 md:h-9", tentouEnviar && !clienteNome.trim() && "border-rose-500/60")}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reclamada">Empresa / reclamada</Label>
-                <Input id="reclamada" placeholder="Quem paga o escritório" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11" />
+                <Input id="reclamada" placeholder="Quem paga o escritório" value={reclamada} onChange={(e) => setReclamada(e.target.value)} className="h-11 md:h-9" />
               </div>
             </div>
             <div className="space-y-2">
@@ -298,14 +298,14 @@ export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos 
                   setPixAuto(false);
                 }}
                 autoComplete="off"
-                className="h-11 font-mono"
+                className="h-11 md:h-9 font-mono"
               />
               {pixAuto && <p className="text-xs text-muted-foreground">Preenchido com o Pix usado em outra causa deste cliente.</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="observacoes">Observações</Label>
-              <Input id="observacoes" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11" />
+              <Input id="observacoes" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="h-11 md:h-9" />
             </div>
           </CardContent>
         </Card>
@@ -350,7 +350,7 @@ export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos 
                       onClick={() => setPercentual(p)}
                       aria-pressed={percentual === p}
                       className={cn(
-                        "h-11 w-12 shrink-0 rounded-xl border text-sm font-semibold transition-colors",
+                        "h-11 md:h-9 w-12 shrink-0 rounded-xl border text-sm font-semibold transition-colors",
                         percentual === p ? "border-primary bg-primary/15 text-primary" : "border-border hover:bg-accent"
                       )}
                     >
@@ -363,7 +363,7 @@ export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos 
                       inputMode="decimal"
                       value={percentual}
                       onChange={(e) => setPercentual(e.target.value.replace(",", ".").replace(/[^\d.]/g, ""))}
-                      className="h-11 pr-7 text-center font-semibold"
+                      className="h-11 md:h-9 pr-7 text-center font-semibold"
                       aria-label="Percentual personalizado"
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
@@ -382,7 +382,7 @@ export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos 
                     inputMode="numeric"
                     value={numeroParcelas}
                     onChange={(e) => setParcelas(parseInt(e.target.value.replace(/\D/g, ""), 10))}
-                    className="h-11 text-center text-base font-bold"
+                    className="h-11 md:h-9 text-center text-base font-bold"
                   />
                   <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setParcelas(numeroParcelas + 1)} aria-label="Mais uma parcela">
                     <Plus />
@@ -396,7 +396,7 @@ export function RecebimentoForm({ processos, inicial, preenchido, pixConhecidos 
               <Label htmlFor="primeiroVencimento">
                 {numeroParcelas === 1 ? "Data do pagamento" : "1º vencimento"} <span className="text-rose-400">*</span>
               </Label>
-              <Input id="primeiroVencimento" type="date" value={primeiroVencimento} onChange={(e) => setPrimeiro(e.target.value)} className="h-11" />
+              <Input id="primeiroVencimento" type="date" value={primeiroVencimento} onChange={(e) => setPrimeiro(e.target.value)} className="h-11 md:h-9" />
               {numeroParcelas > 1 && (
                 <p className="text-xs text-muted-foreground">O mesmo dia se repete todo mês. Sábado e domingo passam para segunda.</p>
               )}

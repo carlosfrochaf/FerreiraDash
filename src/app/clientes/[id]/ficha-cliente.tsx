@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { CampoEscolha } from "@/components/ui/campo-escolha";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClienteForm } from "@/components/clientes/cliente-form";
+import { BaixarPasta } from "@/components/clientes/baixar-pasta";
 import {
   DocumentosCliente,
   type DocumentoDaFicha,
@@ -147,7 +148,7 @@ export function FichaCliente({
     <div className="space-y-6">
       <section className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {whatsapp && mensagens && cliente.telefone ? (
             <WhatsappCliente
               telefone={cliente.telefone}
@@ -166,6 +167,7 @@ export function FichaCliente({
               </Button>
             )
           )}
+          <BaixarPasta clienteId={cliente.id} />
           {podeEditar && (
             <Button
               variant="outline"

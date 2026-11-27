@@ -9,7 +9,17 @@ export const ADVOGADO_A_DEFINIR = "A definir";
 
 export type AudienciaLancada = { id: string; data: string; hora: string; cliente: string | null };
 
-const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+/** Audiência remarcada: de cada processo vale só a que saiu na publicação mais recente. */
+export function ultimaPorProcesso<T extends { processo: string; publicada: string }>(lista: T[]): T[] {
+  const por = new Map<string, T>();
+  for (const a of lista) {
+    const atual = por.get(a.processo);
+    if (!atual || a.publicada > atual.publicada) por.set(a.processo, a);
+  }
+  return [...por.values()];
+}
+
+const diaMes =(iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 export function avisoDasAudiencias(lista: AudienciaLancada[]): Notificacao | null {
   if (lista.length === 0) return null;

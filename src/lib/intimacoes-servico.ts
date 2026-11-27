@@ -2,7 +2,7 @@
 import { prisma } from "./prisma";
 import { dataDoDb, dataParaDb } from "./datas";
 import { ROTULO_TIPO, clienteDoTexto, reclamadaDoTexto, resumoDoDia, semRepetidas, tipoDaIntimacao, vincularProcesso, type ComunicacaoCnj, type TipoIntimacao } from "./intimacoes";
-import { ADVOGADO_A_DEFINIR, lerAudiencia, type AudienciaLancada } from "./audiencia-intimacao";
+import { ADVOGADO_A_DEFINIR, lerAudiencia, ultimaPorProcesso, type AudienciaLancada } from "./audiencia-intimacao";
 import { garantirCliente } from "./clientes-servico";
 
 const soDigitos = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
@@ -79,6 +79,40 @@ async function buscarDaOab(oab: { numero: string; uf: string }, de: string, ate:
     if (itens.length < POR_PAGINA || todas.length >= (j.count ?? 0)) break;
   }
   return todas;
+}
+
+/**
+ * Audiências marcadas em publicações antigas (últimos `meses`), que ainda vão acontecer. Busca de 30 em 30 dias;
+ * de cada processo vale a publicação mais recente; processo que já tem audiência futura fica como está.
+ * Não grava as intimações antigas. Com `simular`, só diz o que lançaria.
+ */
+export async function audienciasDoPassado(hoje: string, meses: number, simular: boolean) {
+  const brutas: ComunicacaoCnj[] = [];
+  for (let fim = hoje, i = 0; i < meses; i++) {
+    const ini = somarDias(fim, -29);
+    for (const o of OABS) brutas.push(...(await buscarDaOab(o, ini, fim)));
+    fim = somarDias(ini, -1);
+  }
+  const candidatas = ultimaPorProcesso(
+    semRepetidas(brutas)
+      .map((c) => ({ c, processo: soDigitos(c.numero_processo), publicada: c.data_disponibilizacao, lida: lerAudiencia(c.texto, c.data_disponibilizacao) }))
+      .filter((x) => x.lida && x.lida.data > hoje),
+  );
+  const futuras = await prisma.audiencia.findMany({ where: { data: { gte: dataParaDb(hoje) } }, select: { processoNumero: true } });
+  const comFutura = new Set(futuras.map((a) => soDigitos(a.processoNumero)));
+  const { causas, outros } = await carregarProcessos();
+
+  const lancadas = [];
+  for (const { c, processo } of candidatas) {
+    if (comFutura.has(processo)) continue;
+    const clienteNome = vincularProcesso(c.numero_processo, causas, outros).clienteNome ?? clienteDoTexto(c.texto);
+    const a = await lancarAudienciaDaIntimacao(
+      { numeroProcesso: c.numero_processo, processoMascara: c.numeroprocessocommascara ?? null, data: dataParaDb(c.data_disponibilizacao), texto: c.texto ?? "", clienteNome },
+      simular,
+    );
+    if (a) lancadas.push({ ...a, processo: c.numeroprocessocommascara ?? c.numero_processo, publicada: c.data_disponibilizacao });
+  }
+  return { publicacoes: brutas.length, lancadas };
 }
 
 async function carregarProcessos() {

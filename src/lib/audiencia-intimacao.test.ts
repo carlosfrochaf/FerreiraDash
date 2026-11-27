@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { ADVOGADO_A_DEFINIR, avisoDasAudiencias, lerAudiencia } from "./audiencia-intimacao";
+import { ADVOGADO_A_DEFINIR, avisoDasAudiencias, lerAudiencia, ultimaPorProcesso } from "./audiencia-intimacao";
+
+describe("ultimaPorProcesso", () => {
+  it("remarcada: fica só a da publicação mais recente de cada processo", () => {
+    const lista = [
+      { processo: "1", publicada: "2026-09-01", data: "2026-12-10" },
+      { processo: "1", publicada: "2026-10-05", data: "2027-01-20" },
+      { processo: "2", publicada: "2026-08-01", data: "2026-12-01" },
+    ];
+    expect(ultimaPorProcesso(lista)).toEqual([
+      { processo: "1", publicada: "2026-10-05", data: "2027-01-20" },
+      { processo: "2", publicada: "2026-08-01", data: "2026-12-01" },
+    ]);
+  });
+});
 
 describe("avisoDasAudiencias", () => {
   it("nenhuma: sem aviso", () => expect(avisoDasAudiencias([])).toBeNull());

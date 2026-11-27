@@ -353,10 +353,12 @@ export function FichaForm({
         texto: enviar
           ? "Ficha enviada ao advogado."
           : word
-            ? "Ficha salva. Baixando o Word…"
+            ? "Ficha salva. Word baixado."
             : "Ficha salva.",
       });
       if (word) window.location.href = linkWord;
+      // O aviso some sozinho para não parecer que ainda está baixando.
+      setTimeout(() => setMsg(null), 4000);
       router.refresh();
     });
   }

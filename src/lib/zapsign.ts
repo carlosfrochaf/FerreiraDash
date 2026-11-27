@@ -48,12 +48,16 @@ export function escolherCliente(signers: ZapSigner[]): { nome: string; email: st
   };
 }
 
+/** Nome sem as extensões que o ZapSign deixa (ex.: "Procuração.docx.pdf" → "Procuração"). */
+const nomeLimpo = (nome?: string | null) =>
+  (nome?.trim() || "Documento assinado").replace(/(\.(pdf|docx?|odt|rtf))+$/i, "").trim() || "Documento assinado";
+
 /** Arquivos assinados do envio (o principal e os extras). O link não é guardado: o do ZapSign vence. */
 export function arquivosDoEnvio(doc: ZapDocumento): ArquivoAssinado[] {
   return [doc, ...(doc.extra_docs ?? [])]
     .filter((a) => a.signed_file)
     .map((a) => {
-      const nome = (a.name?.trim() || "Documento assinado").replace(/\.pdf$/i, "");
+      const nome = nomeLimpo(a.name);
       return { token: a.token, nome, tipo: tipoPeloNome(nome) };
     });
 }
@@ -63,7 +67,7 @@ export function arquivosAssinados(doc: ZapDocumento): { origem: string; nome: st
   return [doc, ...(doc.extra_docs ?? [])]
     .filter((a) => a.signed_file)
     .map((a) => {
-      const nome = (a.name?.trim() || "Documento assinado").replace(/\.pdf$/i, "");
+      const nome = nomeLimpo(a.name);
       return { origem: `zapsign:${a.token}`, nome: `${nome}.pdf`, url: a.signed_file!, tipo: tipoPeloNome(nome) };
     });
 }

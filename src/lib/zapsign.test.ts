@@ -61,6 +61,12 @@ describe("segredoDoAviso", () => {
 });
 
 describe("arquivosAssinados", () => {
+  it("tira .docx/.doc do nome que vem do ZapSign", () => {
+    const doc = { token: "d1", name: "Procuração.docx", signed_file: "https://z/1.pdf", extra_docs: [{ token: "e1", name: "Hipossuficiência.DOC.pdf", signed_file: "https://z/2.pdf" }] };
+    expect(arquivosAssinados(doc).map((a) => a.nome)).toEqual(["Procuração.pdf", "Hipossuficiência.pdf"]);
+    expect(arquivosDoEnvio(doc).map((a) => a.nome)).toEqual(["Procuração", "Hipossuficiência"]);
+  });
+
   it("principal e extras assinados, cada um com sua origem e tipo pelo nome", () => {
     const doc = {
       token: "d1",

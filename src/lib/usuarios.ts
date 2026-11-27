@@ -11,7 +11,8 @@ export async function advogadosConhecidos(): Promise<{ chave: string; nome: stri
   const mapa = new Map<string, string>();
   for (const nome of [...cad.map((a) => a.nome), ...aud.map((a) => a.advogadoNome), ...pet.map((p) => p.advogadoNome)]) {
     const chave = chaveAdvogado(nome);
-    if (chave && !mapa.has(chave)) mapa.set(chave, nome.trim());
+    // "A definir" (audiências das intimações sem advogado) não entra na lista de advogados.
+    if (chave && chave !== "a definir" && !mapa.has(chave)) mapa.set(chave, nome.trim());
   }
   return [...mapa].map(([chave, nome]) => ({ chave, nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }

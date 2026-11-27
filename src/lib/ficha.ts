@@ -167,7 +167,8 @@ export function documentosMarcados(
 /** Motivo para não enviar ao advogado, ou null se pode. */
 export function podeEnviarFicha(f: { empresa?: string | null; advogadoChave?: string | null }): string | null {
   if (!f.empresa?.trim()) return "Informe a empresa.";
-  if (!f.advogadoChave?.trim()) return "Escolha o advogado responsável.";
+  // "A definir" vem das audiências lançadas pelas intimações: não é um advogado de verdade.
+  if (!f.advogadoChave?.trim() || f.advogadoChave.trim().toLowerCase() === "a definir") return "Escolha o advogado responsável.";
   return null;
 }
 

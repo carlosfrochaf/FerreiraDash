@@ -38,6 +38,9 @@ describe("podeEnviarFicha", () => {
   it("pede o advogado", () => {
     expect(podeEnviarFicha({ empresa: "X" })).toBe("Escolha o advogado responsável.");
   });
+  it("não aceita 'A definir' como advogado", () => {
+    expect(podeEnviarFicha({ empresa: "X", advogadoChave: "a definir" })).toBe("Escolha o advogado responsável.");
+  });
   it("libera com os dois", () => {
     expect(podeEnviarFicha({ empresa: "X", advogadoChave: "joao" })).toBeNull();
   });

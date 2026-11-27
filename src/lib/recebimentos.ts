@@ -267,6 +267,7 @@ export function serializarRecebimento(r: RecebimentoDb) {
     id: r.id,
     processoId: r.processoId,
     processoNumero: r.processoNumero,
+    clienteId: r.clienteId,
     clienteNome: r.clienteNome,
     clientePix: r.clientePix,
     reclamada: r.reclamada,
